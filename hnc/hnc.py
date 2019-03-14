@@ -13,7 +13,7 @@ app.css.append_css({
     'external_url': 'https://codepen.io/chriddyp/pen/bWLwgP.css'
 })
 
-df=pd.read_csv('hnc_WT_meta_data.csv',header=0,index_col=0)
+df=pd.read_csv('hnc/hnc_WT_meta_data.csv',header=0,index_col=0)
 
 numerical_cols=[]
 categorical_cols=[]
