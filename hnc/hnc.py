@@ -13,7 +13,7 @@ app.css.append_css({
     'external_url': 'https://codepen.io/chriddyp/pen/bWLwgP.css'
 })
 
-df=pd.read_csv('hnc/hnc_WT_meta_data.csv',header=0,index_col=0)
+df=pd.read_csv('hnc_WT_meta_data.csv',header=0,index_col=0)
 
 numerical_cols=[]
 categorical_cols=[]
@@ -126,5 +126,6 @@ def update_scatterplot(xc, yc, col):
 
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    #app.run_server(debug=True)
+    app.run_server(host="0.0.0.0", debug=True, port=8050)
                     
