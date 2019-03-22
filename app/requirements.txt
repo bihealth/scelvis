@@ -5,4 +5,4 @@ dash-core-components==0.44.0
 plotly
 numpy
 pandas
-matplotlib
+anndata
