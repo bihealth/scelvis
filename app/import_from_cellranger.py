@@ -1,10 +1,9 @@
 import os
 import sys
+import anndata
+import scanpy.api as sc
 import numpy as np
 import pandas as pd
-import scipy.io
-import scipy.sparse
-import gzip
 from argparse import ArgumentParser
 
 parser=ArgumentParser()
@@ -44,93 +43,86 @@ else:
     nc=pd.DataFrame(dict(nclust=clustering['Cluster'].value_counts()))
     clustering=clustering.set_index('Cluster')
     clustering['nclust']=nc
-    clustering['Cluster']='Cluster_'+clustering.index.astype(str)+'_(n='+clustering['nclust'].astype(str)+')'
+    clustering['Cluster']='Cluster_'+clustering.index.astype(str)
     clustering=clustering.set_index('Barcode')['Cluster']
+    clustering=clustering.astype('category')
 
-diffexp_file=os.path.join(args.indir,'outs','analysis','diffexp','graphclust','differential_expression.csv')
-if not os.path.isfile(diffexp_file):
-    raise Exception('cannot find differential expression output at '+diffexp_file)
-else:
-    print('reading differential expression output from '+diffexp_file,file=sys.stderr)
-    diffexp=pd.read_csv(diffexp_file,header=0,index_col=[0,1])
-    diffexp.columns=(diffexp.columns.str.replace('Cluster ','Cluster_')
-                     .str.split(n=1,expand=True)
-                     .rename(['Cluster','Obs']))
-    diffexp=diffexp.stack(level=0).reset_index()
-    diffexp.columns=['GeneID','Gene','Cluster','p_adj','log2_fc','mean_counts']
+if False:
+    diffexp_file=os.path.join(args.indir,'outs','analysis','diffexp','graphclust','differential_expression.csv')
+    if not os.path.isfile(diffexp_file):
+        raise Exception('cannot find differential expression output at '+diffexp_file)
+    else:
+        print('reading differential expression output from '+diffexp_file,file=sys.stderr)
+        diffexp=pd.read_csv(diffexp_file,header=0,index_col=[0,1])
+        diffexp.columns=(diffexp.columns.str.replace('Cluster ','Cluster_')
+                         .str.split(n=1,expand=True)
+                         .rename(['Cluster','Obs']))
+        diffexp=diffexp.stack(level=0).reset_index()
+        diffexp.columns=['GeneID','Gene','Cluster','p_adj','log2_fc','mean_counts']
 
-expression_file=os.path.join(args.indir,'outs','filtered_feature_bc_matrix','matrix.mtx.gz')
+expression_file=os.path.join(args.indir,'outs','filtered_feature_bc_matrix.h5')
 if not os.path.isfile(expression_file):
     raise Exception('cannot find expression file at '+expression_file)
 else:
-    print('reading DGE from '+expression_file,file=sys.stderr)
-    DGE=scipy.io.mmread(expression_file).tocsr()
-
-barcode_file=os.path.join(args.indir,'outs','filtered_feature_bc_matrix','barcodes.tsv.gz')
-if not os.path.isfile(barcode_file):
-    raise Exception('cannot find barcode file at '+barcode_file)
-else:
-    print('reading barcodes from '+barcode_file,file=sys.stderr)
-    barcodes=pd.read_csv(barcode_file,header=None,index_col=None).squeeze()
-
-feature_file=os.path.join(args.indir,'outs','filtered_feature_bc_matrix','features.tsv.gz')
-if not os.path.isfile(feature_file):
-    raise Exception('cannot find feature file at '+feature_file)
-else:
-    print('reading features from '+feature_file,file=sys.stderr)
-    features=pd.read_csv(feature_file,header=None,index_col=None,sep='\t')
+    print('reading gene expression from '+expression_file,file=sys.stderr)
+    ad=sc.read_10x_h5(expression_file)
+    ad.var_names_make_unique()
 
 print('combining meta data',file=sys.stderr)
-meta=(tsne.join(clustering)
-      .join(pd.DataFrame(dict(nUMI=DGE.sum(0).A1,
-                              nGene=(DGE > 0).sum(0).A1),
-                         index=barcodes))
-      .join(pca[['PC-1','PC-2','PC-3']]))
+ad.obs['cluster']=clustering
+ad.obs['n_counts']=ad.X.sum(1).A1
+ad.obs['n_genes']=(ad.X > 0).sum(1).A1
 
-# collapse DGE for gene names
-print('collapsing DGE by gene name')
-genes,rev=np.unique(features[1],return_inverse=True)
-mask=scipy.sparse.csr_matrix((np.ones(len(rev),int),
-                              (rev,np.arange(len(rev)))),
-                             shape=(len(genes),len(rev)))
-dge=mask.dot(DGE)
+print('adding coordinates', file=sys.stderr)
+ad.obsm['X_tsne']=tsne.values
+ad.obsm['X_pca']=pca.values
+
+if False:
+    # collapse DGE for gene names
+    print('collapsing DGE by gene name')
+    genes,rev=np.unique(features[1],return_inverse=True)
+    mask=scipy.sparse.csr_matrix((np.ones(len(rev),int),
+                                  (rev,np.arange(len(rev)))),
+                                 shape=(len(genes),len(rev)))
+    dge=mask.dot(DGE)
+
+if args.split_species:
+    print('determining species mixing',file=sys.stderr)
+    species=ad.var_names.str.split('_',n=1).str[0]
+    for sp in species.unique():
+        ad.obs['nUMI_'+sp]=ad.X[:,species==sp].sum(1).A1
+    cols='nUMI_'+species.unique()
+    ratio=ad.obs[cols].divide(ad.obs[cols].sum(axis=1),axis=0)
+    ad.obs['species']=(ratio > .95).idxmax(axis=1).str.split('_').str[1]
+    ad.obs['species'][ratio.max(axis=1) < .95]='other'
 
 if not args.use_raw:
-    print('normalizing DGE')
-    dge=dge.dot(scipy.sparse.diags(1.e4/DGE.sum(0).A.ravel()))
+    print('normalizing and filtering DGE')
+    sc.pp.filter_cells(ad, min_genes=100)
+    sc.pp.filter_genes(ad, min_cells=5)
+    sc.pp.normalize_per_cell(ad,counts_per_cell_after=1.e4)
+    sc.pp.log1p(ad)
 
 if not os.path.isdir(args.outdir):
     raise Exception('output directory '+args.outdir+' does not exist!')
 
-if args.split_species:
-    print('determining species mixing',file=sys.stderr)
-    species=features[0].str.split('_',n=1).str[0]
-    nUMI={}
-    for sp in species.unique():
-        nUMI['nUMI_'+sp]=DGE[np.where(species==sp)[0]].sum(0).A1
-    nUMI=pd.DataFrame.from_dict(nUMI)
-    nUMI.index=barcodes
-    ratio=nUMI.divide(nUMI.sum(axis=1),axis=0)
-    nUMI['species']=(ratio > .95).idxmax(axis=1).str.split('_').str[1]
-    nUMI['species'][ratio.max(axis=1) < .95]='unclear'
-    meta=meta.join(nUMI)
+out_file=os.path.join(args.outdir,'data.h5ad')
+print('saving anndata object to'+out_file,file=sys.stderr)
+ad.write(out_file)
 
-meta_file=os.path.join(args.outdir,'meta.tsv')
-print('saving meta data to '+meta_file,file=sys.stderr)
-meta.loc[barcodes].to_csv(meta_file,sep='\t',header=True,index=True)
+if False:
+    marker_file=os.path.join(args.outdir,'markers.tsv')
+    print('saving markers to '+marker_file,file=sys.stderr)
+    diffexp.drop('GeneID',axis=1).to_csv(marker_file,sep='\t',header=True,index=False)
 
-marker_file=os.path.join(args.outdir,'markers.tsv')
-print('saving markers to '+marker_file,file=sys.stderr)
-diffexp.drop('GeneID',axis=1).to_csv(marker_file,sep='\t',header=True,index=False)
+    DGE_file=os.path.join(args.outdir,'expression.mtx.gz')
+    print('saving DGE to '+DGE_file,file=sys.stderr)
+    scipy.io.mmwrite(gzip.open(DGE_file,'wb'),dge)
 
-DGE_file=os.path.join(args.outdir,'expression.mtx.gz')
-print('saving DGE to '+DGE_file,file=sys.stderr)
-scipy.io.mmwrite(gzip.open(DGE_file,'wb'),dge)
+    cell_file=os.path.join(args.outdir,'cells.tsv.gz')
+    print('saving cells to '+cell_file,file=sys.stderr)
+    barcodes.to_csv(cell_file,header=None,index=0)
 
-cell_file=os.path.join(args.outdir,'cells.tsv.gz')
-print('saving cells to '+cell_file,file=sys.stderr)
-barcodes.to_csv(cell_file,header=None,index=0)
-
-gene_file=os.path.join(args.outdir,'genes.tsv.gz')
-print('saving genes to '+gene_file,file=sys.stderr)
-pd.Series(genes).to_csv(gene_file,header=None,index=0)
+    gene_file=os.path.join(args.outdir,'genes.tsv.gz')
+    print('saving genes to '+gene_file,file=sys.stderr)
+    pd.Series(genes).to_csv(gene_file,header=None,index=0)
