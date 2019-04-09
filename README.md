@@ -41,9 +41,15 @@ edit the variable `DASH_DATADIR` in the project-specific Dockerfile and then run
 docker build -t ${project} -f datasets/${project}/Dockerfile .
 ```
 
-and finally run the docker image 
+run the docker image 
 
 ```
 docker run -p 8050:8050 ${project}
+```
+
+or save it into a tarball for upload to SODAR
+
+```
+docker save ${project} -o docker/{project}.tar
 ```
 

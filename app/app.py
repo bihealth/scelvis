@@ -3,9 +3,7 @@ import os
 import numpy as np
 import pandas as pd
 import dash
-import re
 import urllib.parse
-import scipy.io
 import anndata
 import dash_core_components as dcc
 import dash_html_components as html
@@ -206,9 +204,12 @@ meta_plot_controls=[html.Div([
     ], className='three columns'),
     
     # second column: plot (depends on plot type)
-    html.Div(id='meta_plot',
-             className='nine columns', style=dict(textAlign='top',
-                                                  marginLeft=25))
+    dcc.Loading(id='loading_meta',
+                children=[html.Div(id='meta_plot',
+                                   className='nine columns', style=dict(textAlign='top',
+                                                                        marginLeft=25))],
+                type='circle')
+
     ])]
 
 ###############################################################################
@@ -310,9 +311,11 @@ expression_plot_controls=[html.Div([
     ], className='three columns'),
     
     # second column: plot (depends on plot type)
-    html.Div(id='expression_plot',
-             className='nine columns', style=dict(textAlign='top',
-                                                  marginLeft=25))
+    dcc.Loading(id='loading_expression',
+                children=[html.Div(id='expression_plot',
+                                   className='nine columns', style=dict(textAlign='top',
+                                                                        marginLeft=25))],
+                type='circle')
     ])]
 
                                       
@@ -913,17 +916,17 @@ def get_expression_dotplot(genelist, group, split):
                            mode='markers',
                            showlegend=False,
                            opacity=1,
-                           marker=dict(size=20*sizes.ravel(),
+                           marker=dict(size=20*np.sqrt(sizes.ravel()),
                                        color=means.ravel(),
                                        colorscale=my_gradients[0]))]
         # extra invisible traces for legend
         traces+=[go.Scatter(x=[0],y=[0], mode='markers',
-                            marker=dict(size=s,color='black'),
+                            marker=dict(size=20*np.sqrt(s),color='black'),
                             name=p,visible='legendonly',
                             legendgroup='size',showlegend=True) 
-                 for s,p in zip([0,10,20],['0% cells','50% cells','100% cells'])]
+                 for s,p in zip([0,.5,1],['0% cells','50% cells','100% cells'])]
         traces+=[go.Scatter(x=[0],y=[0], mode='markers',
-                            marker=dict(size=10,color=my_gradients[0][c][1],symbol='square'),
+                            marker=dict(size=20,color=my_gradients[0][c][1],symbol='square'),
                             name=p,visible='legendonly',
                             legendgroup='color',showlegend=True) 
                  for c,p in zip([0,1],['low','high'])]
@@ -959,25 +962,25 @@ def get_expression_dotplot(genelist, group, split):
                           mode='markers',
                           showlegend=False,
                           opacity=1,
-                          marker=dict(size=20*sizes.ravel(),
+                          marker=dict(size=20*np.sqrt(sizes.ravel()),
                                       color=means.ravel(),
                                       colorscale=my_gradients[n]))
             traces.append(tr)
             
         # extra invisible traces for legend
         traces+=[go.Scatter(x=[None],y=[None], mode='markers',
-                            marker=dict(size=s,color='black'),
+                            marker=dict(size=20*np.sqrt(s),color='black'),
                             name=p,visible='legendonly',
                             legendgroup='size',showlegend=True) 
-                 for s,p in zip([0,10,20],['0% cells', '50% cells','100% cells'])]
+                 for s,p in zip([0,.5,1],['0% cells', '50% cells','100% cells'])]
         traces+=[go.Scatter(x=[None],y=[None], mode='markers',
-                            marker=dict(size=10,symbol='square',
+                            marker=dict(size=20,symbol='square',
                                         color=my_gradients[-1][c][1]),
                             name=p,visible='legendonly',
                             legendgroup='color',showlegend=True) 
                  for c,p in zip([0,1],['low','high'])]
         traces+=[go.Scatter(x=[None],y=[None], mode='markers',
-                            marker=dict(size=10,symbol='square',
+                            marker=dict(size=20,symbol='square',
                                         color=my_gradients[n][1][1]),
                             name=sv,visible='legendonly',
                             legendgroup='split',showlegend=True) 
