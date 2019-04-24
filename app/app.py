@@ -6,6 +6,7 @@ import dash
 import urllib.parse
 import anndata
 import dash_core_components as dcc
+import dash_bootstrap_components as dbc
 import dash_html_components as html
 import plotly.graph_objs as go
 import plotly.tools as tools
@@ -166,51 +167,43 @@ meta_plot_subcontrols=dict(scatter=[html.Label('select x axis'),
                                     values=[]
                                 )])
 
-meta_plot_controls=[html.Div([
+meta_plot_controls=[dbc.Row([
     
     # first column: plot controls
-    html.Div([
-        html.Label('select plot type'),
-
+    dbc.Col([
+        
         # top: determine plot type
-        html.Div([
-            dcc.Tabs(
-                children=[dcc.Tab(label='scatter plot',
-                                  value='scatter',
-                                  children=meta_plot_subcontrols['scatter']),
-                          dcc.Tab(label='violin plot',
-                                  value='violin',
-                                  children=meta_plot_subcontrols['violin']),
-                          dcc.Tab(label='bar plot',
-                                  value='bar',
-                                  children=meta_plot_subcontrols['bar'])],
+        dbc.Container([
+            html.Label('select plot type'),
+            dcc.RadioItems(
                 id='meta_plot_type',
-                vertical=False,
-                style=dict(textAlign='left'),
-                value='scatter')
-        ], style=dict(backgroundColor='0xAAAAA')),
-        
-        html.Hr(),
-        
-        html.Label('select cell sample'),
-        dcc.Dropdown(
-            id='meta_select_cell_sample',
-            options=[dict(label=g,value=g) for g in [100,1000,5000]
-                     if g < meta.shape[0]]+[dict(label='all',value='all')],
-            value=min(1000,meta.shape[0]),
-            disabled=False
-        ),
-        
-    ], className='three columns'),
+                options=[dict(label='scatter plot',value='scatter'),
+                         dict(label='violin plot',value='violin'),
+                         dict(label='bar plot',value='bar')],
+                value='scatter',
+                labelStyle={'display': 'block'}),
+
+            html.Hr(),
+
+            dbc.Container(id='meta_plot_subcontrols'),
+            
+            html.Hr(),
+            
+            html.Label('select cell sample'),
+            dcc.Dropdown(
+                id='meta_select_cell_sample',
+                options=[dict(label=g,value=g) for g in [100,1000,5000]
+                         if g < meta.shape[0]]+[dict(label='all',value='all')],
+                value=min(1000,meta.shape[0]),
+                disabled=False
+            )]),
+        ],className='col-3'),
     
     # second column: plot (depends on plot type)
-    dcc.Loading(id='loading_meta',
-                children=[html.Div(id='meta_plot',
-                                   className='nine columns', style=dict(textAlign='top',
-                                                                        marginLeft=25))],
-                type='circle')
-
-    ])]
+    dbc.Col([dcc.Loading(id='meta_plot',
+                         type='circle')],
+            className='col-9')])
+]
 
 ###############################################################################
 ## expression plot controls
@@ -255,83 +248,72 @@ expression_plot_subcontrols=dict(scatter=[html.Label('select x axis'),
                                  )
 
 
-expression_plot_controls=[html.Div([
+expression_plot_controls=[dbc.Row([
     
     # first column: plot controls
     
-    html.Div([
-        html.Label('select plot type'),
+    dbc.Col([
         
         # top: determine plot type
-        html.Div([
-            dcc.Tabs(
-                children=[dcc.Tab(label='scatter plot',
-                                  value='scatter',
-                                  children=expression_plot_subcontrols['scatter']),
-                          dcc.Tab(label='violin plot',
-                                  value='violin',
-                                  children=expression_plot_subcontrols['violin']),
-                          dcc.Tab(label='dot plot',
-                                  value='dot',
-                                  children=expression_plot_subcontrols['dot'])],
-                id='expression_plot_type',
-                vertical=False,
-                style=dict(textAlign='left'),
-                value='scatter')
-            
-        ], style=dict(backgroundColor='0xAAAAA')),
-        
-        html.Hr(),
-        
-        html.Label('select gene(s)'),
-        dcc.Dropdown(
-            id='expression_select_genes',
-            options=[dict(label=g,value=g) for g in genes],
-            value=[],
-            multi=True
-        ),
-        #html.Label('or input a list: '),
-        # 
-        #dcc.Input(
-        #    id='expression_input_genes',
-        #    placeholder='enter list of genes ...',
-        #    type='text',
-        #    value=''
-        #    ),
-        
-        html.Label('select cell sample'),
-        dcc.Dropdown(
-            id='expression_select_cell_sample',
-            options=[dict(label=g,value=g) for g in [100,1000,5000]
-                     if g < meta.shape[0]]+[dict(label='all',value='all')],
-            value=min(1000,meta.shape[0]),
-            disabled=False
-        ),
+        dbc.Container([
 
-    ], className='three columns'),
+            html.Label('select plot type'),
+            
+            dcc.RadioItems(
+                id='expression_plot_type',
+                options=[dict(label='scatter plot',value='scatter'),
+                         dict(label='violin plot',value='violin'),
+                         dict(label='dot plot',value='dot')],
+                value='scatter',
+                labelStyle={'display': 'block'}),
+            
+            html.Hr(),
+            
+            dbc.Container(id='expression_plot_subcontrols'),
+            
+            
+            html.Hr(),
+            
+            html.Label('select gene(s)'),
+            dcc.Dropdown(
+                id='expression_select_genes',
+                options=[dict(label=g,value=g) for g in genes],
+                value=[],
+                multi=True
+            ),
+            
+            html.Label('select cell sample'),
+            dcc.Dropdown(
+                id='expression_select_cell_sample',
+                options=[dict(label=g,value=g) for g in [100,1000,5000]
+                         if g < meta.shape[0]]+[dict(label='all',value='all')],
+                value=min(1000,meta.shape[0]),
+                disabled=False)
+        ]),
+    ],className='col-3'),
     
     # second column: plot (depends on plot type)
-    dcc.Loading(id='loading_expression',
-                children=[html.Div(id='expression_plot',
-                                   className='nine columns', style=dict(textAlign='top',
-                                                                        marginLeft=25))],
-                type='circle')
-    ])]
+    dbc.Col([dcc.Loading(id='expression_plot',
+                         type='circle')],
+            className='col-9')])
+]
 
                                       
 ###############################################################################
 ## app layout
 ###############################################################################
 
-app=dash.Dash(datadir)
+app=dash.Dash(datadir,
+              external_stylesheets=[dbc.themes.BOOTSTRAP,
+                                    dbc.themes.CERULEAN])
 app.config['suppress_callback_exceptions']=True
 
 # use external css (should be fixed)
-app.css.append_css({
-    'external_url': 'https://codepen.io/chriddyp/pen/bWLwgP.css'
-})
+#app.css.append_css({
+#    'external_url': 'https://codepen.io/chriddyp/pen/bWLwgP.css'
+#})
 # Loading screen CSS
-app.css.append_css({"external_url": "https://codepen.io/chriddyp/pen/brPBPO.css"})
+#app.css.append_css({"external_url": "https://codepen.io/chriddyp/pen/brPBPO.css"})
 
 
 # specify layout: header, and then a Div with 3 main tabs
@@ -340,7 +322,7 @@ app.layout = html.Div([
     ############################################################
     ## header
     ############################################################
-    html.H1('single-cell data from '+datadir),
+    html.H1('interactive single-cell data analysis and visualization'),
     html.Hr(),
 
     dcc.Tabs(id='main_tabs',
@@ -352,25 +334,19 @@ app.layout = html.Div([
                  dcc.Tab(label='about this dataset',
                          value='about',
                          children=[
-                             html.Div([
-                                 dcc.Markdown('\n'.join(about_md))
-                             ],
-                                      style=dict(marginRight=50,
-                                                 marginLeft=50,
-                                                 marginBottom=50,
-                                                 marginTop=50))
+                             dcc.Markdown('\n'.join(about_md))
                          ]),
 
                  # "cell  annotation" tab: scatter, violin or bar plots
                  dcc.Tab(label='explore cell annotation',
                          value='meta',
-                         children=meta_plot_controls                           
+                         children=meta_plot_controls
                  ),
 
                  # "gene expression" tab: scatter, violin or dot plots
                  dcc.Tab(label='explore gene expression',
                          value='expression',
-                         children=expression_plot_controls,
+                         children=expression_plot_controls
                  ),
              ])],
                       style=dict(marginRight=50,
@@ -382,6 +358,12 @@ app.layout = html.Div([
 ###############################################################################
 ## meta plots
 ###############################################################################
+
+# callback for meta plot controls
+@app.callback([dash.dependencies.Output('meta_plot_subcontrols','children')],
+              [dash.dependencies.Input('meta_plot_type','value')])
+def get_meta_plot_subcontrols(plot_type):
+    return [meta_plot_subcontrols[plot_type]]
 
 # callback for meta plot (disable sampling for dot plot)
 @app.callback([dash.dependencies.Output('meta_plot','children'),
@@ -669,6 +651,13 @@ def get_meta_barplot(group, split, options):
 ###############################################################################
 ## expression plots
 ###############################################################################
+
+# callback for expression plot controls
+@app.callback([dash.dependencies.Output('expression_plot_subcontrols','children')],
+              [dash.dependencies.Input('expression_plot_type','value')])
+def get_expression_plot_subcontrols(plot_type):
+    return [expression_plot_subcontrols[plot_type]]
+
 
 # callback for expression plot (disable sampling for dot plot)
 @app.callback([dash.dependencies.Output('expression_plot','children'),
