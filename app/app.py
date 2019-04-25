@@ -6,7 +6,8 @@ import dash
 import urllib.parse
 import anndata
 import dash_core_components as dcc
-import dash_bootstrap_components as dbc
+import dash_table
+#import dash_bootstrap_components as dbc
 import dash_html_components as html
 import plotly.graph_objs as go
 import plotly.tools as tools
@@ -96,19 +97,21 @@ for col in meta.columns:
 genes=DGE.index
 cells=DGE.columns
 
-if False:
-    marker_file=os.path.join(datadir,'markers.tsv.gz')
-    if os.path.isfile(marker_file):
-        print('reading markers from '+markers)
-        markers=pd.read_csv(marker_file,header=0,sep='\t')
-    else:
+marker_file=os.path.join(datadir,'markers.csv')
+if os.path.isfile(marker_file):
+    print('reading markers from '+marker_file)
+    markers=pd.read_csv(marker_file,header=0,index_col=0)
+    if 'gene' not in markers.columns:
+        print('no "gene" column in '+marker_file+'!')
         markers=None
+else:
+    markers=None
 
 ###############################################################################
 ## meta plot controls
 ###############################################################################
 
-meta_plot_subcontrols=dict(scatter=[html.Label('select x axis'),
+meta_plot_controls=dict(scatter=html.Div([html.Label('select x axis'),
                                     dcc.Dropdown(
                                         id='meta_scatter_select_x',
                                         options=[dict(label=c,value=c) for c in numerical_meta],
@@ -127,7 +130,8 @@ meta_plot_subcontrols=dict(scatter=[html.Label('select x axis'),
                                         options=[dict(label=c,value=c) for c in meta.columns],
                                         value=categorical_meta[0]
                                     )],
-                           violin=[html.Label('select variable(s) and scaling'),
+                                            title="""select x- and y-coordinates for embedding (TSNE or UMAP)\ncolor points according to cell annotation (e.g., cluster identity or n_genes)"""),
+                           violin=html.Div([html.Label('select variable(s) and scaling'),
                                    dcc.Dropdown(
                                        id='meta_violin_select_vars',
                                        options=[dict(label=c,value=c) for c in numerical_meta],
@@ -146,7 +150,8 @@ meta_plot_subcontrols=dict(scatter=[html.Label('select x axis'),
                                        options=[dict(label=c,value=c) for c in categorical_meta],
                                        value=None
                                    )],
-                           bar=[html.Label('select grouping'),
+                                           title="""select one or more numerical variables (e.g., n_genes or n_counts) to display in violin plots, choose how to group the cells (e.g., by cluster) and optionally also split these groups by another variable (e.g., by genotype)"""),
+                           bar=html.Div([html.Label('select grouping'),
                                 dcc.Dropdown(
                                     id='meta_bar_select_group',
                                     options=[dict(label=c,value=c) for c in categorical_meta],
@@ -161,56 +166,73 @@ meta_plot_subcontrols=dict(scatter=[html.Label('select x axis'),
                                 html.Label('other properties'),
                                 dcc.Checklist(
                                     id='meta_bar_options',
-                                    style=dict(marginTop=0,
-                                               marginBottom=20),
-                                    options=[dict(label=c,value=c) for c in ['normalized','stacked']],
+                                    options=[dict(label='normalized',
+                                                  value='normalized',
+                                                  title="""plot fractions instead of cell numbers"""),
+                                             dict(label='stacked',
+                                                  value='stacked',
+                                                  title="""stack bars instead of side-by-side""")],
                                     values=[]
-                                )])
+                                )],
+                                        title="""select group for which cell numbers are tallied; these groups can optionally be split by another variable for sub-tallies; bars can be normalized and/or stacked"""))
 
-meta_plot_controls=[dbc.Row([
+meta_plot_tab=[html.Div([
     
     # first column: plot controls
-    dbc.Col([
+    html.Div([
+
+        html.P(),
         
         # top: determine plot type
-        dbc.Container([
-            html.Label('select plot type'),
-            dcc.RadioItems(
-                id='meta_plot_type',
-                options=[dict(label='scatter plot',value='scatter'),
-                         dict(label='violin plot',value='violin'),
-                         dict(label='bar plot',value='bar')],
-                value='scatter',
-                labelStyle={'display': 'block'}),
-
-            html.Hr(),
-
-            dbc.Container(id='meta_plot_subcontrols'),
+        html.Div([html.Label('select plot type'),
+                  
+                  dcc.RadioItems(
+                      id='meta_plot_type',
+                      options=[dict(label='scatter plot',
+                                    value='scatter'),
+                               dict(label='violin plot',
+                                    value='violin'),
+                               dict(label='bar plot',
+                                    value='bar')],
+                      value='scatter',
+                      labelStyle={'display': 'block'})],
+                 title="""scatter: plot annotation on two-dimensional embedding, e.g., TSNE or UMAP\n"""
+                 """violin: plot distributions of numerical variables (n_cells, n_counts, ...) in cell groups\n"""
+                 """bar: plot cell numbers/fractions per (sub-)group"""),
+        
+        html.Hr(),
             
-            html.Hr(),
-            
-            html.Label('select cell sample'),
-            dcc.Dropdown(
-                id='meta_select_cell_sample',
-                options=[dict(label=g,value=g) for g in [100,1000,5000]
-                         if g < meta.shape[0]]+[dict(label='all',value='all')],
-                value=min(1000,meta.shape[0]),
-                disabled=False
-            )]),
-        ],className='col-3'),
+        # here go the plot-type-specific controls
+        dcc.Loading(id='meta_plot_controls',
+                    type='circle'),
+        
+        html.Hr(),
+        
+        html.Div([html.Label('select cell sample'),
+                  dcc.Dropdown(
+                      id='meta_select_cell_sample',
+                      options=[dict(label=g,value=g) for g in [100,1000,5000]
+                               if g < meta.shape[0]]+[dict(label='all',value='all')],
+                      value='all',
+                      disabled=False
+                  )],
+                 title="""use random sample of cells for faster rendering"""),
+
+        html.P(),
+        html.P()],className='three columns'),
     
     # second column: plot (depends on plot type)
-    dbc.Col([dcc.Loading(id='meta_plot',
-                         type='circle')],
-            className='col-9')])
-]
+    html.Div([dcc.Loading(id='meta_plot',
+                          type='circle')],
+             className='nine columns')
+])]
 
 ###############################################################################
 ## expression plot controls
 ###############################################################################
 
 # plot-type-specific controls
-expression_plot_subcontrols=dict(scatter=[html.Label('select x axis'),
+expression_plot_controls=dict(scatter=html.Div([html.Label('select x axis'),
                                           dcc.Dropdown(
                                               id='expression_scatter_select_x',
                                               options=[dict(label=c,value=c) for c in numerical_meta],
@@ -222,7 +244,8 @@ expression_plot_subcontrols=dict(scatter=[html.Label('select x axis'),
                                               options=[dict(label=c,value=c) for c in numerical_meta],
                                               value=meta.columns[1]
                                           )],
-                                 violin=[html.Label('select grouping'),
+                                                  title="""select x- and y-coordinates of embedding (e.g., TSNE or UMAP)"""),
+                                 violin=html.Div([html.Label('select grouping'),
                                          dcc.Dropdown(
                                              id='expression_violin_select_group',
                                              options=[dict(label=c,value=c) for c in categorical_meta],
@@ -233,7 +256,8 @@ expression_plot_subcontrols=dict(scatter=[html.Label('select x axis'),
                                              id='expression_violin_select_split',
                                              options=[dict(label=c,value=c) for c in categorical_meta],
                                              value=None)],
-                                 dot=[html.Label('select grouping'),
+                                                 title="""choose how to group cells for plotting gene expression distributions (e.g., by cluster) and optionally how to split these groups (e.g., by genotype)"""),
+                                 dot=html.Div([html.Label('select grouping'),
                                       dcc.Dropdown(
                                           id='expression_dot_select_group',
                                           options=[dict(label=c,value=c) for c in categorical_meta],
@@ -244,58 +268,95 @@ expression_plot_subcontrols=dict(scatter=[html.Label('select x axis'),
                                           id='expression_dot_select_split',
                                           options=[dict(label=c,value=c) for c in categorical_meta
                                                    if len(meta[c].unique()) < 4],
-                                          value=None)]
+                                          value=None)],
+                                              title="""choose grouping of cells for y-coordinate of dot plot (e.g., by cluster); optionally split these groups (e.g., by genotype)""")
                                  )
 
 
-expression_plot_controls=[dbc.Row([
-    
-    # first column: plot controls
-    
-    dbc.Col([
+expression_plot_tab=[
+    html.Div([
+        html.Div([
+            
+            # first column: plot controls
+            
+            html.Div([
+                
+                # top: determine plot type
+                html.P(),
+                
+                html.Div([html.Label('select plot type'),
+                          
+                          dcc.RadioItems(
+                              id='expression_plot_type',
+                              options=[dict(label='scatter plot',
+                                            value='scatter'),
+                                       dict(label='violin plot',
+                                            value='violin'),
+                                       dict(label='dot plot',
+                                            value='dot')],
+                              value='scatter',
+                              labelStyle={'display': 'block'})],
+                         title="""scatter: gene expression on 2-dimensional embedding, one plot per gene\n"""
+                         """violin: gene expression distributions in different (sub)groups, one row per gene\n"""
+                         """dot: summarized gene expression in (sub)groups for multiple genes"""),
+                
+                html.Hr(),
+                
+                # here go the plot-type-specific controls
+                dcc.Loading(id='expression_plot_controls',
+                            type='circle'),
+                
+                html.Hr(),
+                
+                html.Div([
+                    html.Label('select gene(s)'),
+                    dcc.Dropdown(
+                        id='expression_select_genes',
+                        options=[dict(label=g,value=g) for g in genes],
+                        value=[],
+                        multi=True
+                    ),
+                    
+                    dcc.Checklist(
+                        id='expression_toggle_marker_list',
+                        options=[dict(label='use marker gene list below for selection',
+                                      value='markers',
+                                      disabled=(markers is None))],
+                        values=[]),
+                ],title="""select one or more genes (remove from list by clicking on x)\nor select from marker gene list by checking the box"""),
+                
+                html.Hr(),
+                
+                html.Div([
+                    html.Label('select cell sample'),
+                    dcc.Dropdown(
+                        id='expression_select_cell_sample',
+                        options=[dict(label=g,value=g) for g in [100,1000,5000]
+                                 if g < meta.shape[0]]+[dict(label='all',value='all')],
+                        value='all',
+                        disabled=False)],
+                         title="""use random sample of cells for faster rendering"""),
+                
+                html.P(),
+                html.P()],className='three columns'),
+            
+            # second column: plot (depends on plot type)
+            html.Div([dcc.Loading(id='expression_plot',
+                                  type='circle')
+            ],className='nine columns')
+        ],className='twelve columns'),
         
-        # top: determine plot type
-        dbc.Container([
-
-            html.Label('select plot type'),
-            
-            dcc.RadioItems(
-                id='expression_plot_type',
-                options=[dict(label='scatter plot',value='scatter'),
-                         dict(label='violin plot',value='violin'),
-                         dict(label='dot plot',value='dot')],
-                value='scatter',
-                labelStyle={'display': 'block'}),
-            
-            html.Hr(),
-            
-            dbc.Container(id='expression_plot_subcontrols'),
-            
-            
-            html.Hr(),
-            
-            html.Label('select gene(s)'),
-            dcc.Dropdown(
-                id='expression_select_genes',
-                options=[dict(label=g,value=g) for g in genes],
-                value=[],
-                multi=True
-            ),
-            
-            html.Label('select cell sample'),
-            dcc.Dropdown(
-                id='expression_select_cell_sample',
-                options=[dict(label=g,value=g) for g in [100,1000,5000]
-                         if g < meta.shape[0]]+[dict(label='all',value='all')],
-                value=min(1000,meta.shape[0]),
-                disabled=False)
-        ]),
-    ],className='col-3'),
-    
-    # second column: plot (depends on plot type)
-    dbc.Col([dcc.Loading(id='expression_plot',
-                         type='circle')],
-            className='col-9')])
+        
+        # next line for marker table
+        html.P(),
+        html.Hr(),
+        html.P(),
+        
+        html.Div([dcc.Loading(id='expression_marker_list',
+                              type='circle'),
+        ],className='twelve columns')
+        
+    ],className='twelve columns')
 ]
 
                                       
@@ -303,15 +364,15 @@ expression_plot_controls=[dbc.Row([
 ## app layout
 ###############################################################################
 
-app=dash.Dash(datadir,
-              external_stylesheets=[dbc.themes.BOOTSTRAP,
-                                    dbc.themes.CERULEAN])
+app=dash.Dash(datadir)
+#              external_stylesheets=[dbc.themes.BOOTSTRAP,
+#                                    dbc.themes.CERULEAN])
 app.config['suppress_callback_exceptions']=True
 
 # use external css (should be fixed)
-#app.css.append_css({
-#    'external_url': 'https://codepen.io/chriddyp/pen/bWLwgP.css'
-#})
+app.css.append_css({
+    'external_url': 'https://codepen.io/chriddyp/pen/bWLwgP.css'
+})
 # Loading screen CSS
 #app.css.append_css({"external_url": "https://codepen.io/chriddyp/pen/brPBPO.css"})
 
@@ -328,6 +389,9 @@ app.layout = html.Div([
     dcc.Tabs(id='main_tabs',
              value='meta',
              style=dict(width='40%',height='5%'),
+             colors=dict(border='#d6d6d6',
+                         primary='#33cc33',
+                         background='#f9f9f9'),
              children=[
                  
                  # "about" tab: displays markdown
@@ -340,13 +404,13 @@ app.layout = html.Div([
                  # "cell  annotation" tab: scatter, violin or bar plots
                  dcc.Tab(label='explore cell annotation',
                          value='meta',
-                         children=meta_plot_controls
+                         children=meta_plot_tab
                  ),
 
                  # "gene expression" tab: scatter, violin or dot plots
                  dcc.Tab(label='explore gene expression',
                          value='expression',
-                         children=expression_plot_controls
+                         children=expression_plot_tab
                  ),
              ])],
                       style=dict(marginRight=50,
@@ -360,10 +424,10 @@ app.layout = html.Div([
 ###############################################################################
 
 # callback for meta plot controls
-@app.callback([dash.dependencies.Output('meta_plot_subcontrols','children')],
+@app.callback([dash.dependencies.Output('meta_plot_controls','children')],
               [dash.dependencies.Input('meta_plot_type','value')])
-def get_meta_plot_subcontrols(plot_type):
-    return [meta_plot_subcontrols[plot_type]]
+def get_meta_plot_controls(plot_type):
+    return [meta_plot_controls[plot_type]]
 
 # callback for meta plot (disable sampling for dot plot)
 @app.callback([dash.dependencies.Output('meta_plot','children'),
@@ -372,25 +436,31 @@ def get_meta_plot_subcontrols(plot_type):
 
 def render_meta_plot (plot_type):
     if plot_type=='scatter':
-        return [dcc.Graph(id='meta_scatter_plot'),
+        return [html.P(),
+                dcc.Graph(id='meta_scatter_plot'),
                 html.A('download data for this plot',
                        id='meta_scatter_download',
                        download='plot_data.csv',
                        href="",
+                       hidden=True,
                        target="_blank")],False
     elif plot_type=='violin':
-        return [dcc.Graph(id='meta_violin_plot'),
+        return [html.P(),
+                dcc.Graph(id='meta_violin_plot'),
                 html.A('download data for this plot',
                        id='meta_violin_download',
                        download='plot_data.csv',
                        href="",
+                       hidden=True,
                        target="_blank")],False
     elif plot_type=='bar':
-        return [dcc.Graph(id='meta_bar_plot'),
+        return [html.P(),
+                dcc.Graph(id='meta_bar_plot'),
                 html.A('download data for this plot',
                        id='meta_bar_download',
                        download='plot_data.csv',
                        href="",
+                       hidden=True,
                        target="_blank")],True
 
 @app.callback(dash.dependencies.Output('meta_bar_options','options'),
@@ -402,21 +472,23 @@ def toggle_meta_bar_options(split):
     else:
         return [dict(label=c,value=c) for c in ['normalized','stacked']]
         
-
-
 #####################
 # meta scatter plot #
 #####################
     
 @app.callback(
     [dash.dependencies.Output('meta_scatter_plot','figure'),
-     dash.dependencies.Output('meta_scatter_download','href')],
+     dash.dependencies.Output('meta_scatter_download','href'),
+     dash.dependencies.Output('meta_scatter_download','hidden')],
     [dash.dependencies.Input('meta_scatter_select_x','value'),
      dash.dependencies.Input('meta_scatter_select_y','value'),
      dash.dependencies.Input('meta_scatter_select_color','value'),
      dash.dependencies.Input('meta_select_cell_sample','value')])
 
 def get_meta_scatterplot(xc, yc, col, sample_size):
+
+    if col is None:
+        return {},'',True
 
     if sample_size!='all':
         meta_here=meta.sample(n=sample_size)
@@ -489,7 +561,7 @@ def get_meta_scatterplot(xc, yc, col, sample_size):
                  legend={'x':1.05,'y':1},
                  hovermode='closest'
              ))
-    return fig, csv_string
+    return fig, csv_string, False
 
 #####################
 # meta violin plot  #
@@ -497,13 +569,17 @@ def get_meta_scatterplot(xc, yc, col, sample_size):
 
 @app.callback(
     [dash.dependencies.Output('meta_violin_plot','figure'),
-     dash.dependencies.Output('meta_violin_download','href')],
+     dash.dependencies.Output('meta_violin_download','href'),
+     dash.dependencies.Output('meta_violin_download','hidden')],
     [dash.dependencies.Input('meta_violin_select_vars','value'),
      dash.dependencies.Input('meta_violin_select_group','value'),
      dash.dependencies.Input('meta_violin_select_split','value'),
      dash.dependencies.Input('meta_select_cell_sample','value')])
 
 def get_meta_violinplot(variables, group, split, sample_size):
+
+    if variables is None or len(variables)==0:
+        return {},'',True
 
     if sample_size!='all':
         meta_here=meta.sample(n=sample_size)
@@ -582,7 +658,7 @@ def get_meta_violinplot(variables, group, split, sample_size):
     csv_string='data:text/csv;charset=utf-8,'+\
         urllib.parse.quote(data.to_csv(index=True, header=True, encoding='utf-8'))
 
-    return fig,csv_string
+    return fig,csv_string,False
 
 #####################
 # meta bar plot     #
@@ -590,12 +666,16 @@ def get_meta_violinplot(variables, group, split, sample_size):
 
 @app.callback(
     [dash.dependencies.Output('meta_bar_plot','figure'),
-     dash.dependencies.Output('meta_bar_download','href')],
+     dash.dependencies.Output('meta_bar_download','href'),
+     dash.dependencies.Output('meta_bar_download','hidden')],
     [dash.dependencies.Input('meta_bar_select_group','value'),
      dash.dependencies.Input('meta_bar_select_split','value'),
      dash.dependencies.Input('meta_bar_options','values')])
 
 def get_meta_barplot(group, split, options):
+
+    if group is None:
+        return {},'',True
 
     if split is None:
         groupvals=meta[group].unique()
@@ -643,37 +723,32 @@ def get_meta_barplot(group, split, options):
     csv_string='data:text/csv;charset=utf-8,'+\
         urllib.parse.quote(data.to_csv(index=True, header=True, encoding='utf-8'))
 
-    return fig,csv_string
+    return fig,csv_string,False
     
-
-    
-
 ###############################################################################
 ## expression plots
 ###############################################################################
 
 # callback for expression plot controls
-@app.callback([dash.dependencies.Output('expression_plot_subcontrols','children')],
+@app.callback([dash.dependencies.Output('expression_plot_controls','children')],
               [dash.dependencies.Input('expression_plot_type','value')])
-def get_expression_plot_subcontrols(plot_type):
-    return [expression_plot_subcontrols[plot_type]]
+def get_expression_plot_controls(plot_type):
+    return [expression_plot_controls[plot_type]]
 
 
 # callback for expression plot (disable sampling for dot plot)
 @app.callback([dash.dependencies.Output('expression_plot','children'),
                dash.dependencies.Output('expression_select_cell_sample','disabled')],
-              [dash.dependencies.Input('expression_select_genes','value'),
-               dash.dependencies.Input('expression_plot_type','value')])
+              [dash.dependencies.Input('expression_plot_type','value')])
 
-def render_expression_plot (genelist, plot_type):
-    if len(genelist)==0:
-        return [],False
+def render_expression_plot (plot_type):
     if plot_type=='scatter':
         return [dcc.Graph(id='expression_scatter_plot'),
                 html.A('download data for this plot',
                        id='expression_scatter_download',
                        download='plot_data.csv',
                        href="",
+                       hidden=True,
                        target="_blank")],False,
     elif plot_type=='violin':
         return [dcc.Graph(id='expression_violin_plot'),
@@ -681,6 +756,7 @@ def render_expression_plot (genelist, plot_type):
                        id='expression_violin_download',
                        download='plot_data.csv',
                        href="",
+                       hidden=True,
                        target="_blank")],False
     elif plot_type=='dot':
         return [dcc.Graph(id='expression_dot_plot'),
@@ -688,34 +764,55 @@ def render_expression_plot (genelist, plot_type):
                        id='expression_dot_download',
                        download='plot_data.csv',
                        href="",
+                       hidden=True,
                        target="_blank")],True
 
-# callback for gene selection using Input
-#@app.callback(dash.dependencies.Output('expression_select_genes','value'),
-#              [dash.dependencies.Input('expression_input_genes','n_submit'),
-#               dash.dependencies.Input('expression_input_genes','value')])
-#
-#def update_gene_selection(n_submit, text):
-#
-#    geneset=set()
-#    for g in re.split('[,\s]',text):
-#        if g in genes:
-#            geneset.add(g)
-#
-#    return list(geneset)
+@app.callback(dash.dependencies.Output('expression_marker_list','children'),
+              [dash.dependencies.Input('expression_toggle_marker_list','values')])
+
+def toggle_marker_list(values):
+    if 'markers' in values:
+        return [dash_table.DataTable(id='marker_list',
+                                     columns=[{'name': i, 'id': i} for i in markers.columns],
+                                     data=markers.round(3).to_dict('rows'),
+                                     n_fixed_rows=1,
+                                     style_as_list_view=True,
+                                     sorting=True,
+                                     sorting_type='single',
+                                     row_selectable='multi',
+                                     pagination_mode='fe',
+                                     selected_rows=[],
+                                     style_table=dict(maxHeight=300,
+                                                      overflowY='scroll')),
+                html.Button('add selected genes',id='marker_selection')]
+    else:
+        return [html.P()]
+
+# callback for gene selection from marker list
+@app.callback(dash.dependencies.Output('expression_select_genes','value'),
+              [dash.dependencies.Input('marker_selection','n_clicks')],
+              [dash.dependencies.State('marker_list','selected_rows')])
+
+def update_gene_selection(n_clicks, rows):
+
+    return list(markers.iloc[rows]['gene'])
 
 ###########################
 # expression scatter plot #
 ###########################
     
 @app.callback([dash.dependencies.Output('expression_scatter_plot','figure'),
-               dash.dependencies.Output('expression_scatter_download','href')],
+               dash.dependencies.Output('expression_scatter_download','href'),
+               dash.dependencies.Output('expression_scatter_download','hidden')],
     [dash.dependencies.Input('expression_scatter_select_x','value'),
      dash.dependencies.Input('expression_scatter_select_y','value'),
      dash.dependencies.Input('expression_select_genes','value'),
      dash.dependencies.Input('expression_select_cell_sample','value')])
 
 def get_expression_scatterplot(xc, yc, genelist, sample_size):
+
+    if genelist is None or len(genelist)==0:
+        return {},'',True
 
     if sample_size!='all':
         DGE_here=DGE.sample(n=sample_size,axis=1)
@@ -725,8 +822,13 @@ def get_expression_scatterplot(xc, yc, genelist, sample_size):
         meta_here=meta
 
     ngenes=len(genelist)
-    nrow=int(np.floor(np.sqrt(ngenes)))
-    ncol=int(np.ceil(ngenes/nrow))
+    if ngenes > 1:
+        nrow=int(np.floor(np.sqrt(ngenes)))
+        ncol=int(np.ceil(ngenes/nrow))
+    else:
+        nrow=1
+        ncol=1
+        
     fig=tools.make_subplots(rows=nrow,
                             cols=ncol,
                             specs=[[{} for c in range(ncol)] for r in range(nrow)],
@@ -774,7 +876,7 @@ def get_expression_scatterplot(xc, yc, genelist, sample_size):
     csv_string='data:text/csv;charset=utf-8,'+\
         urllib.parse.quote(data)
 
-    return fig,csv_string
+    return fig,csv_string,False
 
 ###########################
 # expression violin plot  #
@@ -782,13 +884,17 @@ def get_expression_scatterplot(xc, yc, genelist, sample_size):
 
 @app.callback(
     [dash.dependencies.Output('expression_violin_plot','figure'),
-     dash.dependencies.Output('expression_violin_download','href')],
+     dash.dependencies.Output('expression_violin_download','href'),
+     dash.dependencies.Output('expression_violin_download','hidden')],
     [dash.dependencies.Input('expression_select_genes','value'),
      dash.dependencies.Input('expression_select_cell_sample','value'),
      dash.dependencies.Input('expression_violin_select_group','value'),
      dash.dependencies.Input('expression_violin_select_split','value')])
 
 def get_expression_violinplot(genelist, sample_size, group, split):
+
+    if genelist is None or len(genelist)==0:
+        return {},'',True
 
     if sample_size!='all':
         DGE_here=DGE.sample(n=sample_size,axis=1)
@@ -867,7 +973,7 @@ def get_expression_violinplot(genelist, sample_size, group, split):
     csv_string='data:text/csv;charset=utf-8,'+\
         urllib.parse.quote(data.to_csv(index=True, header=True, encoding='utf-8'))
 
-    return fig,csv_string
+    return fig,csv_string,False
     
 ##############################
 # expression dot/bubble plot #
@@ -875,12 +981,16 @@ def get_expression_violinplot(genelist, sample_size, group, split):
 
 @app.callback(
     [dash.dependencies.Output('expression_dot_plot','figure'),
-     dash.dependencies.Output('expression_dot_download','href')],
+     dash.dependencies.Output('expression_dot_download','href'),
+     dash.dependencies.Output('expression_dot_download','hidden')],
     [dash.dependencies.Input('expression_select_genes','value'),
      dash.dependencies.Input('expression_dot_select_group','value'),
      dash.dependencies.Input('expression_dot_select_split','value')])
 
 def get_expression_dotplot(genelist, group, split):
+
+    if genelist is None or len(genelist)==0:
+        return {},'',True
     
     groupvals=meta[group].cat.categories
     ngroup=len(groupvals)
@@ -994,7 +1104,7 @@ def get_expression_dotplot(genelist, group, split):
         urllib.parse.quote(data.to_csv(index=True, header=True, encoding='utf-8'))
 
     fig=dict(data=traces,layout=layout)
-    return fig,csv_string
+    return fig,csv_string,False
 
 
 if __name__ == '__main__':
