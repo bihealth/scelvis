@@ -35,10 +35,16 @@ python app.py
 
 ## docker
 
-edit the variable `DASH_DATADIR` in the project-specific Dockerfile and then run docker with
+to keep the docker build context small, we copy `app.py`, `requirements.txt` and `assets` into the directory of the corresponding dataset for project `${project}`
+
+then run docker with
 
 ```
-docker build -t ${project} -f datasets/${project}/Dockerfile .
+cd datasets/${project}
+cp ../../app/app.py .
+cp ../../app/requirements.txt .
+cp -r ../../app/assets .
+docker build -t ${project} -f ../../app/Dockerfile .
 ```
 
 run the docker image 
@@ -50,6 +56,6 @@ docker run -p 8050:8050 ${project}
 or save it into a tarball for upload to SODAR
 
 ```
-docker save ${project} -o docker/{project}.tar
+docker save ${project} -o ../../docker/{project}.tar
 ```
 
