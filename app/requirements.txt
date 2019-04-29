@@ -2,6 +2,7 @@ dash
 dash-renderer
 dash-html-components
 dash-core-components
+dash_table
 plotly
 numpy
 pandas

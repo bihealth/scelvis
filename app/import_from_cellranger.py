@@ -17,6 +17,9 @@ parser.add_argument('--use_raw',dest='use_raw',
 parser.add_argument('--split_species',dest='split_species',
                     default=False,action='store_true',
                     help="""split species""")
+parser.add_argument('--nmarkers',dest='nmarkers',
+                    default=10,type=int,
+                    help="""save top n markers per cluster in markers.file [10]""")
 
 args=parser.parse_args()
 
@@ -47,18 +50,17 @@ else:
     clustering=clustering.set_index('Barcode')['Cluster']
     clustering=clustering.astype('category')
 
-if False:
-    diffexp_file=os.path.join(args.indir,'outs','analysis','diffexp','graphclust','differential_expression.csv')
-    if not os.path.isfile(diffexp_file):
-        raise Exception('cannot find differential expression output at '+diffexp_file)
-    else:
-        print('reading differential expression output from '+diffexp_file,file=sys.stderr)
-        diffexp=pd.read_csv(diffexp_file,header=0,index_col=[0,1])
-        diffexp.columns=(diffexp.columns.str.replace('Cluster ','Cluster_')
-                         .str.split(n=1,expand=True)
-                         .rename(['Cluster','Obs']))
-        diffexp=diffexp.stack(level=0).reset_index()
-        diffexp.columns=['GeneID','Gene','Cluster','p_adj','log2_fc','mean_counts']
+diffexp_file=os.path.join(args.indir,'outs','analysis','diffexp','graphclust','differential_expression.csv')
+if not os.path.isfile(diffexp_file):
+    raise Exception('cannot find differential expression output at '+diffexp_file)
+else:
+    print('reading differential expression output from '+diffexp_file,file=sys.stderr)
+    diffexp=pd.read_csv(diffexp_file,header=0,index_col=[0,1])
+    diffexp.columns=(diffexp.columns.str.replace('Cluster ','Cluster_')
+                     .str.split(n=1,expand=True)
+                     .rename(['Cluster','Obs']))
+    diffexp=diffexp.stack(level=0).reset_index()
+    diffexp.columns=['GeneID','gene','Cluster','p_adj','log2_fc','mean_counts']
 
 expression_file=os.path.join(args.indir,'outs','filtered_feature_bc_matrix.h5')
 if not os.path.isfile(expression_file):
@@ -110,11 +112,16 @@ out_file=os.path.join(args.outdir,'data.h5ad')
 print('saving anndata object to'+out_file,file=sys.stderr)
 ad.write(out_file)
 
-if False:
-    marker_file=os.path.join(args.outdir,'markers.tsv')
-    print('saving markers to '+marker_file,file=sys.stderr)
-    diffexp.drop('GeneID',axis=1).to_csv(marker_file,sep='\t',header=True,index=False)
+marker_file=os.path.join(args.outdir,'markers.csv')
+print('saving top '+str(args.nmarkers)+' markers per cluster to '+marker_file,file=sys.stderr)
+diffexp[(diffexp['p_adj'] < .05) & (diffexp['log2_fc'] > 0)]\
+    .drop('GeneID',axis=1)\
+    .sort_values(['Cluster','p_adj'])\
+    .groupby('Cluster')\
+    .head(args.nmarkers)\
+    .to_csv(marker_file,header=True,index=True)
 
+if False:
     DGE_file=os.path.join(args.outdir,'expression.mtx.gz')
     print('saving DGE to '+DGE_file,file=sys.stderr)
     scipy.io.mmwrite(gzip.open(DGE_file,'wb'),dge)

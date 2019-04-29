@@ -48,6 +48,8 @@ my_gradients=[[[0,'rgb(180,180,180)'], # grey to blue
               [[0,'rgb(180,180,180)'], # grey to black
                [1,'rgb(0,0,0)']]]
 
+PLOT_HEIGHT=500
+
 
 ##############################################################################
 ## get data
@@ -219,13 +221,13 @@ meta_plot_tab=[html.Div([
                  title="""use random sample of cells for faster rendering"""),
 
         html.P(),
-        html.P()],className='three columns'),
+        html.P()],className='col-3'),
     
     # second column: plot (depends on plot type)
     html.Div([dcc.Loading(id='meta_plot',
                           type='circle')],
-             className='nine columns')
-])]
+             className='col-9')
+],className='row')]
 
 ###############################################################################
 ## expression plot controls
@@ -319,7 +321,7 @@ expression_plot_tab=[
                     
                     dcc.Checklist(
                         id='expression_toggle_marker_list',
-                        options=[dict(label='use marker gene list below for selection',
+                        options=[dict(label='use marker table for selection',
                                       value='markers',
                                       disabled=(markers is None))],
                         values=[]),
@@ -338,13 +340,13 @@ expression_plot_tab=[
                          title="""use random sample of cells for faster rendering"""),
                 
                 html.P(),
-                html.P()],className='three columns'),
+                html.P()],className='col-3'),
             
             # second column: plot (depends on plot type)
             html.Div([dcc.Loading(id='expression_plot',
                                   type='circle')
-            ],className='nine columns')
-        ],className='twelve columns'),
+            ],className='col-9')
+        ],className='row'),
         
         
         # next line for marker table
@@ -352,11 +354,10 @@ expression_plot_tab=[
         html.Hr(),
         html.P(),
         
-        html.Div([dcc.Loading(id='expression_marker_list',
-                              type='circle'),
-        ],className='twelve columns')
+        dcc.Loading(id='expression_marker_list',
+                    type='circle')
         
-    ],className='twelve columns')
+    ])
 ]
 
                                       
@@ -370,9 +371,9 @@ app=dash.Dash(datadir)
 app.config['suppress_callback_exceptions']=True
 
 # use external css (should be fixed)
-app.css.append_css({
-    'external_url': 'https://codepen.io/chriddyp/pen/bWLwgP.css'
-})
+#app.css.append_css({
+#    'external_url': 'https://codepen.io/chriddyp/pen/bWLwgP.css'
+#})
 # Loading screen CSS
 #app.css.append_css({"external_url": "https://codepen.io/chriddyp/pen/brPBPO.css"})
 
@@ -559,7 +560,8 @@ def get_meta_scatterplot(xc, yc, col, sample_size):
                  yaxis=dict(title=yc),
                  margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
                  legend={'x':1.05,'y':1},
-                 hovermode='closest'
+                 hovermode='closest',
+                 height=PLOT_HEIGHT                 
              ))
     return fig, csv_string, False
 
@@ -650,7 +652,8 @@ def get_meta_violinplot(variables, group, split, sample_size):
     fig['layout'].update(xaxis=dict(title=group,tickangle=-45),
                          margin={'l': 50, 'b': 80, 't': 10, 'r': 10},
                          legend={'x':1.05,'y':1},
-                         hovermode='closest')
+                         hovermode='closest',
+                         height=PLOT_HEIGHT)
 
     if split is not None:
         fig['layout'].update(violinmode='group')
@@ -717,7 +720,8 @@ def get_meta_barplot(group, split, options):
                  yaxis=dict(title='cell frequency' if 'normalized' in options else 'cell number'),
                  margin={'l': 50, 'b': 100, 't': 10, 'r': 10},
                  legend={'x':1.05,'y':1},
-                 hovermode='closest'))
+                 hovermode='closest',
+                 height=PLOT_HEIGHT))
 
     data=tally
     csv_string='data:text/csv;charset=utf-8,'+\
@@ -772,30 +776,39 @@ def render_expression_plot (plot_type):
 
 def toggle_marker_list(values):
     if 'markers' in values:
-        return [dash_table.DataTable(id='marker_list',
-                                     columns=[{'name': i, 'id': i} for i in markers.columns],
-                                     data=markers.round(3).to_dict('rows'),
-                                     n_fixed_rows=1,
-                                     style_as_list_view=True,
-                                     sorting=True,
-                                     sorting_type='single',
-                                     row_selectable='multi',
-                                     pagination_mode='fe',
-                                     selected_rows=[],
-                                     style_table=dict(maxHeight=300,
-                                                      overflowY='scroll')),
-                html.Button('add selected genes',id='marker_selection')]
+        return [html.Div([
+            html.Div([html.Button('use selected genes',id='marker_selection')],
+                     className='col-3'),
+            html.Div([dash_table.DataTable(id='marker_list',
+                                           columns=[{'name': i, 'id': i} for i in markers.columns],
+                                           data=markers.round(3).to_dict('rows'),
+                                           n_fixed_rows=1,
+                                           style_as_list_view=True,
+                                           sorting=True,
+                                           sorting_type='single',
+                                           row_selectable='multi',
+                                           pagination_mode=False,
+                                           selected_rows=[],
+                                           style_table=dict(maxHeight=200,
+                                                            overflowY='scroll'))],
+                     className='col-9')],
+                         className='row')]
+
+
     else:
         return [html.P()]
 
 # callback for gene selection from marker list
 @app.callback(dash.dependencies.Output('expression_select_genes','value'),
               [dash.dependencies.Input('marker_selection','n_clicks')],
-              [dash.dependencies.State('marker_list','selected_rows')])
+              [dash.dependencies.State('marker_list','selected_rows'),
+               dash.dependencies.State('expression_toggle_marker_list','values')])
 
-def update_gene_selection(n_clicks, rows):
-
-    return list(markers.iloc[rows]['gene'])
+def update_gene_selection(n_clicks, rows, values):
+    if 'markers' in values:
+        return list(markers.iloc[rows]['gene'])
+    else:
+        return []
 
 ###########################
 # expression scatter plot #
@@ -870,7 +883,8 @@ def get_expression_scatterplot(xc, yc, genelist, sample_size):
             
     fig['layout'].update(margin={'l': 40, 'b': 40, 't': 40, 'r': 40},
                          showlegend=False,
-                         hovermode='closest')
+                         hovermode='closest',
+                         height=PLOT_HEIGHT)
 
     data=DGE.loc[genelist].T.to_csv(index=True, header=True, encoding='utf-8')
     csv_string='data:text/csv;charset=utf-8,'+\
@@ -965,7 +979,8 @@ def get_expression_violinplot(genelist, sample_size, group, split):
     fig['layout'].update(xaxis=dict(title=group,tickangle=-45),
                          margin={'l': 50, 'b': 80, 't': 10, 'r': 10},
                          legend={'x':1.05,'y':1},
-                         hovermode='closest')
+                         hovermode='closest',
+                         height=PLOT_HEIGHT)
 
     if split is not None:
         fig['layout'].update(violinmode='group')
@@ -1015,12 +1030,12 @@ def get_expression_dotplot(genelist, group, split):
                            mode='markers',
                            showlegend=False,
                            opacity=1,
-                           marker=dict(size=20*np.sqrt(sizes.ravel()),
+                           marker=dict(size=20*sizes.ravel(),
                                        color=means.ravel(),
                                        colorscale=my_gradients[0]))]
         # extra invisible traces for legend
         traces+=[go.Scatter(x=[0],y=[0], mode='markers',
-                            marker=dict(size=20*np.sqrt(s),color='black'),
+                            marker=dict(size=20*s,color='black'),
                             name=p,visible='legendonly',
                             legendgroup='size',showlegend=True) 
                  for s,p in zip([0,.5,1],['0% cells','50% cells','100% cells'])]
@@ -1040,9 +1055,10 @@ def get_expression_dotplot(genelist, group, split):
                                                showline=False,
                                                tickvals=np.arange(ngroup),
                                                ticktext=groupvals),
-                         margin={'l': 100, 'b': 100, 't': 40, 'r': 40},
+                         margin={'l': 150, 'b': 100, 't': 40, 'r': 40},
                          showlegend=True,
-                         hovermode='closest')
+                         hovermode='closest',
+                         height=PLOT_HEIGHT)
         
     else:
         splitvals=meta[split].cat.categories
@@ -1061,14 +1077,14 @@ def get_expression_dotplot(genelist, group, split):
                           mode='markers',
                           showlegend=False,
                           opacity=1,
-                          marker=dict(size=20*np.sqrt(sizes.ravel()),
+                          marker=dict(size=20*sizes.ravel(),
                                       color=means.ravel(),
                                       colorscale=my_gradients[n]))
             traces.append(tr)
             
         # extra invisible traces for legend
         traces+=[go.Scatter(x=[None],y=[None], mode='markers',
-                            marker=dict(size=20*np.sqrt(s),color='black'),
+                            marker=dict(size=20*s,color='black'),
                             name=p,visible='legendonly',
                             legendgroup='size',showlegend=True) 
                  for s,p in zip([0,.5,1],['0% cells', '50% cells','100% cells'])]
@@ -1096,9 +1112,10 @@ def get_expression_dotplot(genelist, group, split):
                                                showline=False,
                                                tickvals=(nsplit+1)*np.arange(ngroup)+(nsplit-1)/2.,
                                                ticktext=groupvals),
-                          margin={'l': 100, 'b': 100, 't': 40, 'r': 40},
-                          showlegend=True,
-                          hovermode='closest')
+                         margin={'l': 150, 'b': 100, 't': 40, 'r': 40},
+                         showlegend=True,
+                         hovermode='closest',
+                         height=PLOT_HEIGHT)
         
     csv_string='data:text/csv;charset=utf-8,'+\
         urllib.parse.quote(data.to_csv(index=True, header=True, encoding='utf-8'))
