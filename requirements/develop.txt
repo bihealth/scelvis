@@ -1,0 +1,9 @@
+-r test_black.txt
+
+pip==9.0.1
+wheel==0.30.0
+watchdog==0.8.3
+
+
+Sphinx >=1.7.0
+sphinx-rtd-theme >=0.4.3

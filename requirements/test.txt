@@ -1,0 +1,17 @@
+-r base.txt
+
+# Multi-environment testing
+tox ==2.9.1
+
+# Wonderful py.test for testing
+pytest >=3.6.0
+pytest-runner >=2.11.1
+pytest-cache >=1.0
+pytest-cov >=2.4.0
+
+# Coverage report
+coverage==4.5.1
+codacy-coverage >=1.3.6
+
+# Flake8 for lintoing
+flake8 >=3.5.0
