@@ -1,4 +1,4 @@
-"""The UI for the cell annotation"""
+"""The UI for the cell annotation."""
 
 import urllib.parse
 
@@ -10,8 +10,7 @@ import plotly.tools as tools
 
 from .colors import get_cm
 from ..exceptions import ScVizException
-
-PLOT_HEIGHT = 500
+from ..settings import PLOT_HEIGHT
 
 
 def render_controls_scatter(data):
@@ -184,7 +183,7 @@ def render(data):
 
 
 def render_plot(plot_type):
-    """Render the "Cell Annoation" plot (placeholders)."""
+    """Render the "Cell Annotation" plot (placeholders)."""
 
     if plot_type not in ("scatter", "violin", "bar"):
         raise ScVizException("Invalid plot type: %s", plot_type)
@@ -321,8 +320,6 @@ def render_plot_violin(data, variables, group, split, sample_size):
 
     sg = 0
     for nv, var in enumerate(variables):
-
-        traces = []
         if split is None:
             for n, cv in enumerate(groupvals):
                 y = meta_here[meta_here[group] == cv][var]

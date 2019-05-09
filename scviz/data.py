@@ -134,6 +134,7 @@ def load_data(datadir):
 
 def fake_data():
     """Create fake ``Data`` to make Dash validation happy."""
+    # TODO: actually use and enable callback traceback again!
     return Data(
         metadata=MetaData(
             id="placeholder", title="placeholder", short_title="placeholder", readme="placeholder"

@@ -3,12 +3,10 @@
 import dash_bootstrap_components as dbc
 import dash_core_components as dcc
 import dash_html_components as html
-import flask
 
 from .__init__ import __version__
-from .data import fake_data
 from .store import load_all_metadata
-from .ui import render_tab_cells
+from .ui import render_tab_cells, render_tab_genes
 
 #: String to use for the Bootstrap "brand" at home.
 HOME_BRAND = "SCViz Home"
@@ -123,11 +121,11 @@ def render_dataset(data):
                 label="Cell Annotation",
                 tab_id="tab-cells",
             ),
-            # dbc.Tab(
-            #     html.Div(render_tab_genes(data), className="mx-2 mt-2"),
-            #     label="Gene Expression",
-            #     tab_id="tab-genes",
-            # ),
+            dbc.Tab(
+                html.Div(render_tab_genes(data), className="mx-2 mt-2"),
+                label="Gene Expression",
+                tab_id="tab-genes",
+            ),
         ],
         active_tab="tab-cells",
     )

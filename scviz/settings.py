@@ -18,3 +18,6 @@ CACHE_DEFAULT_TIMEOUT = None
 CACHE_DIR = None
 #: For "redis" cache: the URL to use for connecting to the cache.
 CACHE_REDIS_URL = None
+
+#: The height of the plot.
+PLOT_HEIGHT = 500

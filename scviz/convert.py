@@ -76,7 +76,7 @@ class CellRangerConverter:
         else:
             logger.info("Reading clustering output from %s", clustering_file)
             clustering = pd.read_csv(clustering_file, header=0)
-            nc = pd.DataFrame(dict(nclust=clustering["Cluster"].value_counts()))
+            nc = pd.DataFrame({"nclust": clustering["Cluster"].value_counts()})
             clustering = clustering.set_index("Cluster")
             clustering["nclust"] = nc
             clustering["Cluster"] = "Cluster_" + clustering.index.astype(str)

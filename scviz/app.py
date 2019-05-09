@@ -33,7 +33,7 @@ app.title = "SCViz v%s" % __version__
 app.css.config.serve_locally = True
 app.scripts.config.serve_locally = True
 
-# Better use the approach here:
+# TODO: Better use the approach from this URL:
 # - https://community.plot.ly/t/dynamic-controls-and-dynamic-output-components/5519
 app.config.supress_callback_exceptions = True
 
@@ -48,3 +48,9 @@ callbacks.register_select_cell_plot_type(app)
 callbacks.register_update_cell_scatter_plot_params(app)
 callbacks.register_update_cell_violin_plot_params(app)
 callbacks.register_update_cell_bar_chart_params(app)
+
+callbacks.register_select_gene_plot_type(app)
+callbacks.register_select_gene_marker_list(app)
+callbacks.register_select_gene_scatter_plot(app)
+callbacks.register_select_gene_violin_plot(app)
+callbacks.register_select_gene_dot_plot(app)
