@@ -2,69 +2,129 @@
 Single-Cell Visualization using Dash
 ====================================
 
-prototype still based on locally provided datasets
+------------
+Installation
+------------
 
-- our own mouse salivary gland tumor data (``export DASH_DATADIR=datasets/hnc``)
-- public 10X data from their website
-    - 10k mouse heart cells (``export DASH_DATADIR=datasets/heart_10k``)
-    - 10k mouse brain cells (``export DASH_DATADIR=datasets/neuron_10k``)
-    - 1k human-mouse mix (``export DASH_DATADIR=datasets/hgmm_1k``)
-- published PBMCs (stimulated and control) from Kang et al. Nat Biotech 2017 (``export DASH_DATADIR=datasets/pbmc``)
+The only prerequisite is Python 3, everything else will be installed together with the ``scviz`` package.
 
------
-Conda
------
-
-The dash environment is described in ``conda/environment.yml`` and should install everything that's needed.
-``requirements.txt`` can be used for the ``pip`` call in docker
-
-## add your own data
-
-the app uses a hdf5 file called ``data.h5ad`` in the folder specified by ``DASH_DATADIR``. this is an ``anndata`` object (read the docs [here](https://anndata.readthedocs.io/en/latest/index.html)) that stores gene expression (sparse CSR matrix) and meta data with very fast read access. use [``scanpy``](https://scanpy.readthedocs.io/en/latest/index.html) to create such an object with your own data or export from Seurat using ``Convert(sobj, to='anndata', filename='data.h5ad')``
-
-also, you should write a small markdown called ``about.md`` that describes this dataset
-
-## get data from 10X runs
-
-use ``python import_from_cellranger -i /path/to/10X/output -o datasets/new_data`` to get an ``anndata`` object for raw 10X data. this does no further processing except log-normalization and uses PCA, tSNE and clustering performed by ``cellranger``
-
--------------------------
-First Version of Full App
--------------------------
-
-the app reads the environment variable ``DASH_DATADIR`` (see above) and then uses data from that directory
+You can install SCViz and its dependencies using ``pip`` or through ``conda``:
 
 .. code-block:: shell
 
-    cd app
-    export DASH_DATADIR=datasets/hgmm_1k
-    python app.py
+    $ pip install scviz
+    # OR
+    $ conda install scviz
 
-------
-Docker
-------
-
-to keep the docker build context small, we copy ``app.py``, ``requirements.txt`` and ``assets`` into the directory of the corresponding dataset for project ``${project}``
-
-then run docker with
+A Docker container is also available:
 
 .. code-block:: shell
 
-    cd datasets/${project}
-    cp ../../app/app.py .
-    cp ../../app/requirements.txt .
-    cp -r ../../app/assets .
-    docker build -t ${project} -f ../../app/Dockerfile .
+    $ docker run bihealth/scviz:latest --help
+    $ docker run -p 8050:8050 -v data:/data bihealth/scviz:latest run --data-dir /data
 
-run the docker image
+-------------------
+Preparing Your Data
+-------------------
+
+Each data set consists of an HDF5 file called ``data.h5ad`` and a dataset description file ``about.md``.
+The HDF5 file is an `anndata <https://anndata.readthedocs.io/en/latest/index.html>`_ object that stores gene expression (sparse CSR matrix) and meta data with very fast read access.
+You can use the ``scviz convert`` command for converting your single-cell pipeline output into an appropriate HDF5 file.
+The ``about.md`` file should look as follows:
+
+::
+
+    ----
+    title: An Optional Long Data Set Title
+    short_title: optional short title
+    ----
+
+    A verbose description of the data in Markdown format.
+
+A directory containing both an ``data.h5ad`` and an ``about.md`` file is a **dataset directory**.
+For the input you can either specify one dataset directory or a **data directory** containing multiple dataset directories.
+
+You can convert your single-cell transcriptome analysis pipeline as follows.
+This does no further processing except log-normalization and uses PCA, tSNE, and clustering performed by ``cellranger``
 
 .. code-block:: shell
 
+    $ mkdir -p data/project
+    $ scviz convert --input-dir cellranger-out --output-dir data/project
+    $ cat <<EOF
+    ----
+    title: My Project
+    ----
 
-    docker run -p 8050:8050 ${project}
+    This is my project data.
+    EOF
 
-or save it into a tarball for upload to SODAR
+    $ tree data
+    data
+    ├── other
+    │   ├── about.md
+    │   └── data.h5ad
+    └── project
+        ├── about.md
+        └── data.h5ad
+
+Note that right now only CellRanger output is supported.
+
+---------------------
+Visualizing Your Data
+---------------------
+
+.. code-block::
+
+    $ tree data
+    data
+    ├── other
+    │   ├── about.md
+    │   └── data.h5ad
+    └── project
+        ├── about.md
+        └── data.h5ad
+
+    $ scviz run --data-dir data/project
+    # OR
+    $ scviz run --data-dir data
+
+---------------
+Developer Setup
+---------------
+
+The prerequisites are:
+
+- Python 3, either
+    - system-wide installation with ``virtualenv``, or
+    - installed with `Conda <https://docs.conda.io/en/latest/>`_.
+
+For ``virtualenv``, first create a virtual environment and activate it.
 
 .. code-block:: shell
 
-    docker save ${project} -o ../../docker/{project}.tar
+    $ virtualenv -p venv
+    $ source venv/bin/activate
+
+For a Conda-based setup create a new environment and activate it.
+
+.. code-block:: shell
+
+    $ conda create -y -n scviz 'python>=3.6'
+    $ conda activate scviz
+
+Next, clone the repository and install the software as editable (``-e``).
+Also install the development requirements to get helpers such as black.
+
+.. code-block:: shell
+
+    $ git clone git@github.com:bihealth/scviz.git
+    $ cd scviz
+    $ pip install -e .
+    $ pip install -r requirements/develop.txt
+
+Afterwards, you can run the visualization web server as follows:
+
+.. code-block:: shell
+
+    $ scviz run --data-dir path/to/data/dir
