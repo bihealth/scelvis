@@ -52,13 +52,8 @@ def display_home():
     """Return site content for the home screen."""
     with open(os.path.join(os.path.dirname(__file__), "static", "home.md")) as inputf:
         home_md = inputf.read()
-    return dbc.Row(
-        dbc.Col(
-            html.Div(
-                dcc.Markdown(home_md),
-            )
-        )
-    )
+    return dbc.Row(dbc.Col(html.Div(dcc.Markdown(home_md))))
+
 
 def display_not_found():
     """Return site content in the case that the dataset could not be found."""
@@ -69,9 +64,7 @@ def display_not_found():
         ]
     )
 
+
 def display_dataset(identifier):
     """Display the dataset."""
     return html.Div(children=[html.H3("Dataset: %s" % identifier)])
-
-
-

@@ -9,8 +9,8 @@ import os.path
 import dash
 
 from .__init__ import __version__
-from .layout import HOME_BRAND, layout
-from . import callbacks
+from .layout import layout
+from . import cache, callbacks
 
 #: Path to assets.
 ASSETS_FOLDER = os.path.join(os.path.dirname(__file__), "assets")
@@ -23,6 +23,9 @@ app = dash.Dash(
     # external_stylesheets=["/%s/bootstrap.min.css" % ASSETS_ROUTE, "/%s/scviz.css" % ASSETS_ROUTE],
 )
 
+# Setup the cache.
+cache.setup_cache(app)
+
 # Set app title
 app.title = "SCViz v%s" % __version__
 
@@ -31,7 +34,7 @@ app.css.config.serve_locally = True
 app.scripts.config.serve_locally = True
 
 # Setup the application's main layout.
-app.layout = layout
+app.layout = layout()
 
 # Register the callbacks with the app.
 callbacks.register_page_content(app)

@@ -1,6 +1,8 @@
 # Base requirements
 
 flask
+flask-caching
+
 dash
 dash-renderer
 dash-html-components
@@ -15,3 +17,5 @@ scanpy
 
 attrs
 logzero
+
+ruamel-yaml
