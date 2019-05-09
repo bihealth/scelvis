@@ -5,7 +5,7 @@ import os.path
 
 from logzero import logger
 
-from . import data
+from . import data, settings
 from .cache import cache
 
 
@@ -13,13 +13,14 @@ from .cache import cache
 ABOUT_FILENAME = "about.md"
 
 
-@cache.memoize(5)
-def load_all_metadata(data_dir):
+@cache.memoize()
+def load_all_metadata():
     """Load all meta data information ``data_dir``.
 
     If ``data_dir`` itself contains a file called ``about.md``, it is assumed that only one dataset is available.
     Otherwise, all sub directories will be scanned for ``about.md`` and one entry is returned for each dataset.
     """
+    data_dir = settings.DATA_DIR
     if os.path.exists(os.path.join(data_dir, ABOUT_FILENAME)):
         logger.info("Loading single dataset from data directory %s", data_dir)
         return [data.load_metadata(data_dir)]
@@ -32,3 +33,15 @@ def load_all_metadata(data_dir):
         else:
             logger.warn("No data sets found in data directory %s", data_dir)
         return result
+
+
+@cache.memoize()
+def load_metadata(identifier):
+    """Load metadata for the given identifier."""
+    return data.load_metadata(os.path.join(settings.DATA_DIR, identifier))
+
+
+@cache.memoize()
+def load_data(identifier):
+    """Load data for the given identifier."""
+    return data.load_data(os.path.join(settings.DATA_DIR, identifier))

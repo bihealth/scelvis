@@ -3,10 +3,12 @@
 import dash_bootstrap_components as dbc
 import dash_core_components as dcc
 import dash_html_components as html
+import flask
 
 from .__init__ import __version__
-from . import settings
+from .data import fake_data
 from .store import load_all_metadata
+from .ui import render_tab_cells
 
 #: String to use for the Bootstrap "brand" at home.
 HOME_BRAND = "SCViz Home"
@@ -34,7 +36,7 @@ def children_goto():
         dbc.DropdownMenuItem(divider=True),
         dbc.DropdownMenuItem("Data Sets", header=True),
     ]
-    metas = load_all_metadata(settings.DATA_DIR)
+    metas = load_all_metadata()
     for meta in metas:
         result.append(dbc.DropdownMenuItem(meta.short_title, href="/viz/%s" % meta.id))
     if not metas:
@@ -105,10 +107,36 @@ def footer():
     )
 
 
+def render_dataset(data):
+    """Render the page main content for dataset visualization."""
+    return dbc.Tabs(
+        children=[
+            dbc.Tab(
+                html.Div(
+                    dbc.Row(dbc.Col(dcc.Markdown(data.metadata.readme))), className="mx-2 mt-2"
+                ),
+                label="About",
+                tab_id="tab-about",
+            ),
+            dbc.Tab(
+                html.Div(render_tab_cells(data), className="mx-2 mt-2"),
+                label="Cell Annotation",
+                tab_id="tab-cells",
+            ),
+            # dbc.Tab(
+            #     html.Div(render_tab_genes(data), className="mx-2 mt-2"),
+            #     label="Gene Expression",
+            #     tab_id="tab-genes",
+            # ),
+        ],
+        active_tab="tab-cells",
+    )
+
+
 def layout():
     """Overall layout"""
     return html.Div(
-        [
+        children=[
             # Represents the URL bar, doesn't render anything.
             dcc.Location(id="url", refresh=False),
             # Navbar, content, footer.

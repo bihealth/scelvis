@@ -33,9 +33,18 @@ app.title = "SCViz v%s" % __version__
 app.css.config.serve_locally = True
 app.scripts.config.serve_locally = True
 
+# Better use the approach here:
+# - https://community.plot.ly/t/dynamic-controls-and-dynamic-output-components/5519
+app.config.supress_callback_exceptions = True
+
 # Setup the application's main layout.
 app.layout = layout()
 
 # Register the callbacks with the app.
 callbacks.register_page_content(app)
 callbacks.register_page_brand(app)
+
+callbacks.register_select_cell_plot_type(app)
+callbacks.register_update_cell_scatter_plot_params(app)
+callbacks.register_update_cell_violin_plot_params(app)
+callbacks.register_update_cell_bar_chart_params(app)
