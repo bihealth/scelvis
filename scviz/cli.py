@@ -5,6 +5,7 @@ import logging
 
 import logzero
 
+from scviz import __version__
 from .convert import run as run_convert
 from .convert import setup_argparse as setup_argparse_convert
 from .webserver import run as run_webserver
@@ -22,6 +23,7 @@ def main(argv=None):
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--verbose", action="store_true", default=False, help="Increase verbosity.")
+    parser.add_argument('--version', action='version', version='%%(prog)s %s' % __version__)
 
     subparsers = parser.add_subparsers(dest="cmd")
 
