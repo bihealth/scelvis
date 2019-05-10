@@ -202,7 +202,7 @@ def register_select_gene_plot_type(app):
             "violin": genes.render_controls_violin,
             "dot": genes.render_controls_dot,
         }
-        return plots[plot_type](data)
+        return [plots[plot_type](data)]
 
     @app.callback(
         [
