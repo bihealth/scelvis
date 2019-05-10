@@ -1,6 +1,17 @@
-====================================
-Single-Cell Visualization using Dash
-====================================
+=======================================
+SCelVis: Easy Single-Cell Visualization
+=======================================
+
+
+.. image:: https://img.shields.io/conda/dn/bioconda/scelvis.svg?label=Bioconda
+    :target: https://bioconda.github.io/recipes/scelvis/README.html
+
+.. image:: https://img.shields.io/pypi/pyversions/scelvis.svg
+    :target: https://www.python.org
+
+.. image:: https://img.shields.io/pypi/v/scelvis.svg
+    :target: https://pypi.python.org/pypi/scelvis
+
 
 ------------
 Installation
