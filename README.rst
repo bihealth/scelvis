@@ -6,22 +6,22 @@ Single-Cell Visualization using Dash
 Installation
 ------------
 
-The only prerequisite is Python 3, everything else will be installed together with the ``scviz`` package.
+The only prerequisite is Python 3, everything else will be installed together with the ``scelvis`` package.
 
-You can install SCViz and its dependencies using ``pip`` or through ``conda``:
+You can install SCelVis and its dependencies using ``pip`` or through ``conda``:
 
 .. code-block:: shell
 
-    $ pip install scviz
+    $ pip install scelvis
     # OR
-    $ conda install scviz
+    $ conda install scelvis
 
 A Docker container is also available:
 
 .. code-block:: shell
 
-    $ docker run bihealth/scviz:latest --help
-    $ docker run -p 8050:8050 -v data:/data bihealth/scviz:latest run --data-dir /data
+    $ docker run bihealth/scelvis:latest --help
+    $ docker run -p 8050:8050 -v data:/data bihealth/scelvis:latest run --data-dir /data
 
 -------------------
 Preparing Your Data
@@ -29,7 +29,7 @@ Preparing Your Data
 
 Each data set consists of an HDF5 file called ``data.h5ad`` and a dataset description file ``about.md``.
 The HDF5 file is an `anndata <https://anndata.readthedocs.io/en/latest/index.html>`_ object that stores gene expression (sparse CSR matrix) and meta data with very fast read access.
-You can use the ``scviz convert`` command for converting your single-cell pipeline output into an appropriate HDF5 file.
+You can use the ``scelvis convert`` command for converting your single-cell pipeline output into an appropriate HDF5 file.
 The ``about.md`` file should look as follows:
 
 ::
@@ -50,7 +50,7 @@ This does no further processing except log-normalization and uses PCA, tSNE, and
 .. code-block:: shell
 
     $ mkdir -p data/project
-    $ scviz convert --input-dir cellranger-out --output-dir data/project
+    $ scelvis convert --input-dir cellranger-out --output-dir data/project
     $ cat <<EOF
     ----
     title: My Project
@@ -85,9 +85,9 @@ Visualizing Your Data
         ├── about.md
         └── data.h5ad
 
-    $ scviz run --data-dir data/project
+    $ scelvis run --data-dir data/project
     # OR
-    $ scviz run --data-dir data
+    $ scelvis run --data-dir data
 
 ---------------
 Developer Setup
@@ -110,16 +110,16 @@ For a Conda-based setup create a new environment and activate it.
 
 .. code-block:: shell
 
-    $ conda create -y -n scviz 'python>=3.6'
-    $ conda activate scviz
+    $ conda create -y -n scelvis 'python>=3.6'
+    $ conda activate scelvis
 
 Next, clone the repository and install the software as editable (``-e``).
 Also install the development requirements to get helpers such as black.
 
 .. code-block:: shell
 
-    $ git clone git@github.com:bihealth/scviz.git
-    $ cd scviz
+    $ git clone git@github.com:bihealth/scelvis.git
+    $ cd scelvis
     $ pip install -e .
     $ pip install -r requirements/develop.txt
 
@@ -127,4 +127,4 @@ Afterwards, you can run the visualization web server as follows:
 
 .. code-block:: shell
 
-    $ scviz run --data-dir path/to/data/dir
+    $ scelvis run --data-dir path/to/data/dir

@@ -1,11 +1,11 @@
-"""Command line interface for scviz."""
+"""Command line interface for scelvis."""
 
 import argparse
 import logging
 
 import logzero
 
-from scviz import __version__
+from scelvis import __version__
 from .convert import run as run_convert
 from .convert import setup_argparse as setup_argparse_convert
 from .webserver import run as run_webserver
@@ -28,9 +28,9 @@ def main(argv=None):
     subparsers = parser.add_subparsers(dest="cmd")
 
     setup_argparse_convert(
-        subparsers.add_parser("convert", help="Convert pipeline output to SCViz input.")
+        subparsers.add_parser("convert", help="Convert pipeline output to SCelVis input.")
     )
-    setup_argparse_webserver(subparsers.add_parser("run", help="Run the SCViz web server."))
+    setup_argparse_webserver(subparsers.add_parser("run", help="Run the SCelVis web server."))
 
     args = parser.parse_args(argv)
 

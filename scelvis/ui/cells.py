@@ -9,7 +9,7 @@ import plotly.graph_objs as go
 import plotly.tools as tools
 
 from .colors import get_cm
-from ..exceptions import ScVizException
+from ..exceptions import ScelVisException
 from ..settings import PLOT_HEIGHT
 
 
@@ -186,7 +186,7 @@ def render_plot(plot_type):
     """Render the "Cell Annotation" plot (placeholders)."""
 
     if plot_type not in ("scatter", "violin", "bar"):
-        raise ScVizException("Invalid plot type: %s", plot_type)
+        raise ScelVisException("Invalid plot type: %s", plot_type)
 
     return (
         [

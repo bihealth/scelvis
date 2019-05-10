@@ -4,7 +4,7 @@ import dash_bootstrap_components as dbc
 import dash_core_components as dcc
 import dash_html_components as html
 
-from ..exceptions import ScVizException
+from ..exceptions import ScelVisException
 
 
 def render_controls_scatter(data):
@@ -184,7 +184,7 @@ def render_plot(plot_type):
     """Render the "Gene Expression" plot (placeholders)."""
 
     if plot_type not in ("scatter", "violin", "dot"):
-        raise ScVizException("Invalid plot type: %s", plot_type)
+        raise ScelVisException("Invalid plot type: %s", plot_type)
 
     return (
         [

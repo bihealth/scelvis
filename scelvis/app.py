@@ -1,4 +1,4 @@
-"""Setup the SCViz Dash application.
+"""Setup the SCelVis Dash application.
 
 Note that before importing this module, you will have to configure the settings in ``.settings``.  See this module's
 docstring for more information.
@@ -20,14 +20,14 @@ ASSETS_FOLDER = os.path.join(os.path.dirname(__file__), "assets")
 app = dash.Dash(
     __name__,
     assets_folder=ASSETS_FOLDER,
-    # external_stylesheets=["/%s/bootstrap.min.css" % ASSETS_ROUTE, "/%s/scviz.css" % ASSETS_ROUTE],
+    # external_stylesheets=["/%s/bootstrap.min.css" % ASSETS_ROUTE, "/%s/scelvis.css" % ASSETS_ROUTE],
 )
 
 # Setup the cache.
 cache.setup_cache(app)
 
 # Set app title
-app.title = "SCViz v%s" % __version__
+app.title = "SCelVis v%s" % __version__
 
 # Serve assets locally
 app.css.config.serve_locally = True

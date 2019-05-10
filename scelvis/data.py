@@ -12,7 +12,7 @@ from ruamel.yaml import YAML
 
 @attr.s(auto_attribs=True)
 class MetaData:
-    """Class to bundle the data loaded for SCViz."""
+    """Class to bundle the data loaded for SCelVis."""
 
     #: ID (= folder name) of the dataset
     id: str
@@ -52,7 +52,7 @@ def load_metadata(path):
 
 @attr.s(auto_attribs=True)
 class Data:
-    """Class to bundle the data loaded for SCViz."""
+    """Class to bundle the data loaded for SCelVis."""
 
     #: String with Markdown-formatted "about" text.
     metadata: MetaData

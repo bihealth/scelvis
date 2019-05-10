@@ -37,7 +37,7 @@ def run(parser, args):
         # Launch the Dash server.
         logger.info("Starting Dash web server on %s:%d", args.host, args.port)
         if settings.CACHE_TYPE == "filesystem" and not settings.CACHE_DIR:
-            with tempfile.TemporaryDirectory(prefix="scviz.") as tmpdir:
+            with tempfile.TemporaryDirectory(prefix="scelvis.") as tmpdir:
                 logger.info("Using cache directory %s", tmpdir)
                 settings.CACHE_DIR = tmpdir
                 run_server(args)

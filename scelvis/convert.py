@@ -1,4 +1,4 @@
-"""Conversion from single-cell pipeline output to SCViz HDF5 files.
+"""Conversion from single-cell pipeline output to SCelVis HDF5 files.
 
 Currently, only conversion from the Cell-Ranger is supported.
 """
@@ -15,7 +15,7 @@ import pandas as pd
 import logzero
 from logzero import logger
 
-from .exceptions import ScVizException
+from .exceptions import ScelVisException
 
 
 @contextlib.contextmanager
@@ -28,7 +28,7 @@ def with_log_level(logger, level):
 
 
 class CellRangerConverter:
-    """Conversion of cell ranger data to SCViz HDF5 file."""
+    """Conversion of cell ranger data to SCelVis HDF5 file."""
 
     def __init__(self, args):
         #: Arguments as parsed by ``argparse.ArgumentParser``.`
@@ -36,7 +36,7 @@ class CellRangerConverter:
 
     def run(self):
         """Perform the conversion."""
-        logger.info("Starting conversion from CellRanger output to SCViz HDF5")
+        logger.info("Starting conversion from CellRanger output to SCelVis HDF5")
         logger.info("Settings: %s", vars(self.args))
 
         tsne = self._load_tsne()
@@ -56,7 +56,7 @@ class CellRangerConverter:
     def _load_tsne(self):
         tsne_file = os.path.join(self.args.indir, "tsne", "2_components", "projection.csv")
         if not os.path.isfile(tsne_file):
-            raise ScVizException("cannot find tSNE output at %s" % tsne_file)
+            raise ScelVisException("cannot find tSNE output at %s" % tsne_file)
         else:
             logging.info("Reading tSNE output from %s", tsne_file)
             return pd.read_csv(tsne_file, header=0, index_col=0)
@@ -64,7 +64,7 @@ class CellRangerConverter:
     def _load_pca(self):
         pca_file = os.path.join(self.args.indir, "pca", "10_components", "projection.csv")
         if not os.path.isfile(pca_file):
-            raise ScVizException("cannot find PCA output at %s" % pca_file)
+            raise ScelVisException("cannot find PCA output at %s" % pca_file)
         else:
             logger.info("Reading PCA output from %s", pca_file)
             return pd.read_csv(pca_file, header=0, index_col=0)
@@ -72,7 +72,7 @@ class CellRangerConverter:
     def _load_clustering(self):
         clustering_file = os.path.join(self.args.indir, "clustering", "graphclust", "clusters.csv")
         if not os.path.isfile(clustering_file):
-            raise ScVizException("cannot find clustering output at %s " % clustering_file)
+            raise ScelVisException("cannot find clustering output at %s " % clustering_file)
         else:
             logger.info("Reading clustering output from %s", clustering_file)
             clustering = pd.read_csv(clustering_file, header=0)
@@ -88,7 +88,7 @@ class CellRangerConverter:
             self.args.indir, "diffexp", "graphclust", "differential_expression.csv"
         )
         if not os.path.isfile(diffexp_file):
-            raise ScVizException("cannot find differential expression output at " + diffexp_file)
+            raise ScelVisException("cannot find differential expression output at " + diffexp_file)
         else:
             logger.info("Reading differential expression output from %s", diffexp_file)
             diffexp = pd.read_csv(diffexp_file, header=0, index_col=[0, 1])
@@ -104,7 +104,7 @@ class CellRangerConverter:
     def _load_expression(self, clustering, tsne, pca):
         expression_file = os.path.join(self.args.indir, "filtered_feature_bc_matrix.h5")
         if not os.path.isfile(expression_file):
-            raise ScVizException("cannot find expression file at %s" % expression_file)
+            raise ScelVisException("cannot find expression file at %s" % expression_file)
         else:
             logger.info("Reading gene expression from %s", expression_file)
             with with_log_level(anndata.utils.logger, logging.WARN):

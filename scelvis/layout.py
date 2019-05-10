@@ -9,7 +9,7 @@ from .store import load_all_metadata
 from .ui import render_tab_cells, render_tab_genes
 
 #: String to use for the Bootstrap "brand" at home.
-HOME_BRAND = "SCViz Home"
+HOME_BRAND = "SCelVis Home"
 
 
 def navbar():
@@ -89,7 +89,7 @@ def footer():
                                         html.I(className="fab fa-github mr-1"),
                                         "GitHub Project",
                                     ],
-                                    href="https://github.com/bihealth/scviz",
+                                    href="https://github.com/bihealth/scelvis",
                                     className="text-muted",
                                 ),
                             ],
