@@ -21,3 +21,11 @@ CACHE_REDIS_URL = None
 
 #: The height of the plot.
 PLOT_HEIGHT = 500
+
+#: Whether or not to enable file upload for visualization, default is ``True```.
+UPLOAD_ENABLED = False
+#: A specific download directory, by default a temporary directory is created.
+UPLOAD_DIR = None
+
+#: Whether or not to enable file upload for conversion, default is ``True``.
+CONVERSION_ENABLED = False
