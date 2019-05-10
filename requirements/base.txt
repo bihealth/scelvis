@@ -1,8 +1,6 @@
 # Base requirements
 
-flask
-flask-caching
-
+# Dash and friends.
 dash
 dash-renderer
 dash-html-components
@@ -10,12 +8,19 @@ dash-core-components
 dash-bootstrap-components
 dash_table
 plotly
+
+# Numpy, Pandas and friends.
 numpy
 pandas
 anndata
 scanpy
 
-attrs
-logzero
+# Caching functionality for Flask.
+flask-caching
 
+# Lightweight setup of data classes.
+attrs
+# Simplified logging.
+logzero
+# Support for YAML access.
 ruamel-yaml
