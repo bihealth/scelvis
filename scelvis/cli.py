@@ -6,6 +6,7 @@ actual implementation is in the modules ``convert`` and ``webserver``.
 
 import argparse
 import logging
+import warnings
 
 import logzero
 
@@ -47,5 +48,10 @@ def main(argv=None):
 
     # Handle the actual command line.
     cmds = {None: run_nocmd, "convert": run_convert, "run": run_webserver}
+
+    # Disable duplicated crypto warnings from paramiko, triggered by fs.sshfs.
+    warnings.filterwarnings(
+        "once", module="paramiko.ecdsakey", message=".*unsafe construction of public numbers.*"
+    )
 
     return cmds[args.cmd](args, parser)

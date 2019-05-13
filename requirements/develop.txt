@@ -2,3 +2,6 @@
 
 # Twine for easy uploading to PyPi.
 twine
+
+# Helpful iPDB
+ipdb

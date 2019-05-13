@@ -5,7 +5,8 @@ should only be accessed through the ``.store`` module such that they can be cach
 This module is unaware of the Dash app.
 """
 
-import os
+import fs
+from fs.tempfs import TempFS
 import typing
 
 import anndata
@@ -31,9 +32,10 @@ class MetaData:
     readme: str
 
 
-def load_metadata(path):
+def load_metadata(file_system, path):
     """Load metadata from a dataset directory."""
-    with open(os.path.join(path, settings.ABOUT_FILENAME), "rt") as inputf:
+    logger.info("Loading %s from %s", path, file_system)
+    with file_system.open(fs.path.join(path, settings.ABOUT_FILENAME), "rt") as inputf:
         header = []
         lines = [line.rstrip() for line in inputf.readlines()]
 
@@ -50,10 +52,10 @@ def load_metadata(path):
         meta = YAML().load("\n".join(header))
         title = meta.get("title", "Untitled")
         short_title = meta.get("short_title", title or "untitled")
-        readme = "\n".join([line.rstrip() for line in lines])
+        readme = "\n".join([line.rstrip() for line in lines]).lstrip()
 
         return MetaData(
-            id=os.path.basename(path), title=title, short_title=short_title, readme=readme
+            id=fs.path.basename(path), title=title, short_title=short_title, readme=readme
         )
 
 
@@ -84,24 +86,27 @@ class Data:
     categorical_meta: object
 
 
-def load_data(datadir):
+def load_data(file_system, datadir):
     """Load the data from the given directory."""
-    logger.info("Loading metadata from %s", datadir)
-    metadata = load_metadata(datadir)
+    logger.info("Loading metadata from %s %s", file_system, datadir)
+    metadata = load_metadata(file_system, datadir)
 
-    ad_file = os.path.join(datadir, "data.h5ad")
+    ad_file = fs.path.join(datadir, "data.h5ad")
     logger.info("Reading all data from %s", ad_file)
-    ad = anndata.read_h5ad(ad_file)
-    coords = {}
-    for k in ["X_tsne", "X_umap"]:
-        if k in ad.obsm.keys():
-            coords[k] = pd.DataFrame(
-                ad.obsm[k],
-                index=ad.obs.index,
-                columns=[k[2:].upper() + str(n + 1) for n in range(ad.obsm[k].shape[1])],
-            )
-    meta = pd.concat(coords.values(), axis=1).join(ad.obs)
-    DGE = ad.to_df().T
+    with TempFS() as tmpfs:
+        logger.info("Downloading file %s", ad_file)
+        fs.copy.copy_file(file_system, ad_file, tmpfs, "tmp.h5ad")
+        ad = anndata.read_h5ad(tmpfs.getospath("tmp.h5ad"))
+        coords = {}
+        for k in ["X_tsne", "X_umap"]:
+            if k in ad.obsm.keys():
+                coords[k] = pd.DataFrame(
+                    ad.obsm[k],
+                    index=ad.obs.index,
+                    columns=[k[2:].upper() + str(n + 1) for n in range(ad.obsm[k].shape[1])],
+                )
+        meta = pd.concat(coords.values(), axis=1).join(ad.obs)
+        DGE = ad.to_df().T
 
     # Separate numerical and categorical columns for later.
     numerical_meta = []
@@ -115,10 +120,11 @@ def load_data(datadir):
     genes = DGE.index
     cells = DGE.columns
 
-    marker_file = os.path.join(datadir, "markers.csv")
-    if os.path.isfile(marker_file):
+    marker_file = fs.path.join(datadir, "markers.csv")
+    if file_system.exists(marker_file):
         logger.info("Reading markers from %s", marker_file)
-        markers = pd.read_csv(marker_file, header=0, index_col=0)
+        with file_system.open(marker_file) as markerf:
+            markers = pd.read_csv(markerf, header=0, index_col=0)
         if "gene" not in markers.columns:
             logger.warn('No "gene" column in %s!', marker_file)
             markers = None

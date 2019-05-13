@@ -21,8 +21,8 @@ MAX_UPLOAD_TEXT_SIZE = 1_000_000
 #: Whether or not to enable debugging
 DEBUG = False
 
-#: Path to the data directory.
-DATA_DIR = None
+#: Path to the data directories.
+DATA_DIRS = []
 
 #: The type of the cache to use from {"filesystem", "redis"}
 CACHE_TYPE = "filesystem"

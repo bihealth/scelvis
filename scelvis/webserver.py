@@ -3,7 +3,9 @@
 
 import os
 import tempfile
+import urllib
 
+import fs
 from logzero import logger
 
 from . import settings
@@ -55,26 +57,33 @@ def run_cache_dir(args):
 
 def run(args, parser):
     """Main entry point after argument parsing."""
-    if not args.data_dir:
+    data_dirs = []
+    if os.environ.get("SCELVIS_DATA_DIRS"):
+        data_dirs += os.environ.get("SCELVIS_DATA_DIRS").split(";")
+    if args.data_dirs:
+        data_dirs += args.data_dirs
+    if not data_dirs:
         parser.error(
-            "You either have to specify --data-dir or set environment variable SCELVIS_DATADIR"
+            "You either have to specify --data-dir or set environment variable SCELVIS_DATA_DIRS"
         )
-    elif not os.path.exists(args.data_dir):
-        parser.error("The data directory %s does not exit!" % args.data_dir)
-    else:
-        # Configure the Dash app through ``settings`` module (see module docstring for more info).
-        logger.info("Configuring settings from arguments %s", args)
-        settings.DATA_DIR = args.data_dir
-        settings.CACHE_DEFAULT_TIMEOUT = args.cache_default_timeout
-        if args.cache_redis_url:
-            settings.CACHE_TYPE = "redis"
-            settings.CACHE_REDIS_URL = args.cache_redis_url
-        elif args.cache_dir:
-            settings.CACHE_DIR = args.cache_dir
-        settings.UPLOAD_ENABLED = not args.upload_disabled
-        settings.UPLOAD_DIR = args.upload_dir
-        settings.CONVERSION_ENABLED = not args.conversion_disabled
-        run_cache_dir(args)
+    for data_dir in args.data_dirs:
+        url = urllib.parse.urlparse(data_dir)
+        the_fs = fs.open_fs("%s://%s/" % (url.scheme or "file", url.netloc))
+        if not the_fs.exists(url.path):
+            parser.error("The data directory %s [%s] does not exist!" % (the_fs, url.path))
+    # Configure the Dash app through ``settings`` module (see module docstring for more info).
+    logger.info("Configuring settings from arguments %s", args)
+    settings.DATA_DIRS = data_dirs
+    settings.CACHE_DEFAULT_TIMEOUT = args.cache_default_timeout
+    if args.cache_redis_url:
+        settings.CACHE_TYPE = "redis"
+        settings.CACHE_REDIS_URL = args.cache_redis_url
+    elif args.cache_dir:
+        settings.CACHE_DIR = args.cache_dir
+    settings.UPLOAD_ENABLED = not args.upload_disabled
+    settings.UPLOAD_DIR = args.upload_dir
+    settings.CONVERSION_ENABLED = not args.conversion_disabled
+    run_cache_dir(args)
 
 
 def setup_argparse(parser):
@@ -87,7 +96,11 @@ def setup_argparse(parser):
         "--port", type=int, help="Server port", default=int(os.environ.get("SCELVIS_HOST", 8050))
     )
     parser.add_argument(
-        "--data-dir", default=os.environ.get("SCELVIS_DATADIR"), help="Path to data directory"
+        "--data-dir",
+        dest="data_dirs",
+        default=[],
+        action="append",
+        help="Path to data directory/ies",
     )
     parser.add_argument(
         "--cache-dir",

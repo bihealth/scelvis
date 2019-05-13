@@ -26,3 +26,4 @@ logzero
 ruamel.yaml
 # Unified access to TAR and ZIP files.
 fs
+fs.sshfs
