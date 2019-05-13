@@ -23,4 +23,6 @@ attrs
 # Simplified logging.
 logzero
 # Support for YAML access.
-ruamel-yaml
+ruamel.yaml
+# Unified access to TAR and ZIP files.
+fs

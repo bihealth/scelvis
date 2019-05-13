@@ -1,4 +1,4 @@
-"""Main entry point."""
+"""This modules running as ``python -m scelvis``."""
 
 import sys
 

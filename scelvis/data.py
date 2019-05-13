@@ -1,4 +1,9 @@
-"""Allows storing the representation of data sets."""
+"""Code for the definition of the data and meta data and loading them from disk.
+
+The types of this modules are used commonly in the scelvis app but the actual ``load_`` functions
+should only be accessed through the ``.store`` module such that they can be cached by the app.
+This module is unaware of the Dash app.
+"""
 
 import os
 import typing
@@ -8,6 +13,8 @@ import attr
 from logzero import logger
 import pandas as pd
 from ruamel.yaml import YAML
+
+from . import settings
 
 
 @attr.s(auto_attribs=True)
@@ -26,7 +33,7 @@ class MetaData:
 
 def load_metadata(path):
     """Load metadata from a dataset directory."""
-    with open(os.path.join(path, "about.md"), "rt") as inputf:
+    with open(os.path.join(path, settings.ABOUT_FILENAME), "rt") as inputf:
         header = []
         lines = [line.rstrip() for line in inputf.readlines()]
 

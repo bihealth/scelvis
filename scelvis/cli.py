@@ -1,4 +1,8 @@
-"""Command line interface for scelvis."""
+"""Command line interface for scelvis.
+
+This is the main program entry point for the ``scelvis`` executable and its sub commands.  The
+actual implementation is in the modules ``convert`` and ``webserver``.
+"""
 
 import argparse
 import logging
@@ -12,7 +16,7 @@ from .webserver import run as run_webserver
 from .webserver import setup_argparse as setup_argparse_webserver
 
 
-def run_nocmd(parser, _):
+def run_nocmd(_, parser):
     """No command given, print help and ``exit(1)``."""
     parser.print_help()
     parser.exit(1)
@@ -23,7 +27,7 @@ def main(argv=None):
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--verbose", action="store_true", default=False, help="Increase verbosity.")
-    parser.add_argument('--version', action='version', version='%%(prog)s %s' % __version__)
+    parser.add_argument("--version", action="version", version="%%(prog)s %s" % __version__)
 
     subparsers = parser.add_subparsers(dest="cmd")
 
@@ -44,4 +48,4 @@ def main(argv=None):
     # Handle the actual command line.
     cmds = {None: run_nocmd, "convert": run_convert, "run": run_webserver}
 
-    return cmds[args.cmd](parser, args)
+    return cmds[args.cmd](args, parser)

@@ -5,7 +5,7 @@ from logzero import logger
 
 from . import settings
 
-#: The cache configuration.
+#: The cache configuration, built from ``.settings``.
 CACHE_CONFIG = {
     "DEBUG": settings.DEBUG,
     "CACHE_TYPE": settings.CACHE_TYPE,
@@ -19,6 +19,6 @@ cache = Cache()
 
 
 def setup_cache(app):
-    """Setup cache for the app."""
+    """Setup the Dash app's Flask app with the cache."""
     logger.info("Using cache configuration %s", CACHE_CONFIG)
     cache.init_app(app.server, config=CACHE_CONFIG)

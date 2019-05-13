@@ -1,4 +1,4 @@
-"""The UI for the cell annotation."""
+"""Render the plots and controls for the gene tab pane."""
 
 import urllib.parse
 
@@ -8,13 +8,12 @@ import dash_html_components as html
 import plotly.graph_objs as go
 import plotly.tools as tools
 
-from .colors import get_cm
-from ..exceptions import ScelVisException
-from ..settings import PLOT_HEIGHT
+from .. import settings
+from . import colors, common
 
 
 def render_controls_scatter(data):
-    """Render controls for the scatter plot for the given ``data``."""
+    """Render "top left" controls for the scatter plot for the given ``data``."""
     return [
         html.Div(
             children=[
@@ -46,7 +45,7 @@ def render_controls_scatter(data):
 
 
 def render_controls_violin(data):
-    """Render controls for the violin plot for the given ``data``."""
+    """Render "top left" controls for the violin plot for the given ``data``."""
     return [
         html.Div(
             children=[
@@ -80,7 +79,7 @@ def render_controls_violin(data):
 
 
 def render_controls_bars(data):
-    """Render controls for the bar chart for the given ``data``."""
+    """Render "top left" controls for the bar chart for the given ``data``."""
     return [
         html.Div(
             children=[
@@ -123,11 +122,7 @@ def render_controls_bars(data):
 
 
 def render_controls(data):
-    """Render the controls column for the given ``data``."""
-    # Choices for sub-sampling.
-    sample_choices = [{"label": g, "value": g} for g in [100, 1000, 5000] if g < data.meta.shape[0]]
-    sample_choices.append({"label": "all", "value": "all"})
-
+    """Render the (left) controls column for the given ``data``."""
     return [
         # Select plot type.
         html.Div(
@@ -156,18 +151,7 @@ def render_controls(data):
         dcc.Loading(id="meta_plot_controls", type="circle"),
         html.Hr(),
         # Control for sub-sampling of cells.
-        html.Div(
-            children=[
-                html.Label("select cell sample"),
-                dcc.Dropdown(
-                    id="meta_select_cell_sample",
-                    options=sample_choices,
-                    value="all",
-                    disabled=False,
-                ),
-            ],
-            title="use random sample of cells for faster rendering",
-        ),
+        common.render_subsampling_dropdown(data, "meta"),
     ]
 
 
@@ -182,32 +166,8 @@ def render(data):
     )
 
 
-def render_plot(plot_type):
-    """Render the "Cell Annotation" plot (placeholders)."""
-
-    if plot_type not in ("scatter", "violin", "bar"):
-        raise ScelVisException("Invalid plot type: %s", plot_type)
-
-    return (
-        [
-            dcc.Graph(id="meta_%s_plot" % plot_type),
-            html.A(
-                children=[
-                    html.I(className="fas fa-cloud-download-alt pr-1"),
-                    "download data for this plot",
-                ],
-                id="meta_%s_download" % plot_type,
-                download="plot_data.csv",
-                href="",
-                hidden=True,
-                target="_blank",
-            ),
-        ],
-        plot_type == "bar",
-    )
-
-
 def render_plot_scatter(data, xc, yc, col, sample_size):
+    """Render the scatter plot figure."""
     if col is None:
         return {}, "", True
 
@@ -217,25 +177,29 @@ def render_plot_scatter(data, xc, yc, col, sample_size):
         meta_here = data.meta
 
     if col in data.categorical_meta:
-
         # select color palette
         colvals = meta_here[col].unique()
-        cm = get_cm(colvals)
+        cm = colors.get_cm(colvals)
 
         # plot scatter for each category separately
         traces = []
         for n, cv in enumerate(colvals):
-            tr = go.Scattergl(
-                x=meta_here[meta_here[col] == cv][xc],
-                y=meta_here[meta_here[col] == cv][yc],
-                text=meta_here[meta_here[col] == cv].index,
-                mode="markers",
-                opacity=0.7,
-                marker={"size": 5, "color": cm[n % 40], "line": {"width": 0.1, "color": "gray"}},
-                showlegend=False,
-                name=cv,
+            traces.append(
+                go.Scattergl(
+                    x=meta_here[meta_here[col] == cv][xc],
+                    y=meta_here[meta_here[col] == cv][yc],
+                    text=meta_here[meta_here[col] == cv].index,
+                    mode="markers",
+                    opacity=0.7,
+                    marker={
+                        "size": 5,
+                        "color": cm[n % 40],
+                        "line": {"width": 0.1, "color": "gray"},
+                    },
+                    showlegend=False,
+                    name=cv,
+                )
             )
-            traces.append(tr)
             # extra trace for legend with bigger marker
             traces.append(
                 go.Scatter(
@@ -285,13 +249,14 @@ def render_plot_scatter(data, xc, yc, col, sample_size):
             margin={"l": 40, "b": 40, "t": 10, "r": 10},
             legend={"x": 1.05, "y": 1},
             hovermode="closest",
-            height=PLOT_HEIGHT,
+            height=settings.PLOT_HEIGHT,
         ),
     }
     return fig, csv_string, False
 
 
 def render_plot_violin(data, variables, group, split, sample_size):
+    """Render the violin plot figure."""
     if variables is None or len(variables) == 0:
         return {}, "", True
 
@@ -303,10 +268,10 @@ def render_plot_violin(data, variables, group, split, sample_size):
     # select color palette
     if split is None:
         groupvals = meta_here[group].unique()
-        cm = get_cm(groupvals)
+        cm = colors.get_cm(groupvals)
     else:
         splitvals = meta_here[split].unique()
-        cm = get_cm(splitvals)
+        cm = colors.get_cm(splitvals)
 
     nvar = len(variables)
 
@@ -368,7 +333,7 @@ def render_plot_violin(data, variables, group, split, sample_size):
         margin={"l": 50, "b": 80, "t": 10, "r": 10},
         legend={"x": 1.05, "y": 1},
         hovermode="closest",
-        height=PLOT_HEIGHT,
+        height=settings.PLOT_HEIGHT,
     )
 
     if split is not None:

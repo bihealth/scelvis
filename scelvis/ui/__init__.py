@@ -1,4 +1,1 @@
-from .cells import render as render_tab_cells  # noqa
-from .genes import render as render_tab_genes  # noqa
-
-from .colors import tab10, tab20, tab40
+"""This module's sub modules contain code for rendering the app's Dash components."""

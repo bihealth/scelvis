@@ -16,19 +16,27 @@ def run_server(args):
     app.run_server(host=args.host, port=args.port, debug=args.debug)
 
 
-def run_upload_dir(args):
-    """Setup upload directory if necessary and run server."""
-    if not args.UPLOAD_ENABLED:
-        logger.info("Note that uploads are disabled")
+def run_temp_dir(args):
+    """Setup temporary directory and run server."""
+    with tempfile.TemporaryDirectory(prefix="scelvis.tmp") as tmpdir:
+        logger.info("Creating temporary directory %s", tmpdir)
+        settings.TEMP_DIR = tmpdir
         run_server(args)
+
+
+def run_upload_dir(args):
+    """Setup upload directory if necessary and continue with temp dir setup."""
+    if not settings.UPLOAD_ENABLED:
+        logger.info("Note that uploads are disabled")
+        run_temp_dir(args)
     elif settings.UPLOAD_DIR:
         logger.info("Upload directory is %s", settings.UPLOAD_DIR)
-        run_server(args)
+        run_temp_dir(args)
     else:
         with tempfile.TemporaryDirectory(prefix="scelvis.upload") as tmpdir:
             logger.info("Creating upload directory %s", tmpdir)
             settings.UPLOAD_DIR = tmpdir
-            run_server(args)
+            run_temp_dir(args)
 
 
 def run_cache_dir(args):
@@ -39,13 +47,13 @@ def run_cache_dir(args):
         with tempfile.TemporaryDirectory(prefix="scelvis.cache.") as tmpdir:
             logger.info("Using cache directory %s", tmpdir)
             settings.CACHE_DIR = tmpdir
-            run_server(args)
+            run_upload_dir(args)
     else:
-        run_server(args)
+        run_upload_dir(args)
     logger.info("Web server stopped. Have a nice day!")
 
 
-def run(parser, args):
+def run(args, parser):
     """Main entry point after argument parsing."""
     if not args.data_dir:
         parser.error(
@@ -63,9 +71,9 @@ def run(parser, args):
             settings.CACHE_REDIS_URL = args.cache_redis_url
         elif args.cache_dir:
             settings.CACHE_DIR = args.cache_dir
-        settings.UPLOAD_ENABLED = not args.disable_upload
+        settings.UPLOAD_ENABLED = not args.upload_disabled
         settings.UPLOAD_DIR = args.upload_dir
-        settings.CONVERSION_ENABLED = not args.disable_conversion
+        settings.CONVERSION_ENABLED = not args.conversion_disabled
         run_cache_dir(args)
 
 
@@ -100,14 +108,14 @@ def setup_argparse(parser):
     parser.add_argument(
         "--upload-dir",
         default=os.environ.get("SCELVIS_UPLOAD_DIR"),
-        help="Directory for visualization uploads, default is to create temporary directory"
+        help="Directory for visualization uploads, default is to create temporary directory",
     )
     parser.add_argument(
         "--disable-upload",
         default=os.environ.get("SCELVIS_UPLOAD_DISABLED", False),
         dest="upload_disabled",
         action="store_true",
-        help="Whether or not to disable visualization uploads"
+        help="Whether or not to disable visualization uploads",
     )
 
     parser.add_argument(
@@ -115,5 +123,5 @@ def setup_argparse(parser):
         default=os.environ.get("SCELVIS_CONVERSION_DISABLED", False),
         dest="conversion_disabled",
         action="store_true",
-        help="Directory for visualization uploads, default is to create temporary directory"
+        help="Directory for visualization uploads, default is to create temporary directory",
     )

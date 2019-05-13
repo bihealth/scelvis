@@ -3,16 +3,14 @@
 Currently, only conversion from the Cell-Ranger is supported.
 """
 
-import argparse
 import contextlib
 import logging
 import os
-import sys
 
 import anndata
+import attr
 import scanpy.api as sc
 import pandas as pd
-import logzero
 from logzero import logger
 
 from .exceptions import ScelVisException
@@ -38,7 +36,6 @@ class CellRangerConverter:
         """Perform the conversion."""
         logger.info("Starting conversion from CellRanger output to SCelVis HDF5")
         logger.info("Settings: %s", vars(self.args))
-
         tsne = self._load_tsne()
         pca = self._load_pca()
         clustering = self._load_clustering()
@@ -145,7 +142,6 @@ class CellRangerConverter:
     def _write_output(self, ad, diffexp):
         out_file = os.path.join(self.args.outdir, "data.h5ad")
         marker_file = os.path.join(self.args.outdir, "markers.csv")
-
         logger.info("Saving anndata object to %s", out_file)
         # TODO: explicitely set column types to get rid of warning?
         ad.write(out_file)
@@ -158,7 +154,23 @@ class CellRangerConverter:
         )
 
 
-def run(_parser, args):
+@attr.s(auto_attribs=True)
+class Config:
+    """Configuration for the converter."""
+
+    #: Input directory.
+    indir: str
+    #: Output directory.
+    outdir: str
+    #: Top N markers to save.
+    nmarkers: int = 10
+    #: Whether to split by species.
+    split_species: bool = False
+    #: Use raw signal.
+    use_raw: bool = False
+
+
+def run(args, _parser=None):
     """Main entry point after argument parsing."""
     # TODO: detect pipeline output
     return CellRangerConverter(args).run()
