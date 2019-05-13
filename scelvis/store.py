@@ -5,69 +5,90 @@ and memoizes the loaded data in the Flask cacche.  This module is aware of the F
 thus also of the Dash app.
 """
 
-import os.path
-import urllib
+import contextlib
 
-import fs
+import fs.path
 from logzero import logger
 
 from . import data, settings
+from .exceptions import ScelVisException
 from .cache import cache
 
 
-def get_file_system(url):
-    """Return file system from the given ``url``."""
-    url = urllib.parse.urlparse(url)
-    if url.scheme and url.scheme != "file":
-        base_url = "%s://%s" % (url.scheme, url.netloc)
+@contextlib.contextmanager
+def list_identifiers(data_source):
+    """Context manager for listing all identifiers inside the given ``data_source`` specification."""
+
+
+@cache.memoize()
+def does_exist(url, path, *more_components):
+    """Return whether the given path exists behind the given URL."""
+    if url.scheme in data.PYFS_SCHEMES:
+        logger.info("data.make_fs(%s).exists(fs.path.join(%s, *%s))", url, path, more_components)
+        return data.make_fs(url).exists(fs.path.join(path, *more_components))
+    elif url.scheme == "irods":
+        pass  # TODO: implement me!
     else:
-        base_url = url.netloc
-    return url, fs.open_fs(base_url)
+        raise ScelVisException("Invalid URL scheme: %s" % url.scheme)
+
+
+@cache.memoize()
+def glob_data_sets(url):
+    """Return list of all data sets behind the given ``url``."""
+    result = []
+    if url.scheme in data.PYFS_SCHEMES:
+        curr_fs = data.make_fs(url)
+        for match in curr_fs.glob(fs.path.join("*", settings.ABOUT_FILENAME)):
+            match_path = fs.path.basename(match.path)
+            logger.info("Found data set %s at %s" % (match_path, data.redacted_urlunparse(url)))
+            result.append(url._replace(path=fs.path.join(url.path, match.path)))
+    elif url.scheme == "irods":
+        pass  # TODO: implement me!
+    else:
+        raise ScelVisException("Invalid URL scheme: %s" % url.scheme)
+    return result
 
 
 @cache.memoize()
 def load_all_metadata():
-    """Load all meta data information ``data_dir``.
+    """Load all meta data information from ``settings.DATA_SOURCES``.
 
-    If ``data_dir`` itself contains a file called ``about.md``, it is assumed that only one dataset is available.
+    If ``data_source`` itself contains a file called ``about.md``, it is assumed that only one dataset is available.
     Otherwise, all sub directories will be scanned for ``about.md`` and one entry is returned for each dataset.
     """
     result = []
-    for data_dir in settings.DATA_DIRS:
-        url, the_fs = get_file_system(data_dir)
-        if the_fs.exists(fs.path.join(url.path, settings.ABOUT_FILENAME)):
-            logger.info("Loading single dataset from data directory %s", data_dir)
-            result.append(data.load_metadata(data_dir))
+    for data_source in settings.DATA_SOURCES:
+        if does_exist(data_source, settings.ABOUT_FILENAME):
+            logger.info(
+                "Loading single dataset from data source %s", data.redacted_urlunparse(data_source)
+            )
+            result.append(data.load_metadata(data_source))
         else:
-            for match in the_fs.glob(fs.path.join(url.path, "*", settings.ABOUT_FILENAME)):
-                logger.info("Found data set %s", fs.path.dirname(match.path))
-                result.append(data.load_metadata(the_fs, fs.path.dirname(match.path)))
-            if result:
-                logger.info("Loaded %d data sets from data directory.", len(result))
+            lst = []
+            for match in glob_data_sets(data_source):
+                identifier = fs.path.basename(fs.path.dirname(match.path))
+                lst.append(data.load_metadata(data_source, identifier))
+            if lst:
+                logger.info("Loaded %d data sets from data directory.", len(lst))
             else:
-                logger.warn("No data sets found in data directory %s", data_dir)
+                logger.warn(
+                    "No data sets found in data directory %s", data.redacted_urlunparse(data_source)
+                )
+            result += lst
     return result
 
 
 @cache.memoize()
 def load_metadata(identifier):
     """Load metadata for the given identifier from data or upload directory."""
-    for base_dir in settings.DATA_DIRS + [settings.UPLOAD_DIR]:
-        if not base_dir:
-            continue
-        url, the_fs = get_file_system(base_dir)
-        full_path = fs.path.join(url.path, identifier)
-        if the_fs.exists(full_path):
-            return data.load_metadata(the_fs, full_path)
+    for data_source in settings.DATA_SOURCES + [settings.UPLOAD_DIR]:
+        if data_source and does_exist(data_source, identifier, settings.ABOUT_FILENAME):
+            return data.load_metadata(data_source, identifier)
 
 
 @cache.memoize()
 def load_data(identifier):
     """Load data for the given identifier from data or upload directory."""
-    for base_dir in settings.DATA_DIRS + [settings.UPLOAD_DIR]:
-        if not base_dir:
-            continue
-        url, the_fs = get_file_system(base_dir)
-        full_path = fs.path.join(url.path, identifier)
-        if the_fs.exists(full_path):
-            return data.load_data(the_fs, full_path)
+    for data_source in settings.DATA_SOURCES + [settings.UPLOAD_DIR]:
+        if data_source and does_exist(data_source, identifier, settings.ABOUT_FILENAME):
+            return data.load_data(data_source, identifier)

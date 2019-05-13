@@ -5,17 +5,75 @@ should only be accessed through the ``.store`` module such that they can be cach
 This module is unaware of the Dash app.
 """
 
-import fs
-from fs.tempfs import TempFS
+import os.path
+import contextlib
+from urllib.parse import urlunparse as _urlunparse
+
 import typing
 
 import anndata
 import attr
+import fs.path
+import fs.tools
+from fs.sshfs import SSHFS as SSHFS
+from fs.ftpfs import FTPFS
+from fs.osfs import OSFS
+from fs.tempfs import TempFS
 from logzero import logger
 import pandas as pd
 from ruamel.yaml import YAML
 
-from . import settings
+from .exceptions import ScelVisException
+
+
+def redacted_urlunparse(url, redact_with="***"):
+    """``urlunparse()`` but redact password."""
+    netloc = []
+    if url.username:
+        netloc.append(url.username)
+    if url.password:
+        netloc.append(":")
+        netloc.append(redact_with)
+    if url.hostname:
+        if netloc:
+            netloc.append("@")
+        netloc.append(url.hostname)
+    url = url._replace(netloc="".join(netloc))
+    return _urlunparse(url)
+
+
+#: Schemes supported through PyFilesystem
+PYFS_SCHEMES = ("file", "ftp", "sftp")
+
+
+def make_osfs(url):
+    """Construct OSFS from url."""
+    if url.scheme != "file":
+        raise ValueError("Scheme must be == 'file'")
+    return OSFS(url.path)
+
+
+def make_ftpfs(url):
+    """Construct FTPFS from url."""
+    if url.scheme != "ftp":
+        raise ValueError("Scheme must be == 'ftp'")
+    return FTPFS(host=url.hostname, user=url.username, passwd=url.password, port=(url.port or 21))
+
+
+def make_ssfs(url):
+    """Construct SSHFS from url."""
+    if url.scheme != "sftp":
+        raise ValueError("Scheme must be == 'sftp'")
+    return SSHFS(host=url.hostname, user=url.username, passwd=url.password, port=(url.port or 22))
+
+
+def make_fs(url):
+    """Create PyFilesystem FS for the given url."""
+    factories = {"file": make_osfs, "ftp": make_ftpfs, "sftp": make_ssfs}
+    if url.scheme not in factories:
+        raise ValueError("Invalid scheme '%s'" % url.scheme)
+    else:
+        return factories[url.scheme](url).opendir(url.path)
 
 
 @attr.s(auto_attribs=True)
@@ -30,33 +88,6 @@ class MetaData:
     short_title: str
     #: String with Markdown-formatted README.
     readme: str
-
-
-def load_metadata(file_system, path):
-    """Load metadata from a dataset directory."""
-    logger.info("Loading %s from %s", path, file_system)
-    with file_system.open(fs.path.join(path, settings.ABOUT_FILENAME), "rt") as inputf:
-        header = []
-        lines = [line.rstrip() for line in inputf.readlines()]
-
-        # Load meta data, if any.
-        if lines and lines[0] and lines[0].startswith("----"):
-            for line in lines[1:]:
-                if line.startswith("----"):
-                    break
-                else:
-                    header.append(line)
-            lines = lines[len(header) + 2 :]
-
-        # Get title and short title, finally create MetaData object.
-        meta = YAML().load("\n".join(header))
-        title = meta.get("title", "Untitled")
-        short_title = meta.get("short_title", title or "untitled")
-        readme = "\n".join([line.rstrip() for line in lines]).lstrip()
-
-        return MetaData(
-            id=fs.path.basename(path), title=title, short_title=short_title, readme=readme
-        )
 
 
 @attr.s(auto_attribs=True)
@@ -86,17 +117,75 @@ class Data:
     categorical_meta: object
 
 
-def load_data(file_system, datadir):
-    """Load the data from the given directory."""
-    logger.info("Loading metadata from %s %s", file_system, datadir)
-    metadata = load_metadata(file_system, datadir)
+@contextlib.contextmanager
+def download_file(url, path, *more_components):
+    """Download file (if necessary) and yield filename if necessary."""
+    path = fs.path.join(path, *more_components)
+    full_path = fs.path.join(url.path, path)
+    if url.scheme == "file":
+        logger.info("No need for download, just use %s", full_path)
+        if os.path.exists(full_path):
+            yield full_path
+        else:
+            yield None
+    else:
+        basename = fs.path.basename(full_path)
+        if url.scheme in PYFS_SCHEMES:
+            src_fs = make_fs(url)
+        elif url.scheme == "irods":
+            pass  # TODO: implement me!
+        else:
+            raise ScelVisException("Invalid URL scheme: %s" % url.scheme)
+        # Download file if it exists.
+        if not src_fs.exists(path):
+            yield None
+        else:
+            with TempFS() as tmpfs:
+                logger.info("Downloading file %s from %s" % (path, redacted_urlunparse(url)))
+                if url.scheme == "ftps":
+                    # NB: download() too slow with built-in methods of fs.sshfs
+                    src_fs._wrap_fs._sftp.get(full_path, tmpfs.getospath(basename))
+                else:
+                    with open(tmpfs.getospath(basename), "wb") as tmpf:
+                        src_fs.download(path, tmpf)
+                logger.info("Download complete.")
+                yield tmpfs.getospath(basename)
+                logger.info("Releasing %s" % tmpfs)
 
-    ad_file = fs.path.join(datadir, "data.h5ad")
-    logger.info("Reading all data from %s", ad_file)
-    with TempFS() as tmpfs:
-        logger.info("Downloading file %s", ad_file)
-        fs.copy.copy_file(file_system, ad_file, tmpfs, "tmp.h5ad")
-        ad = anndata.read_h5ad(tmpfs.getospath("tmp.h5ad"))
+
+def load_metadata(data_source, identifier):
+    """Load metadata from a data_source URL and identifier."""
+    logger.info("Loading metadata for %s from %s", data_source, identifier)
+    with download_file(data_source, identifier, "about.md") as about_path:
+        with open(about_path, "rt") as inputf:
+            header = []
+            lines = [line.rstrip() for line in inputf.readlines()]
+
+            # Load meta data, if any.
+            if lines and lines[0] and lines[0].startswith("----"):
+                for line in lines[1:]:
+                    if line.startswith("----"):
+                        break
+                    else:
+                        header.append(line)
+                lines = lines[len(header) + 2 :]
+
+            # Get title and short title, finally create MetaData object.
+            meta = YAML().load("\n".join(header))
+            title = meta.get("title", "Untitled")
+            short_title = meta.get("short_title", title or "untitled")
+            readme = "\n".join([line.rstrip() for line in lines]).lstrip()
+
+            return MetaData(id=identifier, title=title, short_title=short_title, readme=readme)
+
+
+def load_data(data_source, identifier):
+    """Load the data from the data_source URL and identifier."""
+    metadata = load_metadata(data_source, identifier)
+
+    logger.info("Loading anndata for %s from %s", data_source, identifier)
+    with download_file(data_source, identifier, "data.h5ad") as path_anndata:
+        ad = anndata.read_h5ad(path_anndata)
         coords = {}
         for k in ["X_tsne", "X_umap"]:
             if k in ad.obsm.keys():
@@ -107,29 +196,28 @@ def load_data(file_system, datadir):
                 )
         meta = pd.concat(coords.values(), axis=1).join(ad.obs)
         DGE = ad.to_df().T
+        # Separate numerical and categorical columns for later.
+        numerical_meta = []
+        categorical_meta = []
+        for col in meta.columns:
+            if pd.api.types.is_numeric_dtype(meta[col]):
+                numerical_meta.append(col)
+            else:
+                categorical_meta.append(col)
+        genes = DGE.index
+        cells = DGE.columns
 
-    # Separate numerical and categorical columns for later.
-    numerical_meta = []
-    categorical_meta = []
-    for col in meta.columns:
-        if pd.api.types.is_numeric_dtype(meta[col]):
-            numerical_meta.append(col)
+    logger.info("Loading markers for %s from %s", data_source, identifier)
+    with download_file(data_source, identifier, "markers.csv") as path_markers:
+        if path_markers:
+            logger.info("Reading markers from %s", path_markers)
+            with open(path_markers, "rt") as markerf:
+                markers = pd.read_csv(markerf, header=0, index_col=0)
+            if "gene" not in markers.columns:
+                logger.warn('No "gene" column in %s!', path_markers)
+                markers = None
         else:
-            categorical_meta.append(col)
-
-    genes = DGE.index
-    cells = DGE.columns
-
-    marker_file = fs.path.join(datadir, "markers.csv")
-    if file_system.exists(marker_file):
-        logger.info("Reading markers from %s", marker_file)
-        with file_system.open(marker_file) as markerf:
-            markers = pd.read_csv(markerf, header=0, index_col=0)
-        if "gene" not in markers.columns:
-            logger.warn('No "gene" column in %s!', marker_file)
             markers = None
-    else:
-        markers = None
 
     return Data(
         metadata=metadata,

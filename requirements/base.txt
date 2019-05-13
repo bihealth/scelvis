@@ -24,6 +24,9 @@ attrs
 logzero
 # Support for YAML access.
 ruamel.yaml
-# Unified access to TAR and ZIP files.
+# Unified access to files within archives or behind protocols.
 fs
 fs.sshfs
+# TODO: we need an fs[._]irods
+# Access to files through iRODS.
+python-irodsclient

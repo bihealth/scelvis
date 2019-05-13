@@ -32,7 +32,7 @@ A Docker container is also available:
 .. code-block:: shell
 
     $ docker run bihealth/scelvis:latest --help
-    $ docker run -p 8050:8050 -v data:/data bihealth/scelvis:latest run --data-dir /data
+    $ docker run -p 8050:8050 -v data:/data bihealth/scelvis:latest run --data-source /data
 
 -------------------
 Preparing Your Data
@@ -96,9 +96,9 @@ Visualizing Your Data
         ├── about.md
         └── data.h5ad
 
-    $ scelvis run --data-dir data/project
+    $ scelvis run --data-source data/project
     # OR
-    $ scelvis run --data-dir data
+    $ scelvis run --data-source data
 
 ---------------
 Developer Setup
@@ -138,7 +138,7 @@ Afterwards, you can run the visualization web server as follows:
 
 .. code-block:: shell
 
-    $ scelvis run --data-dir path/to/data/dir
+    $ scelvis run --data-source path/to/data/dir
 
 Releasing Packages
 ==================

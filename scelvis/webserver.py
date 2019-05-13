@@ -5,7 +5,6 @@ import os
 import tempfile
 import urllib
 
-import fs
 from logzero import logger
 
 from . import settings
@@ -55,25 +54,27 @@ def run_cache_dir(args):
     logger.info("Web server stopped. Have a nice day!")
 
 
+def parse_url(url_str):
+    """Parse URL and fix scheme for ``file://`` URLs."""
+    tmp = urllib.parse.urlparse(url_str)
+    return tmp._replace(scheme=tmp.scheme if tmp.scheme else "file")
+
+
 def run(args, parser):
     """Main entry point after argument parsing."""
-    data_dirs = []
-    if os.environ.get("SCELVIS_DATA_DIRS"):
-        data_dirs += os.environ.get("SCELVIS_DATA_DIRS").split(";")
-    if args.data_dirs:
-        data_dirs += args.data_dirs
-    if not data_dirs:
+    data_sources = []
+    if os.environ.get("SCELVIS_DATA_SOURCES"):
+        data_sources += os.environ.get("SCELVIS_DATA_SOURCES").split(";")
+    for data_source in args.data_sources:
+        data_sources += data_source.split(";")
+    data_sources = list(map(parse_url, data_sources))
+    if not data_sources:
         parser.error(
-            "You either have to specify --data-dir or set environment variable SCELVIS_DATA_DIRS"
+            "You either have to specify --data-sources or set environment variable SCELVIS_DATA_SOURCES"
         )
-    for data_dir in args.data_dirs:
-        url = urllib.parse.urlparse(data_dir)
-        the_fs = fs.open_fs("%s://%s/" % (url.scheme or "file", url.netloc))
-        if not the_fs.exists(url.path):
-            parser.error("The data directory %s [%s] does not exist!" % (the_fs, url.path))
     # Configure the Dash app through ``settings`` module (see module docstring for more info).
     logger.info("Configuring settings from arguments %s", args)
-    settings.DATA_DIRS = data_dirs
+    settings.DATA_SOURCES = data_sources
     settings.CACHE_DEFAULT_TIMEOUT = args.cache_default_timeout
     if args.cache_redis_url:
         settings.CACHE_TYPE = "redis"
@@ -96,11 +97,11 @@ def setup_argparse(parser):
         "--port", type=int, help="Server port", default=int(os.environ.get("SCELVIS_HOST", 8050))
     )
     parser.add_argument(
-        "--data-dir",
-        dest="data_dirs",
+        "--data-source",
+        dest="data_sources",
         default=[],
         action="append",
-        help="Path to data directory/ies",
+        help="Path to data source(s)",
     )
     parser.add_argument(
         "--cache-dir",
