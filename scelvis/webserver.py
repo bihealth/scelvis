@@ -3,7 +3,7 @@
 
 import os
 import tempfile
-import urllib
+import urllib.parse
 
 from logzero import logger
 
@@ -94,7 +94,7 @@ def setup_argparse(parser):
         "--host", help="Server host", default=os.environ.get("SCELVIS_HOST", "0.0.0.0")
     )
     parser.add_argument(
-        "--port", type=int, help="Server port", default=int(os.environ.get("SCELVIS_HOST", 8050))
+        "--port", type=int, help="Server port", default=int(os.environ.get("SCELVIS_PORT", 8050))
     )
     parser.add_argument(
         "--data-source",
@@ -126,7 +126,7 @@ def setup_argparse(parser):
     )
     parser.add_argument(
         "--disable-upload",
-        default=os.environ.get("SCELVIS_UPLOAD_DISABLED", False),
+        default=os.environ.get("SCELVIS_UPLOAD_DISABLED", "0") not in ("", "0", "N", "n"),
         dest="upload_disabled",
         action="store_true",
         help="Whether or not to disable visualization uploads",
@@ -134,7 +134,7 @@ def setup_argparse(parser):
 
     parser.add_argument(
         "--disable-conversion",
-        default=os.environ.get("SCELVIS_CONVERSION_DISABLED", False),
+        default=os.environ.get("SCELVIS_CONVERSION_DISABLED", "0") not in ("", "0", "N", "n"),
         dest="conversion_disabled",
         action="store_true",
         help="Directory for visualization uploads, default is to create temporary directory",

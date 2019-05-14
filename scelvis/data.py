@@ -5,11 +5,14 @@ should only be accessed through the ``.store`` module such that they can be cach
 This module is unaware of the Dash app.
 """
 
+import os
 import os.path
 import contextlib
 from urllib.parse import urlunparse as _urlunparse
-
+import shutil
+import ssl
 import typing
+from urllib.parse import parse_qs
 
 import anndata
 import attr
@@ -19,10 +22,13 @@ from fs.sshfs import SSHFS as SSHFS
 from fs.ftpfs import FTPFS
 from fs.osfs import OSFS
 from fs.tempfs import TempFS
+from irods.session import iRODSSession
+from irods.ticket import Ticket
 from logzero import logger
 import pandas as pd
 from ruamel.yaml import YAML
 
+from . import settings
 from .exceptions import ScelVisException
 
 
@@ -76,6 +82,40 @@ def make_fs(url):
         return factories[url.scheme](url).opendir(url.path)
 
 
+def create_irods_session(url):
+    """Create an iRODS session."""
+    if "ssl" in url.scheme:
+        ssl_settings = {
+            "ssl_context": ssl.create_default_context(
+                purpose=ssl.Purpose.SERVER_AUTH, cafile=None, capath=None, cadata=None
+            )
+        }
+    else:
+        ssl_settings = {}
+
+    if 'pam' in url.scheme:
+        irods_authentication_scheme = 'pam'
+    else:
+        irods_authentication_scheme = 'native'
+
+    logger.info("Creating iRODS session")
+    session = iRODSSession(
+        host=url.hostname,
+        port=(url.port or 1247),
+        user=url.username,
+        password=url.password or '',
+        irods_authentication_scheme=irods_authentication_scheme,
+        zone=(url.path or '/').split('/')[1],
+        **ssl_settings
+    )
+    query = parse_qs(url.query)
+    if 'ticket' in query:
+        logger.info("Setting ticket for session")
+        ticket = Ticket(session, query['ticket'][0])
+        ticket.supply()
+    return session
+
+
 @attr.s(auto_attribs=True)
 class MetaData:
     """Class to bundle the data loaded for SCelVis."""
@@ -122,6 +162,7 @@ def download_file(url, path, *more_components):
     """Download file (if necessary) and yield filename if necessary."""
     path = fs.path.join(path, *more_components)
     full_path = fs.path.join(url.path, path)
+    logger.info("Attempting to download file %s", url._replace(path=full_path))
     if url.scheme == "file":
         logger.info("No need for download, just use %s", full_path)
         if os.path.exists(full_path):
@@ -132,30 +173,48 @@ def download_file(url, path, *more_components):
         basename = fs.path.basename(full_path)
         if url.scheme in PYFS_SCHEMES:
             src_fs = make_fs(url)
-        elif url.scheme == "irods":
-            pass  # TODO: implement me!
+            # Download file if it exists.
+            if not src_fs.exists(path):
+                yield None
+            else:
+                with TempFS() as tmpfs:
+                    logger.info("Downloading file %s from %s" % (path, redacted_urlunparse(url)))
+                    if url.scheme == "ftps":
+                        # NB: download() too slow with built-in methods of fs.sshfs
+                        src_fs._wrap_fs._sftp.get(full_path, tmpfs.getospath(basename))
+                    else:
+                        with open(tmpfs.getospath(basename), "wb") as tmpf:
+                            src_fs.download(path, tmpf)
+                    logger.info("Download complete.")
+                    yield tmpfs.getospath(basename)
+                    logger.info("Releasing %s" % tmpfs)
+        elif url.scheme.startswith("irods"):
+            with create_irods_session(url) as irods_session:
+                logger.info("Downloading file...")
+                with TempFS() as tmpfs:
+                    logger.info("Downloading file %s from %s" % (path, redacted_urlunparse(url)))
+                    path_tmp = tmpfs.getospath(basename)
+                    collection = irods_session.collections.get(fs.path.dirname(full_path))
+                    name = fs.path.basename(full_path)
+                    # import ipdb; ipdb.set_trace()
+                    for data_object in collection.data_objects:
+                        if data_object.name == name:
+                            with data_object.open() as inputf:
+                                with open(tmpfs.getospath(basename), "wb") as outputf:
+                                    shutil.copyfileobj(inputf, outputf, settings.MAX_UPLOAD_DATA_SIZE)
+                                    break
+                    else:
+                        raise ScelVisException("Could not find %s in %s" % (full_path, redacted_urlunparse(url)))
+                    logger.info("Download complete.")
+                    yield path_tmp
+                    logger.info("Releasing %s" % tmpfs)
         else:
             raise ScelVisException("Invalid URL scheme: %s" % url.scheme)
-        # Download file if it exists.
-        if not src_fs.exists(path):
-            yield None
-        else:
-            with TempFS() as tmpfs:
-                logger.info("Downloading file %s from %s" % (path, redacted_urlunparse(url)))
-                if url.scheme == "ftps":
-                    # NB: download() too slow with built-in methods of fs.sshfs
-                    src_fs._wrap_fs._sftp.get(full_path, tmpfs.getospath(basename))
-                else:
-                    with open(tmpfs.getospath(basename), "wb") as tmpf:
-                        src_fs.download(path, tmpf)
-                logger.info("Download complete.")
-                yield tmpfs.getospath(basename)
-                logger.info("Releasing %s" % tmpfs)
 
 
 def load_metadata(data_source, identifier):
     """Load metadata from a data_source URL and identifier."""
-    logger.info("Loading metadata for %s from %s", data_source, identifier)
+    logger.info("Loading metadata for %s from %s", identifier, redacted_urlunparse(data_source))
     with download_file(data_source, identifier, "about.md") as about_path:
         with open(about_path, "rt") as inputf:
             header = []

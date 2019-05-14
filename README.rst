@@ -100,6 +100,40 @@ Visualizing Your Data
     # OR
     $ scelvis run --data-source data
 
+------------
+Data Sources
+------------
+
+Data sources can be:
+
+- paths, e.g., ``relative/paths`` or ``/absolute/paths`` or ``file://url/paths``
+- SFTP URLs, e.g., ``sftp://user:password@host/path/to/data``
+- FTP URLs, e.g., ``ftp://user:password@host/path/to/data`` (sadly encryption is not supported by the underlying library `PyFilesystem2 <https://github.com/PyFilesystem/pyfilesystem2>`_.
+- iRODS URLS, e.g., ``irods://user:password@host/zoneName/path/to/data``
+    - Enable SSL via ``irods+ssl``
+    - Switch to PAM authentication with ``irods+pam`` (you can combine this with ``+ssl`` in any order)
+    - Enable ticket access by appending ``?ticket=TICKET``.
+
+Data sources can either point to directories that contain the ``about.md`` string directly (data sets) contain multiple data set directories.
+The only exception is iRODS with ticket-based access.
+Because of technical restrictions, you have to assign a unique ticket for each data set and specify the data sets individually.
+
+---------------------
+Environment Variables
+---------------------
+
+You can use the following environment variables to configure the server.
+
+- ``SCELVIS_DATA_SOURCES`` -- semicolon-separated list of data sources
+- ``SCELVIS_HOST`` -- host specification for web server to listen on
+- ``SCELVIS_PORT`` -- port for web server to listen on
+- ``SCELVIS_CACHE_DIR`` -- directory to use for the cache (default is to create a temporary directory)
+- ``SCELVIS_CACHE_REDIS_URL`` -- enable caching with REDIS and provide connection URL
+- ``SCELVIS_CACHE_DEFAULT_TIMEOUT`` -- cache lifetime coverage
+- ``SCELVIS_UPLOAD_DIR`` -- the directory to store uploaded data sets in (default is to create a temporary directory)
+- ``SCELVIS_UPLOAD_DISABLED`` -- set to "0" to disable upload feature
+- ``SCELVIS_CONVERSION_DISABLED`` -- set to "0" to disable the conversion feature
+
 ---------------
 Developer Setup
 ---------------
