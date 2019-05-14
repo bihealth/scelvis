@@ -27,12 +27,14 @@ You can install SCelVis and its dependencies using ``pip`` or through ``conda``:
     # OR
     $ conda install scelvis
 
-A Docker container is also available:
+A Docker container is also available via `Quay.io/Biocontainers <https://quay.io/organization/biocontainers>`_.
 
 .. code-block:: shell
 
-    $ docker run bihealth/scelvis:latest --help
-    $ docker run -p 8050:8050 -v data:/data bihealth/scelvis:latest run --data-source /data
+    $ docker run quay.io/biocontainers/scelvis:TAG scelvis --help
+    $ docker run -p 8050:8050 -v data:/data quay.io/biocontainers/scelvis:TAG scelvis --data-source /data
+
+- Lookup the latest ``TAG`` to use at `here <https://quay.io/repository/biocontainers/scelvis?tab=tags>`_.
 
 -------------------
 Preparing Your Data
