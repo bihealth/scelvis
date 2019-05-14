@@ -50,7 +50,7 @@ def make_osfs(url):
     """Construct OSFS from url."""
     if url.scheme != "file":
         raise ValueError("Scheme must be == 'file'")
-    return OSFS(url.path)
+    return OSFS("/")
 
 
 def make_ftpfs(url):

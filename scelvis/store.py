@@ -24,8 +24,8 @@ def list_identifiers(data_source):
 def does_exist(url, path, *more_components):
     """Return whether the given path exists behind the given URL."""
     if url.scheme in data.PYFS_SCHEMES:
-        logger.info("data.make_fs(%s).exists(fs.path.join(%s, *%s))", url, path, more_components)
-        return data.make_fs(url).exists(fs.path.join(path, *more_components))
+        curr_fs = data.make_fs(url)
+        return curr_fs.exists(fs.path.join(path, *more_components))
     elif url.scheme == "irods":
         pass  # TODO: implement me!
     else:
