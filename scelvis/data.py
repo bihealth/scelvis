@@ -179,7 +179,7 @@ def download_file(url, path, *more_components):
             else:
                 with TempFS() as tmpfs:
                     logger.info("Downloading file %s from %s" % (path, redacted_urlunparse(url)))
-                    if url.scheme == "ftps":
+                    if url.scheme == "sftp":
                         # NB: download() too slow with built-in methods of fs.sshfs
                         src_fs._wrap_fs._sftp.get(full_path, tmpfs.getospath(basename))
                     else:
@@ -196,7 +196,6 @@ def download_file(url, path, *more_components):
                     path_tmp = tmpfs.getospath(basename)
                     collection = irods_session.collections.get(fs.path.dirname(full_path))
                     name = fs.path.basename(full_path)
-                    # import ipdb; ipdb.set_trace()
                     for data_object in collection.data_objects:
                         if data_object.name == name:
                             with data_object.open() as inputf:
