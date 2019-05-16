@@ -93,25 +93,25 @@ def create_irods_session(url):
     else:
         ssl_settings = {}
 
-    if 'pam' in url.scheme:
-        irods_authentication_scheme = 'pam'
+    if "pam" in url.scheme:
+        irods_authentication_scheme = "pam"
     else:
-        irods_authentication_scheme = 'native'
+        irods_authentication_scheme = "native"
 
     logger.info("Creating iRODS session")
     session = iRODSSession(
         host=url.hostname,
         port=(url.port or 1247),
         user=url.username,
-        password=url.password or '',
+        password=url.password or "",
         irods_authentication_scheme=irods_authentication_scheme,
-        zone=(url.path or '/').split('/')[1],
+        zone=(url.path or "/").split("/")[1],
         **ssl_settings
     )
     query = parse_qs(url.query)
-    if 'ticket' in query:
+    if "ticket" in query:
         logger.info("Setting ticket for session")
-        ticket = Ticket(session, query['ticket'][0])
+        ticket = Ticket(session, query["ticket"][0])
         ticket.supply()
     return session
 
@@ -200,10 +200,14 @@ def download_file(url, path, *more_components):
                         if data_object.name == name:
                             with data_object.open() as inputf:
                                 with open(tmpfs.getospath(basename), "wb") as outputf:
-                                    shutil.copyfileobj(inputf, outputf, settings.MAX_UPLOAD_DATA_SIZE)
+                                    shutil.copyfileobj(
+                                        inputf, outputf, settings.MAX_UPLOAD_DATA_SIZE
+                                    )
                                     break
                     else:
-                        raise ScelVisException("Could not find %s in %s" % (full_path, redacted_urlunparse(url)))
+                        raise ScelVisException(
+                            "Could not find %s in %s" % (full_path, redacted_urlunparse(url))
+                        )
                     logger.info("Download complete.")
                     yield path_tmp
                     logger.info("Releasing %s" % tmpfs)

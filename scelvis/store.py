@@ -24,13 +24,17 @@ from .cache import cache
 @cache.memoize()
 def does_exist(url, path, *more_components):
     """Return whether the given path exists behind the given URL."""
-    path_full = fs.path.join(url.path, path, *more_components)
-    logger.info("Checking whether %s exists in %s", path_full, redacted_urlunparse(url))
+    logger.info(
+        "Checking whether %s exists in %s",
+        fs.path.join(path, *more_components),
+        redacted_urlunparse(url),
+    )
     if url.scheme in data.PYFS_SCHEMES:
         curr_fs = data.make_fs(url)
-        result = curr_fs.exists(path_full)
+        result = curr_fs.exists(fs.path.join(path, *more_components))
         return result
     elif url.scheme.startswith("irods"):
+        path_full = fs.path.join(url.path, path, *more_components)
         with data.create_irods_session(url) as irods_session:
             path_collection = fs.path.dirname(path_full)
             name = fs.path.basename(path_full)
@@ -63,7 +67,9 @@ def glob_data_sets(url):
             for sub_coll in collection.subcollections:
                 for data_obj in sub_coll.data_objects:
                     if data_obj.name == settings.ABOUT_FILENAME:
-                        result.append(url._replace(path=fs.path.join(url.path, sub_coll.name, data_obj.name)))
+                        result.append(
+                            url._replace(path=fs.path.join(url.path, sub_coll.name, data_obj.name))
+                        )
     else:
         raise ScelVisException("Invalid URL scheme: %s" % url.scheme)
     return result
@@ -79,9 +85,7 @@ def load_all_metadata():
     result = []
     for url in settings.DATA_SOURCES:
         if does_exist(url, settings.ABOUT_FILENAME):
-            logger.info(
-                "Loading single dataset from data source %s", data.redacted_urlunparse(url)
-            )
+            logger.info("Loading single dataset from data source %s", data.redacted_urlunparse(url))
             identifier = fs.path.basename(url.path)
             collection = url._replace(path=fs.path.dirname(url.path))
             result.append(data.load_metadata(collection, identifier))
