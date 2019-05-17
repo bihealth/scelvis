@@ -268,17 +268,17 @@ def load_data(data_source, identifier):
                 categorical_meta.append(col)
         genes = DGE.index
         cells = DGE.columns
-
-    logger.info("Loading markers for %s from %s", data_source, identifier)
-    with download_file(data_source, identifier, "markers.csv") as path_markers:
-        if path_markers:
-            logger.info("Reading markers from %s", path_markers)
-            with open(path_markers, "rt") as markerf:
-                markers = pd.read_csv(markerf, header=0, index_col=0)
-            if "gene" not in markers.columns:
-                logger.warn('No "gene" column in %s!', path_markers)
-                markers = None
+        markers = {}
+        for c in ad.uns_keys():
+            if c.startswith('marker'):
+                markers[c.replace('marker_','')] = ad.uns[c]
+        if 'gene' in markers:
+            markers = pd.DataFrame(markers)
+        elif len(markers) > 0:
+            logger.warn('No "gene" column in %s!', path_markers)
+            markers = None
         else:
+            logger.warn('No markers in %s!', path_markers)
             markers = None
 
     return Data(

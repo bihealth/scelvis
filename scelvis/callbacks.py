@@ -372,11 +372,10 @@ def register_file_upload(app):
                         break
                 else:
                     raise ScelVisException("Could not find about.md in %s" % filename)
-                # Extract about.md, data.h5ad, and markers.csv.
+                # Extract about.md and data.h5ad.
                 for fname, max_size in (
                     ("about.md", settings.MAX_UPLOAD_TEXT_SIZE),
                     ("data.h5ad", settings.MAX_UPLOAD_DATA_SIZE),
-                    ("markers.csv", settings.MAX_UPLOAD_TEXT_SIZE),
                 ):
                     path_inf = os.path.join(base_path, fname)
                     path_outf = os.path.join(uuid_path, fname)

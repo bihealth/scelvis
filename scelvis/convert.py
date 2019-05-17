@@ -40,18 +40,18 @@ class CellRangerConverter:
         pca = self._load_pca()
         clustering = self._load_clustering()
         diffexp = self._load_diffexp()
-        ad = self._load_expression(clustering, tsne, pca)
+        ad = self._load_expression(clustering, tsne, pca, diffexp)
 
         if self.args.split_species:
             ad = self._split_species(ad)
         if not self.args.use_raw:
             ad = self._normalize_filter_dge(ad)
 
-        self._write_output(ad, diffexp)
+        self._write_output(ad)
         logger.info("All done. Have a nice day!")
 
     def _load_tsne(self):
-        tsne_file = os.path.join(self.args.indir, "tsne", "2_components", "projection.csv")
+        tsne_file = os.path.join(self.args.indir, "analysis", "tsne", "2_components", "projection.csv")
         if not os.path.isfile(tsne_file):
             raise ScelVisException("cannot find tSNE output at %s" % tsne_file)
         else:
@@ -59,7 +59,7 @@ class CellRangerConverter:
             return pd.read_csv(tsne_file, header=0, index_col=0)
 
     def _load_pca(self):
-        pca_file = os.path.join(self.args.indir, "pca", "10_components", "projection.csv")
+        pca_file = os.path.join(self.args.indir, "analysis", "pca", "10_components", "projection.csv")
         if not os.path.isfile(pca_file):
             raise ScelVisException("cannot find PCA output at %s" % pca_file)
         else:
@@ -67,7 +67,7 @@ class CellRangerConverter:
             return pd.read_csv(pca_file, header=0, index_col=0)
 
     def _load_clustering(self):
-        clustering_file = os.path.join(self.args.indir, "clustering", "graphclust", "clusters.csv")
+        clustering_file = os.path.join(self.args.indir, "analysis", "clustering", "graphclust", "clusters.csv")
         if not os.path.isfile(clustering_file):
             raise ScelVisException("cannot find clustering output at %s " % clustering_file)
         else:
@@ -82,7 +82,7 @@ class CellRangerConverter:
 
     def _load_diffexp(self):
         diffexp_file = os.path.join(
-            self.args.indir, "diffexp", "graphclust", "differential_expression.csv"
+            self.args.indir, "analysis", "diffexp", "graphclust", "differential_expression.csv"
         )
         if not os.path.isfile(diffexp_file):
             raise ScelVisException("cannot find differential expression output at " + diffexp_file)
@@ -98,7 +98,7 @@ class CellRangerConverter:
             diffexp.columns = ["GeneID", "gene", "Cluster", "p_adj", "log2_fc", "mean_counts"]
             return diffexp
 
-    def _load_expression(self, clustering, tsne, pca):
+    def _load_expression(self, clustering, tsne, pca, diffexp):
         expression_file = os.path.join(self.args.indir, "filtered_feature_bc_matrix.h5")
         if not os.path.isfile(expression_file):
             raise ScelVisException("cannot find expression file at %s" % expression_file)
@@ -116,6 +116,12 @@ class CellRangerConverter:
             logger.info("Adding coordinates")
             ad.obsm["X_tsne"] = tsne.values
             ad.obsm["X_pca"] = pca.values
+            logger.info("Saving top %d markers per cluster", self.args.nmarkers)
+            markers = diffexp[(diffexp["p_adj"] < 0.05) & (diffexp["log2_fc"] > 0)].drop(
+                "GeneID", axis=1
+            ).sort_values(["Cluster", "p_adj"]).groupby("Cluster").head(self.args.nmarkers)
+            for col in markers.columns:
+                ad.uns['marker_'+col]=markers[col]
             return ad
 
     def _split_species(self, ad):
@@ -139,19 +145,12 @@ class CellRangerConverter:
         sc.pp.log1p(ad)
         return ad
 
-    def _write_output(self, ad, diffexp):
+    def _write_output(self, ad):
         out_file = os.path.join(self.args.outdir, "data.h5ad")
-        marker_file = os.path.join(self.args.outdir, "markers.csv")
         logger.info("Saving anndata object to %s", out_file)
         # TODO: explicitely set column types to get rid of warning?
         ad.write(out_file)
 
-        logger.info("Saving top %d markers per cluster to %s", self.args.nmarkers, marker_file)
-        diffexp[(diffexp["p_adj"] < 0.05) & (diffexp["log2_fc"] > 0)].drop(
-            "GeneID", axis=1
-        ).sort_values(["Cluster", "p_adj"]).groupby("Cluster").head(self.args.nmarkers).to_csv(
-            marker_file, header=True, index=True
-        )
 
 
 @attr.s(auto_attribs=True)
@@ -205,7 +204,7 @@ def setup_argparse(parser):
         dest="nmarkers",
         default=10,
         type=int,
-        help="Save top n markers per cluster in markers.file [10]",
+        help="Save top n markers per cluster [10]",
     )
     parser.add_argument(
         "--verbose", default=False, action="store_true", help="Enable verbose output"

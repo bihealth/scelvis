@@ -115,7 +115,7 @@ def convert_route():
                 logger.info("Extracting ZIP file %s to %s", filepath, tmpdir)
                 with zipfile.ZipFile(filepath) as zipf:
                     zipf.extractall(tmpdir)
-            elif filepath.endswith(".tar") or filepath.endwith(".tar.gz"):
+            elif filepath.endswith(".tar") or filepath.endswith(".tar.gz"):
                 logger.info("Extracting TAR file %s to %s", filepath, tmpdir)
                 with tarfile.TarFile(filepath) as tarf:
                     tarf.extractall(tmpdir)
@@ -149,7 +149,7 @@ def convert_route():
                     print(description or "No description", file=aboutf)
                 logger.info("Creating output ZIP file %s", outzip)
                 with zipfile.ZipFile(outzip, "w") as zipf:
-                    for member_name in ("about.md", "markers.csv", "data.h5ad"):
+                    for member_name in ("about.md", "data.h5ad"):
                         path_in = os.path.join(output_dir, member_name)
                         path_zip = os.path.join(filename, member_name)
                         logger.info("Adding %s as %s", path_in, path_zip)
