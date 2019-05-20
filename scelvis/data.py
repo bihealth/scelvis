@@ -26,7 +26,7 @@ from irods.session import iRODSSession
 from irods.ticket import Ticket
 from logzero import logger
 import pandas as pd
-from ruamel.yaml import YAML
+from ruamel_yaml import YAML
 
 from . import settings
 from .exceptions import ScelVisException

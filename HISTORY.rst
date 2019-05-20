@@ -3,10 +3,11 @@ History
 =======
 
 ------
-v0.3.0
+v0.2.1
 ------
 
 - Fixing SFTP support.
+- Fixing import of ``ruamel_yaml``.
 
 ------
 v0.2.0
