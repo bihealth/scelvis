@@ -56,8 +56,8 @@ def render_controls_violin(data):
             ),
         ],
         title=(
-            "Choose how to group cells for plotting gene expression distributions (e.g., by cluster) and optionally "
-            "how to split these groups (e.g., by genotype)"
+            "Choose how to group cells for plotting gene expression distributions (e.g., by cluster); "
+            "optionally how to split these groups (e.g., by genotype)"
         ),
     )
 
@@ -84,8 +84,8 @@ def render_controls_dot(data):
             ),
         ],
         title=(
-            "Choose grouping of cells for y-coordinate of dot plot (e.g., by cluster); optionally split these "
-            "groups (e.g., by genotype)"
+            "Choose grouping of cells for y-coordinate of dot plot (e.g., by cluster); "
+            "optionally split these groups (e.g., by genotype)"
         ),
     )
 
@@ -110,9 +110,9 @@ def render_controls(data):
                 ),
             ],
             title=(
-                "scatter: gene expression on 2-dimensional embedding, one plot per gene "
-                "violin: gene expression distributions in different (sub)groups, one row per gene "
-                "dot: summarized gene expression in (sub)groups for multiple genes"
+                "SCATTER: gene expression on 2-dimensional embedding, one plot per gene; "
+                "VIOLIN: gene expression distributions in different (sub)groups, one row per gene; "
+                "DOT: summarized gene expression in (sub)groups for multiple genes"
             ),
         ),
         html.Hr(),
@@ -144,8 +144,8 @@ def render_controls(data):
                 ),
             ],
             title=(
-                "Select one or more genes (remove from list by clicking on x) or select from marker gene list "
-                "by checking the box"
+                "Select one or more genes (remove from list by clicking on x) "
+                "or select from marker gene list by checking the box"
             ),
         ),
         html.Hr(),
@@ -214,7 +214,11 @@ def render_marker_list(data, values):
 
 
 def render_plot_scatter(data, xc, yc, genelist, sample_size):
-    if genelist is None or len(genelist) == 0:
+
+    if genelist is None or \
+       len(genelist) == 0 or \
+       xc is None or \
+       yc is None:
         return {}, "", True
 
     if sample_size != "all":
@@ -280,14 +284,17 @@ def render_plot_scatter(data, xc, yc, genelist, sample_size):
         height=settings.PLOT_HEIGHT,
     )
 
-    data = data.DGE.loc[genelist].T.to_csv(index=True, header=True, encoding="utf-8")
-    csv_string = "data:text/csv;charset=utf-8," + urllib.parse.quote(data)
+    plot_data = data.DGE.loc[genelist].T.to_csv(index=True, header=True, encoding="utf-8")
+    csv_string = "data:text/csv;charset=utf-8," + urllib.parse.quote(plot_data)
 
     return fig, csv_string, False
 
 
 def render_plot_violin(data, pathname, genelist, sample_size, group, split):
-    if genelist is None or len(genelist) == 0:
+
+    if genelist is None or \
+       len(genelist) == 0 or \
+       group is None:
         return {}, "", True
 
     if sample_size != "all":
@@ -333,7 +340,7 @@ def render_plot_violin(data, pathname, genelist, sample_size, group, split):
                 )
                 fig.append_trace(tr, ngenes - ng, 1)
                 sg += 1
-            the_data = data.DGE.loc[genelist].T.join(data.meta[group])
+            plot_data = data.DGE.loc[genelist].T.join(data.meta[group])
         else:
             for n, sv in enumerate(splitvals):
                 y = DGE_here.loc[gene, meta_here[split] == sv]
@@ -352,7 +359,7 @@ def render_plot_violin(data, pathname, genelist, sample_size, group, split):
                 )
                 fig.append_trace(tr, ngenes - ng, 1)
                 sg += 1
-            the_data = data.DGE.loc[genelist].T.join(data.meta[[group, split]])
+            plot_data = data.DGE.loc[genelist].T.join(data.meta[[group, split]])
 
     for ng, gene in enumerate(genelist):
         if ngenes - ng == 1:
@@ -372,14 +379,17 @@ def render_plot_violin(data, pathname, genelist, sample_size, group, split):
         fig["layout"].update(violinmode="group")
 
     csv_string = "data:text/csv;charset=utf-8," + urllib.parse.quote(
-        the_data.to_csv(index=True, header=True, encoding="utf-8")
+        plot_data.to_csv(index=True, header=True, encoding="utf-8")
     )
 
     return fig, csv_string, False
 
 
 def render_plot_dot(data, pathname, genelist, group, split):
-    if genelist is None or len(genelist) == 0:
+
+    if genelist is None or\
+       len(genelist) == 0 or \
+       group is None:
         return {}, "", True
 
     groupvals = data.meta[group].cat.categories
@@ -390,15 +400,15 @@ def render_plot_dot(data, pathname, genelist, group, split):
         return pd.DataFrame([x.mean(), (x > 0).mean()], index=["expression", "pct_cells"])
 
     if split is None:
-        data = (
+        plot_data = (
             data.DGE.loc[genelist]
             .T.join(data.meta[group])
             .groupby(group)
             .apply(my_agg)
             .unstack(level=1)
         )
-        means = data.xs("expression", axis=1, level=1).values
-        sizes = data.xs("pct_cells", axis=1, level=1).values
+        means = plot_data.xs("expression", axis=1, level=1).values
+        sizes = plot_data.xs("pct_cells", axis=1, level=1).values
         xv, yv = np.meshgrid(np.arange(ngenes), np.arange(ngroup))
         traces = [
             go.Scatter(
@@ -464,10 +474,10 @@ def render_plot_dot(data, pathname, genelist, group, split):
         )
 
     else:
-        splitvals = data.eta[split].cat.categories
+        splitvals = data.meta[split].cat.categories
         nsplit = len(splitvals)
         traces = []
-        data = (
+        plot_data = (
             data.DGE.loc[genelist]
             .T.join(data.meta[[group, split]])
             .groupby([group, split])
@@ -475,8 +485,8 @@ def render_plot_dot(data, pathname, genelist, group, split):
             .unstack(level=2)
         )
         for n, sv in enumerate(splitvals):
-            means = data.xs("expression", axis=1, level=1).xs(sv, axis=0, level=1).values
-            sizes = data.xs("pct_cells", axis=1, level=1).xs(sv, axis=0, level=1).values
+            means = plot_data.xs("expression", axis=1, level=1).xs(sv, axis=0, level=1).values
+            sizes = plot_data.xs("pct_cells", axis=1, level=1).xs(sv, axis=0, level=1).values
             xv, yv = np.meshgrid(np.arange(ngenes), (nsplit + 1) * np.arange(ngroup))
             tr = go.Scatter(
                 x=xv.ravel(),
@@ -556,7 +566,7 @@ def render_plot_dot(data, pathname, genelist, group, split):
         )
 
     csv_string = "data:text/csv;charset=utf-8," + urllib.parse.quote(
-        data.to_csv(index=True, header=True, encoding="utf-8")
+        plot_data.to_csv(index=True, header=True, encoding="utf-8")
     )
 
     fig = {"data": traces, "layout": layout}

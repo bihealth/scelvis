@@ -36,10 +36,8 @@ def render_controls_scatter(data):
                     value=data.categorical_meta[0],
                 ),
             ],
-            title=(
-                "Select x- and y-coordinates for embedding (TSNE or UMAP) color points according to cell annotation "
-                "(e.g., cluster identity or n_genes)."
-            ),
+            title="Select x- and y-coordinates for embedding (TSNE or UMAP) "
+                  "and color points according to cell annotation (e.g., cluster identity or n_genes)"
         )
     ]
 
@@ -70,8 +68,8 @@ def render_controls_violin(data):
                 ),
             ],
             title=(
-                "Select one or more numerical variables (e.g., n_genes or n_counts) to display in violin plots, "
-                "choose how to group the cells (e.g., by cluster) and optionally also split these groups by another "
+                "Select one or more numerical variables (e.g., n_genes or n_counts) to display in violin plots; "
+                "choose how to group the cells (e.g., by cluster); and optionally also split these groups by another "
                 "variable (e.g., by genotype)."
             ),
         )
@@ -114,8 +112,9 @@ def render_controls_bars(data):
                 ),
             ],
             title=(
-                "Select group for which cell numbers are tallied; these groups can optionally be split by another "
-                "variable for sub-tallies; bars can be normalized and/or stacked."
+                "Select group for which cell numbers are tallied; "
+                "these groups can optionally be split by another variable for sub-tallies; "
+                "bars can be normalized and/or stacked."
             ),
         )
     ]
@@ -141,9 +140,9 @@ def render_controls(data):
                 ),
             ],
             title=(
-                "scatter: plot annotation on two-dimensional embedding, e.g., TSNE or UMAP\n"
-                "violin: plot distributions of numerical variables (n_cells, n_counts, ...) in cell groups\n"
-                "bar: plot cell numbers/fractions per (sub-)group"
+                "SCATTER: plot annotation on two-dimensional embedding, e.g., TSNE or UMAP; "
+                "VIOLIN: plot distributions of numerical variables (n_cells, n_counts, ...) in cell groups; "
+                "BAR: plot cell numbers/fractions per (sub-)group"
             ),
         ),
         html.Hr(),
@@ -236,9 +235,9 @@ def render_plot_scatter(data, xc, yc, col, sample_size):
             )
         ]
 
-    data = data.meta[[xc, yc, col]]
+    plot_data = data.meta[[xc, yc, col]]
     csv_string = "data:text/csv;charset=utf-8," + urllib.parse.quote(
-        data.to_csv(index=True, header=True, encoding="utf-8")
+        plot_data.to_csv(index=True, header=True, encoding="utf-8")
     )
 
     fig = {
@@ -301,7 +300,7 @@ def render_plot_violin(data, variables, group, split, sample_size):
                 )
                 fig.append_trace(tr, nvar - nv, 1)
                 sg += 1
-            data = data.meta[variables + [group]]
+            plot_data = data.meta[variables + [group]]
         else:
             for n, sv in enumerate(splitvals):
                 y = meta_here[meta_here[split] == sv][var]
@@ -320,7 +319,7 @@ def render_plot_violin(data, variables, group, split, sample_size):
                 )
                 fig.append_trace(tr, nvar - nv, 1)
                 sg += 1
-            data = data.meta[variables + [group, split]]
+            plot_data = data.meta[variables + [group, split]]
 
     for nv, var in enumerate(variables):
         if len(variables) - nv == 1:
@@ -340,7 +339,64 @@ def render_plot_violin(data, variables, group, split, sample_size):
         fig["layout"].update(violinmode="group")
 
     csv_string = "data:text/csv;charset=utf-8," + urllib.parse.quote(
-        data.to_csv(index=True, header=True, encoding="utf-8")
+        plot_data.to_csv(index=True, header=True, encoding="utf-8")
     )
 
     return fig, csv_string, False
+
+
+def render_plot_bars(data, group, split, options):
+    """render the bar chart plot."""
+
+    if group is None:
+        return {},'',True
+
+    if split is None:
+        groupvals=data.meta[group].unique()
+        cm=colors.get_cm(groupvals)
+        tally=data.meta.groupby(group).size()
+        if 'normalized' in options:
+            tally=tally.divide(tally.sum())
+        traces=[]
+        for n,gv in enumerate(tally.index):
+            tr=go.Bar(x=[gv],
+                      y=[tally[gv]],
+                      name=gv,
+                      marker=dict(line=dict(color='gray',width=.5),
+                                  color=cm[n%40]))
+            traces.append(tr)
+
+    else:
+        splitvals=data.meta[split].cat.categories
+        cm=colors.get_cm(splitvals)
+
+        tally=data.meta.groupby([group,split]).size()
+        if 'normalized' in options:
+            tally=tally.divide(tally.sum(level=0).astype(float),level=0)
+        traces=[]
+        for n,sv in enumerate(splitvals):
+            tr=go.Bar(
+                x=tally.xs(sv,level=1).index,
+                y=tally.xs(sv,level=1).values,
+                name=sv,
+                marker=dict(color=cm[n%40],
+                            line=dict(color='gray',width=.5))
+            )
+            traces.append(tr)
+            
+    fig={'data': traces,
+         'layout': go.Layout(
+             barmode='stack' if 'stacked' in options else 'group',
+             xaxis={'title': group,'tickangle': -45},
+             yaxis={'title': 'cell frequency' if 'normalized' in options else 'cell number'},
+             margin={'l': 50, 'b': 100, 't': 10, 'r': 10},
+             legend={'x':1.05,'y':1},
+             hovermode='closest',
+             height=settings.PLOT_HEIGHT)}
+
+    plot_data=tally
+    csv_string='data:text/csv;charset=utf-8,'+urllib.parse.quote(
+        plot_data.to_csv(index=True, header=True, encoding='utf-8')
+    )
+
+    return fig,csv_string,False

@@ -8,7 +8,7 @@ from ..exceptions import ScelVisException
 
 def render_plot(data_type, plot_type):
     """Render the plot component."""
-    if plot_type not in ("scatter", "violin", "bar"):
+    if plot_type not in ("scatter", "violin", "bar", "dot"):
         raise ScelVisException("Invalid plot type: %s" % plot_type)
     elif data_type not in ("expression", "meta"):
         raise ScelVisException("Invalid data type: %s" % data_type)
@@ -28,13 +28,13 @@ def render_plot(data_type, plot_type):
                     target="_blank",
                 ),
             ],
-            plot_type == "bar",
+            plot_type == "scatter",
         )
 
 
 def render_subsampling_dropdown(data, token):
     sample_choices = [
-        {"label": g, "value": g} for g in [100, 1000, 5000] if g < data.meta.shape[0]
+        {"label": g, "value": g} for g in [1000, 5000] if g < data.meta.shape[0]
     ] + [{"label": "all", "value": "all"}]
     return html.Div(
         [

@@ -136,7 +136,7 @@ def register_select_cell_plot_type(app):
 
 
 def register_update_cell_scatter_plot_params(app):
-    """Register handlers on updating scatter plot controls."""
+    """Register handlers on scatter plot."""
 
     @app.callback(
         [
@@ -159,7 +159,7 @@ def register_update_cell_scatter_plot_params(app):
 
 
 def register_update_cell_violin_plot_params(app):
-    """Register handlers on updating violin plot controls."""
+    """Register handlers on violin plot."""
 
     @app.callback(
         [
@@ -182,18 +182,54 @@ def register_update_cell_violin_plot_params(app):
 
 
 def register_update_cell_bar_chart_params(app):
-    """Register handlers on updating bar chart controls."""
+    """Register handlers on bar chart and its controls."""
 
     @app.callback(
         dash.dependencies.Output("meta_bar_options", "options"),
-        [dash.dependencies.Input("meta_bar_select_split", "value")],
+        [
+            dash.dependencies.Input("meta_bar_select_split", "value")
+        ],
     )
     def toggle_meta_bar_options(split):
         if split is None:
-            return [{"label": "normalized", "value": "normalized"}]
+            return [
+                {
+                    "label": "normalized",
+                    "value": "normalized",
+                    "title": "plot fractions instead of cell numbers",
+                }
+            ]
         else:
-            return [{"label": c, "value": c} for c in ("normalized", "stacked")]
+            return [
+                {
+                    "label": "normalized",
+                    "value": "normalized",
+                    "title": "plot fractions instead of cell numbers",
+                },
+                {
+                    "label": "stacked",
+                    "value": "stacked",
+                    "title": "stack bars instead of side-by-side",
+                },
+            ]
 
+    @app.callback(
+            [
+                dash.dependencies.Output('meta_bar_plot','figure'),
+                dash.dependencies.Output('meta_bar_download','href'),
+                dash.dependencies.Output('meta_bar_download','hidden')
+            ],
+            [
+                dash.dependencies.Input("url", "pathname"),
+                dash.dependencies.Input('meta_bar_select_group','value'),
+                dash.dependencies.Input('meta_bar_select_split','value'),
+                dash.dependencies.Input('meta_bar_options','values')
+            ],
+    )
+    def get_meta_plot_bars(pathname, group, split, options):
+        _, kwargs = get_route(pathname)
+        data = store.load_data(kwargs.get("dataset"))
+        return cells.render_plot_bars(data, group, split, options)
 
 def register_select_gene_plot_type(app):
     """Register callback for changing the controls on updating "Gene Expression" plot type."""
@@ -324,7 +360,8 @@ def register_select_gene_dot_plot(app):
         ],
     )
     def get_expression_plot_dot(pathname, genelist, group, split):
-        data = store.load_data(get_route(pathname)["dataset"])
+        _, kwargs = get_route(pathname)
+        data = store.load_data(kwargs.get("dataset"))
         return ui.genes.render_plot_dot(data, pathname, genelist, group, split)
 
 

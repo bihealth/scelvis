@@ -275,10 +275,10 @@ def load_data(data_source, identifier):
         if 'gene' in markers:
             markers = pd.DataFrame(markers)
         elif len(markers) > 0:
-            logger.warn('No "gene" column in %s!', path_markers)
+            logger.warn('No "gene" column in h5 file!')
             markers = None
         else:
-            logger.warn('No markers in %s!', path_markers)
+            logger.warn('No markers in h5 file!')
             markers = None
 
     return Data(
