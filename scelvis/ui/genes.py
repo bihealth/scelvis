@@ -215,8 +215,10 @@ def render_marker_list(data, values):
 
 def render_plot_scatter(data, xc, yc, genelist, sample_size):
 
-    if genelist is None or \
-       len(genelist) == 0 or \
+    gl=[g for g in genelist if g in data.DGE.index]
+
+    if gl is None or \
+       len(gl) == 0 or \
        xc is None or \
        yc is None:
         return {}, "", True
@@ -228,7 +230,7 @@ def render_plot_scatter(data, xc, yc, genelist, sample_size):
         DGE_here = data.DGE
         meta_here = data.meta
 
-    ngenes = len(genelist)
+    ngenes = len(gl)
     if ngenes > 1:
         nrow = int(np.floor(np.sqrt(ngenes)))
         ncol = int(np.ceil(ngenes / nrow))
@@ -244,13 +246,13 @@ def render_plot_scatter(data, xc, yc, genelist, sample_size):
         shared_yaxes=True,
         vertical_spacing=0.01,
         horizontal_spacing=0.01,
-        subplot_titles=genelist,
+        subplot_titles=gl,
     )
 
     # rescale all expression values to the same min and max
-    maxval = max(1, DGE_here.loc[genelist].max().max())
+    maxval = max(1, DGE_here.loc[gl].max().max())
 
-    for ng, gene in enumerate(genelist):
+    for ng, gene in enumerate(gl):
         # for numerical data, plot scatter all at once
         trace = go.Scatter(
             x=meta_here[xc],
@@ -284,7 +286,7 @@ def render_plot_scatter(data, xc, yc, genelist, sample_size):
         height=settings.PLOT_HEIGHT,
     )
 
-    plot_data = data.DGE.loc[genelist].T.to_csv(index=True, header=True, encoding="utf-8")
+    plot_data = data.DGE.loc[gl].T.to_csv(index=True, header=True, encoding="utf-8")
     csv_string = "data:text/csv;charset=utf-8," + urllib.parse.quote(plot_data)
 
     return fig, csv_string, False
@@ -292,8 +294,10 @@ def render_plot_scatter(data, xc, yc, genelist, sample_size):
 
 def render_plot_violin(data, pathname, genelist, sample_size, group, split):
 
-    if genelist is None or \
-       len(genelist) == 0 or \
+    gl=[g for g in genelist if g in data.DGE.index]
+
+    if gl is None or \
+       len(gl) == 0 or \
        group is None:
         return {}, "", True
 
@@ -312,17 +316,17 @@ def render_plot_violin(data, pathname, genelist, sample_size, group, split):
         splitvals = meta_here[split].cat.categories
         cm = colors.get_cm(splitvals)
 
-    ngenes = len(genelist)
+    ngenes = len(gl)
 
     fig = tools.make_subplots(
         rows=ngenes,
         cols=1,
-        specs=[[{}] for gene in genelist],
+        specs=[[{}] for gene in gl],
         shared_xaxes=True,
         vertical_spacing=0.01,
     )
     sg = 0
-    for ng, gene in enumerate(genelist):
+    for ng, gene in enumerate(gl):
 
         if split is None:
             for n, cv in enumerate(groupvals):
@@ -340,7 +344,7 @@ def render_plot_violin(data, pathname, genelist, sample_size, group, split):
                 )
                 fig.append_trace(tr, ngenes - ng, 1)
                 sg += 1
-            plot_data = data.DGE.loc[genelist].T.join(data.meta[group])
+            plot_data = data.DGE.loc[gl].T.join(data.meta[group])
         else:
             for n, sv in enumerate(splitvals):
                 y = DGE_here.loc[gene, meta_here[split] == sv]
@@ -359,9 +363,9 @@ def render_plot_violin(data, pathname, genelist, sample_size, group, split):
                 )
                 fig.append_trace(tr, ngenes - ng, 1)
                 sg += 1
-            plot_data = data.DGE.loc[genelist].T.join(data.meta[[group, split]])
+            plot_data = data.DGE.loc[gl].T.join(data.meta[[group, split]])
 
-    for ng, gene in enumerate(genelist):
+    for ng, gene in enumerate(gl):
         if ngenes - ng == 1:
             fig["layout"]["yaxis"].update(title=gene)
         else:
@@ -387,21 +391,23 @@ def render_plot_violin(data, pathname, genelist, sample_size, group, split):
 
 def render_plot_dot(data, pathname, genelist, group, split):
 
-    if genelist is None or\
-       len(genelist) == 0 or \
+    gl=[g for g in genelist if g in data.DGE.index]
+
+    if gl is None or\
+       len(gl) == 0 or \
        group is None:
         return {}, "", True
 
     groupvals = data.meta[group].cat.categories
     ngroup = len(groupvals)
-    ngenes = len(genelist)
+    ngenes = len(gl)
 
     def my_agg(x):
         return pd.DataFrame([x.mean(), (x > 0).mean()], index=["expression", "pct_cells"])
 
     if split is None:
         plot_data = (
-            data.DGE.loc[genelist]
+            data.DGE.loc[gl]
             .T.join(data.meta[group])
             .groupby(group)
             .apply(my_agg)
@@ -457,7 +463,7 @@ def render_plot_dot(data, pathname, genelist, group, split):
                 zeroline=False,
                 showline=False,
                 tickvals=np.arange(ngenes),
-                ticktext=genelist,
+                ticktext=gl,
                 tickangle=-90,
             ),
             yaxis=go.layout.YAxis(
@@ -478,7 +484,7 @@ def render_plot_dot(data, pathname, genelist, group, split):
         nsplit = len(splitvals)
         traces = []
         plot_data = (
-            data.DGE.loc[genelist]
+            data.DGE.loc[gl]
             .T.join(data.meta[[group, split]])
             .groupby([group, split])
             .apply(my_agg)
@@ -549,7 +555,7 @@ def render_plot_dot(data, pathname, genelist, group, split):
                 zeroline=False,
                 showline=False,
                 tickvals=np.arange(ngenes),
-                ticktext=genelist,
+                ticktext=gl,
                 tickangle=-90,
             ),
             yaxis=go.layout.YAxis(

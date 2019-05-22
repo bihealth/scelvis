@@ -167,7 +167,7 @@ def render(data):
 
 def render_plot_scatter(data, xc, yc, col, sample_size):
     """Render the scatter plot figure."""
-    if col is None:
+    if xc is None or yc is None or col is None:
         return {}, "", True
 
     if sample_size != "all":
@@ -195,26 +195,26 @@ def render_plot_scatter(data, xc, yc, col, sample_size):
                         "color": cm[n % 40],
                         "line": {"width": 0.1, "color": "gray"},
                     },
-                    showlegend=False,
+                    showlegend=True,
                     name=cv,
                 )
             )
             # extra trace for legend with bigger marker
-            traces.append(
-                go.Scatter(
-                    x=[None],
-                    y=[None],
-                    mode="markers",
-                    marker={
-                        "size": 20,
-                        "color": cm[n % 40],
-                        "line": {"width": 0.1, "color": "gray"},
-                    },
-                    showlegend=True,
-                    visible="legendonly",
-                    name=cv,
-                )
-            )
+#            traces.append(
+#                go.Scatter(
+#                    x=[None],
+#                    y=[None],
+#                    mode="markers",
+#                    marker={
+#                        "size": 20,
+#                        "color": cm[n % 40],
+#                        "line": {"width": 0.1, "color": "gray"},
+#                    },
+#                    showlegend=True,
+#                    visible="legendonly",
+#                    name=cv,
+#                )
+#            )
     else:
         # for numerical data, plot scatter all at once
         traces = [

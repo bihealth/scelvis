@@ -137,10 +137,10 @@ class Data:
     #: String with Markdown-formatted "about" text.
     metadata: MetaData
 
-    #: The raw ad file content.
-    ad: anndata.AnnData
-    #: The coordinates.
-    coords: typing.Dict
+    ##: The raw ad file content. (not necessary)
+    #ad: anndata.AnnData
+    #: The coordinates. (not necessary)
+    #coords: typing.Dict
     #: The meta information.
     meta: pd.DataFrame
     #: The DGE data
@@ -283,8 +283,6 @@ def load_data(data_source, identifier):
 
     return Data(
         metadata=metadata,
-        ad=ad,
-        coords=coords,
         meta=meta,
         DGE=DGE,
         genes=genes,
@@ -297,18 +295,41 @@ def load_data(data_source, identifier):
 
 def fake_data():
     """Create fake ``Data`` to make Dash validation happy."""
+    import numpy as np
+    import pandas as pd
+    ngenes=100
+    ncells=50
+    genes=['gene_{0}'.format(i+1) for i in range(ngenes)]
+    cells=['cell_{0}'.format(i+1) for i in range(ncells)]
+    DGE=pd.DataFrame(np.random.negative_binomial(1,.5,size=(ngenes,ncells)),
+                     index=genes,
+                     columns=cells)
+    meta=pd.DataFrame({
+        'TSNE1': np.random.random(size=ncells),
+        'TSNE2': np.random.random(size=ncells),
+        'cluster': ['cluster_{0}'.format('ABCD'[i]) for i in np.random.randint(4,size=ncells)],
+        'sample': ['sample_{0}'.format('ABC'[i]) for i in np.random.randint(3,size=ncells)],
+        'n_genes': (DGE > 0).sum(axis=0),
+        'n_counts': DGE.sum(axis=0),
+        },index=cells)
+    numerical_meta=['TSNE1','TSNE2','n_genes','n_counts']
+    categorical_meta=['cluster','sample']
+    markers=pd.DataFrame({
+        'cluster': np.random.choice(meta['cluster'],12),
+        'gene': np.random.choice(genes,12),
+        'padj': np.random.rand(12)
+        })
+    
     # TODO: actually use and enable callback traceback again!
     return Data(
         metadata=MetaData(
-            id="placeholder", title="placeholder", short_title="placeholder", readme="placeholder"
+            id="fake_data", title="fake data", short_title="fake", readme="fake data"
         ),
-        ad=None,
-        coords=None,
-        meta=pd.DataFrame(data={"shape": [0]}),
-        DGE=None,
-        genes=None,
-        cells=None,
-        markers=None,
-        numerical_meta=None,
-        categorical_meta=None,
+        meta=meta,
+        DGE=DGE,
+        genes=genes,
+        cells=cells,
+        markers=markers,
+        numerical_meta=numerical_meta,
+        categorical_meta=categorical_meta,
     )
