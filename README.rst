@@ -36,12 +36,24 @@ A Docker container is also available via `Quay.io/Biocontainers <https://quay.io
 
 - Lookup the latest ``TAG`` to use at `here <https://quay.io/repository/biocontainers/scelvis?tab=tags>`_.
 
+--------
+Tutorial
+--------
+
+explore a simulated dummy dataset or 1000 cells from a 1:1 Mixture of Fresh Frozen Human (HEK293T) and Mouse (NIH3T3) Cells (10X v3 chemistry) 
+
+.. code-block:: shell
+
+    $ scelvis run --data-source /path/to/scelvis/examples/dummy
+    $ scelvis run --data-source /path/to/scelvis/examples/hgmm_1k
+
+
 -------------------
 Preparing Your Data
 -------------------
 
 Each data set consists of an HDF5 file called ``data.h5ad`` and a dataset description file ``about.md``.
-The HDF5 file is an `anndata <https://anndata.readthedocs.io/en/latest/index.html>`_ object that stores gene expression (sparse CSR matrix) and meta data with very fast read access.
+The HDF5 file is an `anndata <https://anndata.readthedocs.io/en/latest/index.html>`_ object that stores gene expression (sparse CSR matrix) and meta data with very fast read access.  
 You can use the ``scelvis convert`` command for converting your single-cell pipeline output into an appropriate HDF5 file.
 The ``about.md`` file should look as follows:
 
@@ -81,7 +93,15 @@ This does no further processing except log-normalization and uses PCA, tSNE, and
         ├── about.md
         └── data.h5ad
 
-Note that right now only CellRanger output is supported.
+Note that right now only ``cellranger`` output is supported. 
+
+In ``examples/hgmm_1k/hgmm_1k.zip`` we provide ``cellranger`` output for the 1k 1:1 human mouse mix. Specifically, from the `outs` folder we selected
+
+- ``filtered_feature_bc_matrix.h5``
+- tSNE and PCA projections from ``analysis/tsne`` and ``analysis/pca``
+- clustering from ``analysis/clustering/graphclust`` and 
+- markers from ``analysis/diffexp/graphclust`` 
+
 
 ---------------------
 Visualizing Your Data
