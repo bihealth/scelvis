@@ -43,8 +43,8 @@ def does_exist(url, path, *more_components):
                 for data_object in collection.data_objects:
                     if data_object.name == name:
                         return True
-            except (CAT_SQL_ERR, DoesNotExist) as e:
-                pass
+            except (CAT_SQL_ERR, DoesNotExist):
+                pass  # swallow
             logger.info("=> False")
     else:
         raise ScelVisException("Invalid URL scheme: %s" % url.scheme)
@@ -83,6 +83,10 @@ def load_all_metadata():
     Otherwise, all sub directories will be scanned for ``about.md`` and one entry is returned for each dataset.
     """
     result = []
+
+    if settings.FAKE_DATA:
+        result = [data.fake_data().metadata]
+
     for url in settings.DATA_SOURCES:
         if does_exist(url, settings.ABOUT_FILENAME):
             logger.info("Loading single dataset from data source %s", data.redacted_urlunparse(url))
@@ -120,10 +124,16 @@ def _load(identifier, load_func):
 @cache.memoize()
 def load_metadata(identifier):
     """Load metadata for the given identifier from data or upload directory."""
-    return _load(identifier, data.load_metadata)
+    if identifier == data.FAKE_DATA_ID:
+        return data.fake_data().metadata
+    else:
+        return _load(identifier, data.load_metadata)
 
 
 @cache.memoize()
 def load_data(identifier):
     """Load data for the given identifier from data or upload directory."""
-    return _load(identifier, data.load_data)
+    if identifier == data.FAKE_DATA_ID:
+        return data.fake_data()
+    else:
+        return _load(identifier, data.load_data)

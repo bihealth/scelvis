@@ -21,6 +21,9 @@ MAX_UPLOAD_TEXT_SIZE = 1_000_000
 #: Whether or not to enable debugging
 DEBUG = False
 
+#: Whether or not to show the fake data.
+FAKE_DATA = False
+
 #: Paths/URLs with data sources.
 DATA_SOURCES = []
 

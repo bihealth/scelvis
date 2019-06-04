@@ -37,7 +37,7 @@ def render_controls_scatter(data):
                 ),
             ],
             title="Select x- and y-coordinates for embedding (TSNE or UMAP) "
-                  "and color points according to cell annotation (e.g., cluster identity or n_genes)"
+            "and color points according to cell annotation (e.g., cluster identity or n_genes)",
         )
     ]
 
@@ -200,21 +200,21 @@ def render_plot_scatter(data, xc, yc, col, sample_size):
                 )
             )
             # extra trace for legend with bigger marker
-#            traces.append(
-#                go.Scatter(
-#                    x=[None],
-#                    y=[None],
-#                    mode="markers",
-#                    marker={
-#                        "size": 20,
-#                        "color": cm[n % 40],
-#                        "line": {"width": 0.1, "color": "gray"},
-#                    },
-#                    showlegend=True,
-#                    visible="legendonly",
-#                    name=cv,
-#                )
-#            )
+    #            traces.append(
+    #                go.Scatter(
+    #                    x=[None],
+    #                    y=[None],
+    #                    mode="markers",
+    #                    marker={
+    #                        "size": 20,
+    #                        "color": cm[n % 40],
+    #                        "line": {"width": 0.1, "color": "gray"},
+    #                    },
+    #                    showlegend=True,
+    #                    visible="legendonly",
+    #                    name=cv,
+    #                )
+    #            )
     else:
         # for numerical data, plot scatter all at once
         traces = [
@@ -349,54 +349,57 @@ def render_plot_bars(data, group, split, options):
     """render the bar chart plot."""
 
     if group is None:
-        return {},'',True
+        return {}, "", True
 
     if split is None:
-        groupvals=data.meta[group].unique()
-        cm=colors.get_cm(groupvals)
-        tally=data.meta.groupby(group).size()
-        if 'normalized' in options:
-            tally=tally.divide(tally.sum())
-        traces=[]
-        for n,gv in enumerate(tally.index):
-            tr=go.Bar(x=[gv],
-                      y=[tally[gv]],
-                      name=gv,
-                      marker=dict(line=dict(color='gray',width=.5),
-                                  color=cm[n%40]))
+        groupvals = data.meta[group].unique()
+        cm = colors.get_cm(groupvals)
+        tally = data.meta.groupby(group).size()
+        if "normalized" in options:
+            tally = tally.divide(tally.sum())
+        traces = []
+        for n, gv in enumerate(tally.index):
+            tr = go.Bar(
+                x=[gv],
+                y=[tally[gv]],
+                name=gv,
+                marker=dict(line=dict(color="gray", width=0.5), color=cm[n % 40]),
+            )
             traces.append(tr)
 
     else:
-        splitvals=data.meta[split].cat.categories
-        cm=colors.get_cm(splitvals)
+        splitvals = data.meta[split].cat.categories
+        cm = colors.get_cm(splitvals)
 
-        tally=data.meta.groupby([group,split]).size()
-        if 'normalized' in options:
-            tally=tally.divide(tally.sum(level=0).astype(float),level=0)
-        traces=[]
-        for n,sv in enumerate(splitvals):
-            tr=go.Bar(
-                x=tally.xs(sv,level=1).index,
-                y=tally.xs(sv,level=1).values,
+        tally = data.meta.groupby([group, split]).size()
+        if "normalized" in options:
+            tally = tally.divide(tally.sum(level=0).astype(float), level=0)
+        traces = []
+        for n, sv in enumerate(splitvals):
+            tr = go.Bar(
+                x=tally.xs(sv, level=1).index,
+                y=tally.xs(sv, level=1).values,
                 name=sv,
-                marker=dict(color=cm[n%40],
-                            line=dict(color='gray',width=.5))
+                marker=dict(color=cm[n % 40], line=dict(color="gray", width=0.5)),
             )
             traces.append(tr)
-            
-    fig={'data': traces,
-         'layout': go.Layout(
-             barmode='stack' if 'stacked' in options else 'group',
-             xaxis={'title': group,'tickangle': -45},
-             yaxis={'title': 'cell frequency' if 'normalized' in options else 'cell number'},
-             margin={'l': 50, 'b': 100, 't': 10, 'r': 10},
-             legend={'x':1.05,'y':1},
-             hovermode='closest',
-             height=settings.PLOT_HEIGHT)}
 
-    plot_data=tally
-    csv_string='data:text/csv;charset=utf-8,'+urllib.parse.quote(
-        plot_data.to_csv(index=True, header=True, encoding='utf-8')
+    fig = {
+        "data": traces,
+        "layout": go.Layout(
+            barmode="stack" if "stacked" in options else "group",
+            xaxis={"title": group, "tickangle": -45},
+            yaxis={"title": "cell frequency" if "normalized" in options else "cell number"},
+            margin={"l": 50, "b": 100, "t": 10, "r": 10},
+            legend={"x": 1.05, "y": 1},
+            hovermode="closest",
+            height=settings.PLOT_HEIGHT,
+        ),
+    }
+
+    plot_data = tally
+    csv_string = "data:text/csv;charset=utf-8," + urllib.parse.quote(
+        plot_data.to_csv(index=True, header=True, encoding="utf-8")
     )
 
-    return fig,csv_string,False
+    return fig, csv_string, False

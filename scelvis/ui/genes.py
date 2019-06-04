@@ -215,12 +215,9 @@ def render_marker_list(data, values):
 
 def render_plot_scatter(data, xc, yc, genelist, sample_size):
 
-    gl=[g for g in genelist if g in data.DGE.index]
+    gl = [g for g in genelist if g in data.DGE.index]
 
-    if gl is None or \
-       len(gl) == 0 or \
-       xc is None or \
-       yc is None:
+    if gl is None or len(gl) == 0 or xc is None or yc is None:
         return {}, "", True
 
     if sample_size != "all":
@@ -294,11 +291,9 @@ def render_plot_scatter(data, xc, yc, genelist, sample_size):
 
 def render_plot_violin(data, pathname, genelist, sample_size, group, split):
 
-    gl=[g for g in genelist if g in data.DGE.index]
+    gl = [g for g in genelist if g in data.DGE.index]
 
-    if gl is None or \
-       len(gl) == 0 or \
-       group is None:
+    if gl is None or len(gl) == 0 or group is None:
         return {}, "", True
 
     if sample_size != "all":
@@ -319,11 +314,7 @@ def render_plot_violin(data, pathname, genelist, sample_size, group, split):
     ngenes = len(gl)
 
     fig = tools.make_subplots(
-        rows=ngenes,
-        cols=1,
-        specs=[[{}] for gene in gl],
-        shared_xaxes=True,
-        vertical_spacing=0.01,
+        rows=ngenes, cols=1, specs=[[{}] for gene in gl], shared_xaxes=True, vertical_spacing=0.01
     )
     sg = 0
     for ng, gene in enumerate(gl):
@@ -391,11 +382,9 @@ def render_plot_violin(data, pathname, genelist, sample_size, group, split):
 
 def render_plot_dot(data, pathname, genelist, group, split):
 
-    gl=[g for g in genelist if g in data.DGE.index]
+    gl = [g for g in genelist if g in data.DGE.index]
 
-    if gl is None or\
-       len(gl) == 0 or \
-       group is None:
+    if gl is None or len(gl) == 0 or group is None:
         return {}, "", True
 
     groupvals = data.meta[group].cat.categories
@@ -407,11 +396,7 @@ def render_plot_dot(data, pathname, genelist, group, split):
 
     if split is None:
         plot_data = (
-            data.DGE.loc[gl]
-            .T.join(data.meta[group])
-            .groupby(group)
-            .apply(my_agg)
-            .unstack(level=1)
+            data.DGE.loc[gl].T.join(data.meta[group]).groupby(group).apply(my_agg).unstack(level=1)
         )
         means = plot_data.xs("expression", axis=1, level=1).values
         sizes = plot_data.xs("pct_cells", axis=1, level=1).values

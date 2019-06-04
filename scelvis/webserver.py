@@ -68,12 +68,14 @@ def run(args, parser):
     for data_source in args.data_sources:
         data_sources += data_source.split(";")
     data_sources = list(map(parse_url, data_sources))
-    if not data_sources:
+    if not data_sources and not args.fake_data:
         parser.error(
-            "You either have to specify --data-sources or set environment variable SCELVIS_DATA_SOURCES"
+            "You either have to specify --data-sources or set environment variable SCELVIS_DATA_SOURCES "
+            "(or use --fake-data)"
         )
     # Configure the Dash app through ``settings`` module (see module docstring for more info).
     logger.info("Configuring settings from arguments %s", args)
+    settings.FAKE_DATA = args.fake_data
     settings.DATA_SOURCES = data_sources
     settings.CACHE_DEFAULT_TIMEOUT = args.cache_default_timeout
     if args.cache_redis_url:
@@ -95,6 +97,12 @@ def setup_argparse(parser):
     )
     parser.add_argument(
         "--port", type=int, help="Server port", default=int(os.environ.get("SCELVIS_PORT", 8050))
+    )
+    parser.add_argument(
+        "--fake-data",
+        default=False,
+        action="store_true",
+        help="Enable display of fake data set (for demo purposes).",
     )
     parser.add_argument(
         "--data-source",

@@ -12,6 +12,12 @@ SCelVis: Easy Single-Cell Visualization
 .. image:: https://img.shields.io/pypi/v/scelvis.svg
     :target: https://pypi.python.org/pypi/scelvis
 
+.. image:: https://api.codacy.com/project/badge/Grade/9ee0ec1424c143dfad9977a649f917f7
+    :target: https://www.codacy.com/app/bihealth/scelvis?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=bihealth/scelvis&amp;utm_campaign=Badge_Grade
+
+.. image:: https://travis-ci.org/bihealth/scelvis.svg?branch=master
+    :target: https://travis-ci.org/bihealth/scelvis
+
 
 ------------
 Installation
