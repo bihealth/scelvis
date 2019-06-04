@@ -6,8 +6,6 @@ way to do it with Dash.
 
 # Currently constant settings.
 
-#: The file name to use for identifying data directories.
-ABOUT_FILENAME = "about.md"
 #: String to use for the Bootstrap "brand" at home.
 HOME_BRAND = "SCelVis Home"
 

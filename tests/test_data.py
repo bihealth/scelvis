@@ -39,14 +39,7 @@ def scelvis_settings(tmpdir):
 
 
 def test_load_data_from_file(scelvis_settings):
-    url = "file://%s" % os.path.join(os.path.dirname(__file__), "..", "examples")
+    url = "file://%s" % os.path.join(os.path.dirname(__file__), "..", "examples", "dummy.h5ad")
     data_source = parse.urlparse(url)
     result = data.load_data(data_source, "dummy")
     assert result.metadata
-
-
-def test_load_metadata_from_file(scelvis_settings):
-    url = "file://%s" % os.path.join(os.path.dirname(__file__), "..", "examples")
-    data_source = parse.urlparse(url)
-    result = data.load_metadata(data_source, "dummy")
-    assert result.title
