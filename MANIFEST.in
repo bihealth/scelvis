@@ -9,9 +9,10 @@ recursive-exclude * __pycache__
 recursive-exclude * *.py[co]
 
 recursive-include docs *.rst conf.py Makefile make.bat *.jpg *.png *.gif
-recursive-include scelvis/assets *.css *.js
+recursive-include scelvis/assets *.css *.js *.png *.eot *.svg *.ttf *.woff *.woff2
+recursive-include scelvis/static *.md
 
 include versioneer.py
-include vcfpy/_version.py
+recursive-include scelvis *.py
 
 include requirements.txt requirements/*.txt
