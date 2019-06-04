@@ -338,7 +338,6 @@ def fake_data(seed=42):
         }
     )
 
-    # TODO: actually use and enable callback traceback again!
     return Data(
         metadata=MetaData(
             id=FAKE_DATA_ID, title="fake data", short_title="fake", readme="fake data"
