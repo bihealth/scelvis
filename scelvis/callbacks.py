@@ -186,9 +186,7 @@ def register_update_cell_bar_chart_params(app):
 
     @app.callback(
         dash.dependencies.Output("meta_bar_options", "options"),
-        [
-            dash.dependencies.Input("meta_bar_select_split", "value")
-        ],
+        [dash.dependencies.Input("meta_bar_select_split", "value")],
     )
     def toggle_meta_bar_options(split):
         if split is None:
@@ -214,22 +212,23 @@ def register_update_cell_bar_chart_params(app):
             ]
 
     @app.callback(
-            [
-                dash.dependencies.Output('meta_bar_plot','figure'),
-                dash.dependencies.Output('meta_bar_download','href'),
-                dash.dependencies.Output('meta_bar_download','hidden')
-            ],
-            [
-                dash.dependencies.Input("url", "pathname"),
-                dash.dependencies.Input('meta_bar_select_group','value'),
-                dash.dependencies.Input('meta_bar_select_split','value'),
-                dash.dependencies.Input('meta_bar_options','values')
-            ],
+        [
+            dash.dependencies.Output("meta_bar_plot", "figure"),
+            dash.dependencies.Output("meta_bar_download", "href"),
+            dash.dependencies.Output("meta_bar_download", "hidden"),
+        ],
+        [
+            dash.dependencies.Input("url", "pathname"),
+            dash.dependencies.Input("meta_bar_select_group", "value"),
+            dash.dependencies.Input("meta_bar_select_split", "value"),
+            dash.dependencies.Input("meta_bar_options", "values"),
+        ],
     )
     def get_meta_plot_bars(pathname, group, split, options):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
         return cells.render_plot_bars(data, group, split, options)
+
 
 def register_select_gene_plot_type(app):
     """Register callback for changing the controls on updating "Gene Expression" plot type."""

@@ -11,7 +11,6 @@ import contextlib
 from urllib.parse import urlunparse as _urlunparse
 import shutil
 import ssl
-import typing
 from urllib.parse import parse_qs
 
 import anndata
@@ -25,11 +24,19 @@ from fs.tempfs import TempFS
 from irods.session import iRODSSession
 from irods.ticket import Ticket
 from logzero import logger
+import numpy as np
 import pandas as pd
-from ruamel_yaml import YAML
+
+try:
+    from ruamel_yaml import YAML
+except ModuleNotFoundError:
+    from ruamel.yaml import YAML
 
 from . import settings
 from .exceptions import ScelVisException
+
+#: Identifier for fake data
+FAKE_DATA_ID = "builtin-fake-data"
 
 
 def redacted_urlunparse(url, redact_with="***"):
@@ -137,11 +144,11 @@ class Data:
     #: String with Markdown-formatted "about" text.
     metadata: MetaData
 
-    ##: The raw ad file content. (not necessary)
-    #ad: anndata.AnnData
-    #: The coordinates. (not necessary)
-    #coords: typing.Dict
-    #: The meta information.
+    # The raw ad file content. (not necessary)
+    # ad: anndata.AnnData
+    # The coordinates. (not necessary)
+    # coords: typing.Dict
+    # The meta information.
     meta: pd.DataFrame
     #: The DGE data
     DGE: pd.DataFrame
@@ -217,6 +224,9 @@ def download_file(url, path, *more_components):
 
 def load_metadata(data_source, identifier):
     """Load metadata from a data_source URL and identifier."""
+    if identifier == FAKE_DATA_ID:
+        return fake_data().metadata
+
     logger.info("Loading metadata for %s from %s", identifier, redacted_urlunparse(data_source))
     with download_file(data_source, identifier, "about.md") as about_path:
         with open(about_path, "rt") as inputf:
@@ -243,6 +253,9 @@ def load_metadata(data_source, identifier):
 
 def load_data(data_source, identifier):
     """Load the data from the data_source URL and identifier."""
+    if identifier == FAKE_DATA_ID:
+        return fake_data()
+
     metadata = load_metadata(data_source, identifier)
 
     logger.info("Loading anndata for %s from %s", data_source, identifier)
@@ -270,15 +283,15 @@ def load_data(data_source, identifier):
         cells = DGE.columns
         markers = {}
         for c in ad.uns_keys():
-            if c.startswith('marker'):
-                markers[c.replace('marker_','')] = ad.uns[c]
-        if 'gene' in markers:
+            if c.startswith("marker"):
+                markers[c.replace("marker_", "")] = ad.uns[c]
+        if "gene" in markers:
             markers = pd.DataFrame(markers)
         elif len(markers) > 0:
             logger.warn('No "gene" column in h5 file!')
             markers = None
         else:
-            logger.warn('No markers in h5 file!')
+            logger.warn("No markers in h5 file!")
             markers = None
 
     return Data(
@@ -293,37 +306,42 @@ def load_data(data_source, identifier):
     )
 
 
-def fake_data():
+def fake_data(seed=42):
     """Create fake ``Data`` to make Dash validation happy."""
-    import numpy as np
-    import pandas as pd
-    ngenes=100
-    ncells=50
-    genes=['gene_{0}'.format(i+1) for i in range(ngenes)]
-    cells=['cell_{0}'.format(i+1) for i in range(ncells)]
-    DGE=pd.DataFrame(np.random.negative_binomial(1,.5,size=(ngenes,ncells)),
-                     index=genes,
-                     columns=cells)
-    meta=pd.DataFrame({
-        'TSNE1': np.random.random(size=ncells),
-        'TSNE2': np.random.random(size=ncells),
-        'cluster': ['cluster_{0}'.format('ABCD'[i]) for i in np.random.randint(4,size=ncells)],
-        'sample': ['sample_{0}'.format('ABC'[i]) for i in np.random.randint(3,size=ncells)],
-        'n_genes': (DGE > 0).sum(axis=0),
-        'n_counts': DGE.sum(axis=0),
-        },index=cells)
-    numerical_meta=['TSNE1','TSNE2','n_genes','n_counts']
-    categorical_meta=['cluster','sample']
-    markers=pd.DataFrame({
-        'cluster': np.random.choice(meta['cluster'],12),
-        'gene': np.random.choice(genes,12),
-        'padj': np.random.rand(12)
-        })
-    
+    np.random.seed(seed)
+
+    ngenes = 100
+    ncells = 50
+    genes = ["gene_{0}".format(i + 1) for i in range(ngenes)]
+    cells = ["cell_{0}".format(i + 1) for i in range(ncells)]
+    DGE = pd.DataFrame(
+        np.random.negative_binomial(1, 0.5, size=(ngenes, ncells)), index=genes, columns=cells
+    )
+    meta = pd.DataFrame(
+        {
+            "TSNE1": np.random.random(size=ncells),
+            "TSNE2": np.random.random(size=ncells),
+            "cluster": ["cluster_{0}".format("ABCD"[i]) for i in np.random.randint(4, size=ncells)],
+            "sample": ["sample_{0}".format("ABC"[i]) for i in np.random.randint(3, size=ncells)],
+            "n_genes": (DGE > 0).sum(axis=0),
+            "n_counts": DGE.sum(axis=0),
+        },
+        index=cells,
+    )
+    numerical_meta = ["TSNE1", "TSNE2", "n_genes", "n_counts"]
+    categorical_meta = ["cluster", "sample"]
+    markers = pd.DataFrame(
+        {
+            "cluster": np.random.choice(meta["cluster"], 12),
+            "gene": np.random.choice(genes, 12),
+            "padj": np.random.rand(12),
+        }
+    )
+
     # TODO: actually use and enable callback traceback again!
     return Data(
         metadata=MetaData(
-            id="fake_data", title="fake data", short_title="fake", readme="fake data"
+            id=FAKE_DATA_ID, title="fake data", short_title="fake", readme="fake data"
         ),
         meta=meta,
         DGE=DGE,
