@@ -9,6 +9,9 @@ pytest-runner >=2.11.1
 pytest-cache >=1.0
 pytest-cov >=2.4.0
 
+# Dash plugin for py.test
+pytest-dash >=2.1.2
+
 # Coverage report
 coverage==4.5.1
 codacy-coverage >=1.3.6

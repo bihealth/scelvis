@@ -115,7 +115,11 @@ def render_children_goto():
     ]
     metas = store.load_all_metadata()
     for meta in metas:
-        result.append(dbc.DropdownMenuItem(meta.short_title, href="/dash/viz/%s" % meta.id))
+        result.append(
+            dbc.DropdownMenuItem(
+                meta.short_title, id="menu-item-%s" % meta.id, href="/dash/viz/%s" % meta.id
+            )
+        )
     if not metas:
         result.append(
             dbc.DropdownMenuItem(html.Span("no dataset available", className="text-muted"))
@@ -128,6 +132,7 @@ def render_children_goto():
                 html.Span(
                     children=[html.I(className="fas fa-cloud-upload-alt mr-1"), "Upload Data"]
                 ),
+                id="menu-item-upload",
                 href="/dash/upload",
             )
         )
@@ -135,6 +140,7 @@ def render_children_goto():
         result.append(
             dbc.DropdownMenuItem(
                 html.Span(children=[html.I(className="fas fa-redo mr-1"), "Convert Data"]),
+                id="menu-item-convert",
                 href="/convert",
                 external_link=True,
             )
@@ -239,5 +245,6 @@ def build_layout():
             render_navbar(),
             render_main_content(),
             render_footer(),
-        ]
+        ],
+        id="_dash-app-content",  # make pytest-dash happy
     )
