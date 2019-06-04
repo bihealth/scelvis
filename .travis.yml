@@ -1,7 +1,17 @@
 language: python
 
+before_install:
+- google-chrome-stable --headless --disable-gpu --remote-debugging-port=9222 http://localhost &
+
+addons:
+  apt:
+    packages:
+      - chromium-chromedriver
+  chrome: stable
+
 # Workaround for Python 3.7 on Travis CI, also see:
 # https://github.com/travis-ci/travis-ci/issues/9069#issuecomment-425720905
+os: linux
 dist: xenial
 sudo: yes
 
