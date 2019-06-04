@@ -99,7 +99,10 @@ class CellRangerConverter:
             return diffexp
 
     def _load_expression(self, clustering, tsne, pca, diffexp):
-        expression_file = os.path.join(self.args.indir, "filtered_feature_bc_matrix.h5")
+        if '=' in self.args.format and self.args.format.split('=')[1] == "3.0.2":
+            expression_file = os.path.join(self.args.indir, "filtered_feature_bc_matrix.h5")
+        else:
+            expression_file = os.path.join(self.args.indir, "filtered_gene_bc_matrices_h5.h5")
         if not os.path.isfile(expression_file):
             raise ScelVisException("cannot find expression file at %s" % expression_file)
         else:
@@ -172,7 +175,10 @@ class Config:
 def run(args, _parser=None):
     """Main entry point after argument parsing."""
     # TODO: detect pipeline output
-    return CellRangerConverter(args).run()
+    if args.format.startswith("CellRanger"):
+        return CellRangerConverter(args).run()
+    else:
+        raise ScelVisException("Only CellRanger output is currently supported")
 
 
 def setup_argparse(parser):
@@ -205,6 +211,13 @@ def setup_argparse(parser):
         default=10,
         type=int,
         help="Save top n markers per cluster [10]",
+    )
+    parser.add_argument(
+        "-f",
+        "--format",
+        required=True,
+        dest="format",
+        help="input format (e.g., ""CellRanger=3.0.2"" or ""raw"")",
     )
     parser.add_argument(
         "--verbose", default=False, action="store_true", help="Enable verbose output"
