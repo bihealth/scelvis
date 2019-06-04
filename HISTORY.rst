@@ -2,6 +2,17 @@
 History
 =======
 
+-------------------
+v0.3.0 (unreleased)
+-------------------
+
+- Adding example data set.
+- Adding nice introduction to start page.
+- Adding functionality for creating simple fake data set.
+- Making import of ``ruamel_yaml`` more robust still.
+- Adding tests.
+- Adding Travis CI--based continuous integration tests.
+
 ------
 v0.2.1
 ------

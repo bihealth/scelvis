@@ -1,8 +1,5 @@
 """Tests for the Dash application."""
 
-from unittest.mock import patch
-import tempfile
-
 import pytest
 from pytest_dash import wait_for
 from pytest_dash.application_runners import import_app
