@@ -56,7 +56,7 @@ app.scripts.config.serve_locally = True
 
 # TODO: Better use the approach from this URL:
 # - https://community.plot.ly/t/dynamic-controls-and-dynamic-output-components/5519
-app.config.supress_callback_exceptions = True
+app.config.suppress_callback_exceptions = True
 
 # Setup the application's main layout.
 app.layout = build_layout()
@@ -131,12 +131,9 @@ def convert_route():
             input_dir = os.path.dirname(needle_path)
             logger.info("Starting conversion...")
             with tempfile.TemporaryDirectory() as tmpdir2:
-                output_dir = os.path.join(tmpdir2, filename)
-                os.makedirs(output_dir)
-                convert.run(convert.Config(indir=input_dir, outdir=output_dir))
-                outzip = os.path.join(tmpdir2, "%s.zip" % output_dir)
                 logger.info("Writing about.md")
-                with open(os.path.join(output_dir, "about.md"), "wt") as aboutf:
+                about_md = os.path.join(tmpdir2, "about.md")
+                with open(about_md, "wt") as aboutf:
                     title = request.form.get("title")
                     short_title = request.form.get("short_title")
                     description = request.form.get("description")
@@ -147,16 +144,15 @@ def convert_route():
                             print("short_title: %s" % short_title, file=aboutf)
                         print("----", file=aboutf)
                     print(description or "No description", file=aboutf)
-                logger.info("Creating output ZIP file %s", outzip)
-                with zipfile.ZipFile(outzip, "w") as zipf:
-                    for member_name in ("about.md", "data.h5ad"):
-                        path_in = os.path.join(output_dir, member_name)
-                        path_zip = os.path.join(filename, member_name)
-                        logger.info("Adding %s as %s", path_in, path_zip)
-                        zipf.write(path_in, path_zip)
-                # Send file to the user.
-                return helpers.send_file(outzip, mimetype="application/zip", as_attachment=True)
+                out_file = os.path.join(tmpdir2, filename + ".h5ad")
+                logger.info("Performing conversion (%s)", out_file)
+                convert.run(convert.Config(indir=input_dir, about_md=about_md, out_file=out_file))
+                logger.info("Sending file to the user")
+                return helpers.send_file(
+                    out_file, mimetype="application/binary", as_attachment=True
+                )
     else:
+        # TODO: prettify HTML form
         return """
             <!doctype html>
             <title>Convert File</title>

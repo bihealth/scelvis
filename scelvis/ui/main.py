@@ -45,8 +45,7 @@ def render_upload():
                 html.P(
                     children=[
                         (
-                            "Use the following form to upload a ZIP file with the SCelVis data (the file "
-                            "should contain the files about.md and data.h5ad).  You can convert "
+                            "Use the following form to upload your .h5ad file.  You can convert "
                             "your pipeline output to such a file using "
                         ),
                         html.A(

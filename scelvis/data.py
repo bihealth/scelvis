@@ -11,7 +11,7 @@ import contextlib
 from urllib.parse import urlunparse as _urlunparse
 import shutil
 import ssl
-from urllib.parse import parse_qs
+from urllib.parse import parse_qs, urlunparse
 
 import anndata
 import attr
@@ -27,11 +27,7 @@ from irods.ticket import Ticket
 from logzero import logger
 import numpy as np
 import pandas as pd
-
-try:
-    from ruamel_yaml import YAML
-except ModuleNotFoundError:
-    from ruamel.yaml import YAML
+import requests
 
 from . import settings
 from .exceptions import ScelVisException
@@ -166,10 +162,15 @@ class Data:
 
 
 @contextlib.contextmanager
-def download_file(url, path, *more_components):
+def download_file(url, path=None, *more_components):
     """Download file (if necessary) and yield filename if necessary."""
-    path = fs.path.join(path, *more_components)
-    full_path = fs.path.join(url.path, path)
+    if path:
+        path = fs.path.join(path, *more_components)
+        full_path = fs.path.join(url.path, path)
+    else:
+        full_path = url.path
+        path = fs.path.basename(url.path)
+        url = url._replace(path=fs.path.dirname(url.path))
     logger.info("Attempting to download file %s", url._replace(path=full_path))
     if url.scheme == "file":
         logger.info("No need for download, just use %s", full_path)
@@ -187,12 +188,8 @@ def download_file(url, path, *more_components):
             else:
                 with TempFS() as tmpfs:
                     logger.info("Downloading file %s from %s" % (path, redacted_urlunparse(url)))
-                    if url.scheme == "sftp":
-                        # NB: download() too slow with built-in methods of fs.sshfs
-                        src_fs._wrap_fs._sftp.get(full_path, tmpfs.getospath(basename))
-                    else:
-                        with open(tmpfs.getospath(basename), "wb") as tmpf:
-                            src_fs.download(path, tmpf)
+                    with open(tmpfs.getospath(basename), "wb") as tmpf:
+                        src_fs.download(path, tmpf)
                     logger.info("Download complete.")
                     yield tmpfs.getospath(basename)
                     logger.info("Releasing %s" % tmpfs)
@@ -205,6 +202,17 @@ def download_file(url, path, *more_components):
                 with s3.open("%s/%s" % (url.hostname, path), "rb") as inputf:
                     with open(tmpfs.getospath(basename), "wb") as outputf:
                         shutil.copyfileobj(inputf, outputf, settings.MAX_UPLOAD_DATA_SIZE)
+                logger.info("Download complete.")
+                yield tmpfs.getospath(basename)
+                logger.info("Releasing %s" % tmpfs)
+        elif url.scheme.startswith("http"):
+            logger.info("Downloading via HTTP(S)...")
+            with TempFS() as tmpfs:
+                logger.info("Downloading file %s from %s" % (path, redacted_urlunparse(url)))
+                r = requests.get(urlunparse(url._replace(path=full_path)), allow_redirects=True)
+                r.raise_for_status()
+                with open(tmpfs.getospath(basename), "wb") as outputf:
+                    outputf.write(r.content)
                 logger.info("Download complete.")
                 yield tmpfs.getospath(basename)
                 logger.info("Releasing %s" % tmpfs)
@@ -235,54 +243,33 @@ def download_file(url, path, *more_components):
             raise ScelVisException("Invalid URL scheme: %s" % url.scheme)
 
 
-def load_metadata(data_source, identifier):
-    """Load metadata from a data_source URL and identifier."""
-    if identifier == FAKE_DATA_ID:
-        return fake_data().metadata
-
-    logger.info("Loading metadata for %s from %s", identifier, redacted_urlunparse(data_source))
-    with download_file(data_source, identifier, "about.md") as about_path:
-        with open(about_path, "rt") as inputf:
-            header = []
-            lines = [line.rstrip() for line in inputf.readlines()]
-
-            # Load meta data, if any.
-            if lines and lines[0] and lines[0].startswith("----"):
-                for line in lines[1:]:
-                    if line.startswith("----"):
-                        break
-                    else:
-                        header.append(line)
-                lines = lines[len(header) + 2 :]
-
-            # Get title and short title, finally create MetaData object.
-            meta = YAML().load("\n".join(header))
-            title = meta.get("title", "Untitled")
-            short_title = meta.get("short_title", title or "untitled")
-            readme = "\n".join([line.rstrip() for line in lines]).lstrip()
-
-            return MetaData(id=identifier, title=title, short_title=short_title, readme=readme)
-
-
 def load_data(data_source, identifier):
     """Load the data from the data_source URL and identifier."""
     if identifier == FAKE_DATA_ID:
         return fake_data()
 
-    metadata = load_metadata(data_source, identifier)
-
-    logger.info("Loading anndata for %s from %s", data_source, identifier)
-    with download_file(data_source, identifier, "data.h5ad") as path_anndata:
+    logger.info("Loading anndata for %s from %s", redacted_urlunparse(data_source), identifier)
+    with download_file(data_source) as path_anndata:
         ad = anndata.read_h5ad(path_anndata)
+        # Extract the meta data
+        metadata = MetaData(
+            id=identifier,
+            title=ad.uns["about_title"],
+            short_title=ad.uns["about_short_title"],
+            readme=ad.uns["about_readme"],
+        )
+        # Extract the payload data
         coords = {}
-        for k in ["X_tsne", "X_umap"]:
-            if k in ad.obsm.keys():
-                coords[k] = pd.DataFrame(
-                    ad.obsm[k],
-                    index=ad.obs.index,
-                    columns=[k[2:].upper() + str(n + 1) for n in range(ad.obsm[k].shape[1])],
-                )
-        meta = pd.concat(coords.values(), axis=1).join(ad.obs)
+        for k in ad.obsm.keys():
+            coords[k] = pd.DataFrame(
+                ad.obsm[k],
+                index=ad.obs.index,
+                columns=[k[2:].upper() + str(n + 1) for n in range(ad.obsm[k].shape[1])],
+            )
+        if len(coords) > 0:
+            meta = pd.concat(coords.values(), axis=1).join(ad.obs)
+        else:
+            meta = ad.obs
         DGE = ad.to_df().T
         # Separate numerical and categorical columns for later.
         numerical_meta = []
