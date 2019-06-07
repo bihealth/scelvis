@@ -37,10 +37,9 @@ class CellRangerConverter:
         logger.info("Starting conversion from CellRanger output to SCelVis HDF5")
         logger.info("Settings: %s", vars(self.args))
         tsne = self._load_tsne()
-        pca = self._load_pca()
         clustering = self._load_clustering()
         diffexp = self._load_diffexp()
-        ad = self._load_expression(clustering, tsne, pca, diffexp)
+        ad = self._load_expression(clustering, tsne, diffexp)
 
         if self.args.split_species:
             ad = self._split_species(ad)
@@ -55,16 +54,8 @@ class CellRangerConverter:
         if not os.path.isfile(tsne_file):
             raise ScelVisException("cannot find tSNE output at %s" % tsne_file)
         else:
-            logging.info("Reading tSNE output from %s", tsne_file)
+            logger.info("Reading tSNE output from %s", tsne_file)
             return pd.read_csv(tsne_file, header=0, index_col=0)
-
-    def _load_pca(self):
-        pca_file = os.path.join(self.args.indir, "analysis", "pca", "10_components", "projection.csv")
-        if not os.path.isfile(pca_file):
-            raise ScelVisException("cannot find PCA output at %s" % pca_file)
-        else:
-            logger.info("Reading PCA output from %s", pca_file)
-            return pd.read_csv(pca_file, header=0, index_col=0)
 
     def _load_clustering(self):
         clustering_file = os.path.join(self.args.indir, "analysis", "clustering", "graphclust", "clusters.csv")
@@ -98,34 +89,34 @@ class CellRangerConverter:
             diffexp.columns = ["GeneID", "gene", "Cluster", "p_adj", "log2_fc", "mean_counts"]
             return diffexp
 
-    def _load_expression(self, clustering, tsne, pca, diffexp):
-        if '=' in self.args.format and self.args.format.split('=')[1] == "3.0.2":
-            expression_file = os.path.join(self.args.indir, "filtered_feature_bc_matrix.h5")
+    def _load_expression(self, clustering, tsne, diffexp):
+        expression_file_v3 = os.path.join(self.args.indir, "filtered_feature_bc_matrix.h5")
+        expression_file_v2 = os.path.join(self.args.indir, "filtered_gene_bc_matrices_h5.h5")
+        if os.path.isfile(expression_file_v3):
+            expression_file = expression_file_v3
+        elif os.path.isfile(expression_file_v2):
+            expression_file = expression_file_v2
         else:
-            expression_file = os.path.join(self.args.indir, "filtered_gene_bc_matrices_h5.h5")
-        if not os.path.isfile(expression_file):
-            raise ScelVisException("cannot find expression file at %s" % expression_file)
-        else:
-            logger.info("Reading gene expression from %s", expression_file)
-            with with_log_level(anndata.utils.logger, logging.WARN):
-                ad = sc.read_10x_h5(expression_file)
-            ad.var_names_make_unique()
-            logger.info("Combining meta data")
-            # TODO: do we need to make variable names unique here or can we suppress the warning
-            # TODO: with ``with_log_level(anndata.utils.logger, logging.WARN)``?
-            ad.obs["cluster"] = clustering
-            ad.obs["n_counts"] = ad.X.sum(1).A1
-            ad.obs["n_genes"] = (ad.X > 0).sum(1).A1
-            logger.info("Adding coordinates")
-            ad.obsm["X_tsne"] = tsne.values
-            ad.obsm["X_pca"] = pca.values
-            logger.info("Saving top %d markers per cluster", self.args.nmarkers)
-            markers = diffexp[(diffexp["p_adj"] < 0.05) & (diffexp["log2_fc"] > 0)].drop(
-                "GeneID", axis=1
-            ).sort_values(["Cluster", "p_adj"]).groupby("Cluster").head(self.args.nmarkers)
-            for col in markers.columns:
-                ad.uns['marker_'+col]=markers[col]
-            return ad
+            raise ScelVisException("cannot find expression file at %s" % self.args.indir)
+        logger.info("Reading gene expression from %s", expression_file)
+        with with_log_level(anndata.utils.logger, logging.WARN):
+            ad = sc.read_10x_h5(expression_file)
+        ad.var_names_make_unique()
+        logger.info("Combining meta data")
+        # TODO: do we need to make variable names unique here or can we suppress the warning
+        # TODO: with ``with_log_level(anndata.utils.logger, logging.WARN)``?
+        ad.obs["cluster"] = clustering
+        ad.obs["n_counts"] = ad.X.sum(1).A1
+        ad.obs["n_genes"] = (ad.X > 0).sum(1).A1
+        logger.info("Adding coordinates")
+        ad.obsm["X_tsne"] = tsne.values
+        logger.info("Saving top %d markers per cluster", self.args.nmarkers)
+        markers = diffexp[(diffexp["p_adj"] < 0.05) & (diffexp["log2_fc"] > 0)].drop(
+            "GeneID", axis=1
+        ).sort_values(["Cluster", "p_adj"]).groupby("Cluster").head(self.args.nmarkers)
+        for col in markers.columns:
+            ad.uns['marker_'+col] = markers[col]
+        return ad
 
     def _split_species(self, ad):
         logger.info("Determining species mixing")
@@ -154,7 +145,76 @@ class CellRangerConverter:
         # TODO: explicitely set column types to get rid of warning?
         ad.write(out_file)
 
+class TextConverter:
+    """Conversion of text data to SCelVis HDF5 file."""
 
+    def __init__(self, args):
+        #: Arguments as parsed by ``argparse.ArgumentParser``.`
+        self.args = args
+
+    def run(self):
+        """Perform the conversion."""
+        logger.info("Starting conversion from text input to SCelVis HDF5")
+        logger.info("Settings: %s", vars(self.args))
+        coords = self._load_coords()
+        annotation = self._load_annotation()
+        markers = self._load_markers()
+        ad = self._load_expression(coords, annotation, markers)
+
+        self._write_output(ad)
+        logger.info("All done. Have a nice day!")
+
+    def _load_coords(self):
+        coords_file = os.path.join(self.args.indir, 'coords.tsv')
+        if not os.path.isfile(coords_file):
+            raise ScelVisException("cannot find coords file at %s" % coords_file)
+        else:
+            logger.info("Reading coords from %s", coords_file)
+            return pd.read_csv(coords_file, header=0, index_col=0, sep='\t')
+
+    def _load_annotation(self):
+        annotation_file = os.path.join(self.args.indir, "annotation.tsv")
+        if not os.path.isfile(annotation_file):
+            raise ScelVisException("cannot find cell annotation at %s " % annotation_file)
+        else:
+            logger.info("Reading cell annotation from %s", annotation_file)
+            return pd.read_csv(annotation_file, header=0, index_col=0, sep='\t')
+
+    def _load_markers(self):
+        marker_file = os.path.join(self.args.indir, "markers.tsv")
+        if not os.path.isfile(marker_file):
+            logger.info("no markers in %s!", self.args.indir)
+            return pd.DataFrame()
+        else:
+            logger.info("Reading markers from %s", marker_file)
+            return pd.read_csv(marker_file, header=0, index_col=0, sep='\t')
+
+    def _load_expression(self, coords, annotation, markers):
+        expression_file = os.path.join(self.args.indir, "expression.tsv.gz")
+        if not os.path.isfile(expression_file):
+            raise ScelVisException("cannot find expression file at %s" % expression_file)
+        logger.info("Reading gene expression from %s", expression_file)
+        DGE = pd.read_csv(expression_file, header=0, index_col=0, sep='\t')
+        logger.info("Combining data")
+        ad = sc.AnnData(X=DGE.values.T,
+                        obs=pd.concat([coords.loc[DGE.columns],
+                                       annotation.loc[DGE.columns]],
+                                      axis=1),
+                        var=pd.DataFrame([],index=DGE.index))
+        # TODO: do we need to make variable names unique here or can we suppress the warning
+        # TODO: with ``with_log_level(anndata.utils.logger, logging.WARN)``?
+        ad.obs["n_counts"] = ad.X.sum(1)
+        ad.obs["n_genes"] = (ad.X > 0).sum(1)
+        for col in markers.columns:
+            ad.uns['marker_'+col] = markers[col]
+            
+        return ad
+
+    def _write_output(self, ad):
+        out_file = os.path.join(self.args.outdir, "data.h5ad")
+        logger.info("Saving anndata object to %s", out_file)
+        # TODO: explicitely set column types to get rid of warning?
+        ad.write(out_file)
 
 @attr.s(auto_attribs=True)
 class Config:
@@ -175,7 +235,9 @@ class Config:
 def run(args, _parser=None):
     """Main entry point after argument parsing."""
     # TODO: detect pipeline output
-    if args.format.startswith("CellRanger"):
+    if args.format=='text':
+        return TextConverter(args).run()
+    elif args.format=="CellRanger":
         return CellRangerConverter(args).run()
     else:
         raise ScelVisException("Only CellRanger output is currently supported")
@@ -191,6 +253,13 @@ def setup_argparse(parser):
         help="path to input/pipeline output directory",
     )
     parser.add_argument("-o", "--output-dir", required=True, dest="outdir", help="output directory")
+    parser.add_argument(
+        "-f",
+        "--format",
+        default='text',
+        dest="format",
+        help="input format (\"CellRanger\" or \"text\")",
+    )
     parser.add_argument(
         "--use_raw",
         dest="use_raw",
@@ -211,13 +280,6 @@ def setup_argparse(parser):
         default=10,
         type=int,
         help="Save top n markers per cluster [10]",
-    )
-    parser.add_argument(
-        "-f",
-        "--format",
-        required=True,
-        dest="format",
-        help="input format (e.g., ""CellRanger=3.0.2"" or ""raw"")",
     )
     parser.add_argument(
         "--verbose", default=False, action="store_true", help="Enable verbose output"

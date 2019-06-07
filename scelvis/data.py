@@ -249,14 +249,16 @@ def load_data(data_source, identifier):
     with download_file(data_source, identifier, "data.h5ad") as path_anndata:
         ad = anndata.read_h5ad(path_anndata)
         coords = {}
-        for k in ["X_tsne", "X_umap"]:
-            if k in ad.obsm.keys():
-                coords[k] = pd.DataFrame(
-                    ad.obsm[k],
-                    index=ad.obs.index,
-                    columns=[k[2:].upper() + str(n + 1) for n in range(ad.obsm[k].shape[1])],
-                )
-        meta = pd.concat(coords.values(), axis=1).join(ad.obs)
+        for k in ad.obsm.keys():
+            coords[k] = pd.DataFrame(
+                ad.obsm[k],
+                index=ad.obs.index,
+                columns=[k[2:].upper() + str(n + 1) for n in range(ad.obsm[k].shape[1])],
+            )
+        if len(coords) > 0:
+            meta = pd.concat(coords.values(), axis=1).join(ad.obs)
+        else:
+            meta = ad.obs
         DGE = ad.to_df().T
         # Separate numerical and categorical columns for later.
         numerical_meta = []
