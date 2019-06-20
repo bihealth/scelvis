@@ -56,8 +56,11 @@ def run_cache_dir(args):
 
 def parse_url(url_str):
     """Parse URL and fix scheme for ``file://`` URLs."""
-    tmp = urllib.parse.urlparse(url_str)
-    return tmp._replace(scheme=tmp.scheme if tmp.scheme else "file")
+    url = urllib.parse.urlparse(url_str)
+    if not url.scheme:
+        return url._replace(scheme="file", path=os.path.realpath(url.path))
+    else:
+        return url
 
 
 def run(args, parser):
@@ -67,6 +70,7 @@ def run(args, parser):
         data_sources += os.environ.get("SCELVIS_DATA_SOURCES").split(";")
     for data_source in args.data_sources:
         data_sources += data_source.split(";")
+
     data_sources = list(map(parse_url, data_sources))
     if not data_sources and not args.fake_data:
         parser.error(
