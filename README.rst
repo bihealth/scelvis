@@ -143,6 +143,7 @@ Data sources can be:
     - Enable SSL via ``irods+ssl``
     - Switch to PAM authentication with ``irods+pam`` (you can combine this with ``+ssl`` in any order)
     - Enable ticket access by appending ``?ticket=TICKET``.
+- S3 URLs, e.g., ``s3://bucket/path``, optionally ``s3://key:token@bucket/path``.
 
 Data sources can either point to directories that contain the ``about.md`` string directly (data sets) contain multiple data set directories.
 The only exception is iRODS with ticket-based access.

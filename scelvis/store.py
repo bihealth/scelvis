@@ -12,6 +12,7 @@ perform a linear search for the collection's data objects and only THEN can we o
 import urllib.parse
 
 import fs.path
+import s3fs
 from irods.exception import CAT_SQL_ERR, DoesNotExist
 from logzero import logger
 
@@ -33,6 +34,10 @@ def does_exist(url, path, *more_components):
         curr_fs = data.make_fs(url)
         result = curr_fs.exists(fs.path.join(path, *more_components))
         return result
+    elif url.scheme == "s3":
+        anon = url.username is None and url.password is None
+        s3 = s3fs.S3FileSystem(anon=anon, key=url.username, secret=url.password)
+        return s3.exists("%s/%s" % (url.hostname, path))
     elif url.scheme.startswith("irods"):
         path_full = fs.path.join(url.path, path, *more_components)
         with data.create_irods_session(url) as irods_session:
@@ -60,6 +65,15 @@ def glob_data_sets(url):
             match_path = fs.path.basename(match.path)
             logger.info("Found data set %s at %s" % (match_path, data.redacted_urlunparse(url)))
             result.append(url._replace(path=fs.path.join(url.path, match.path)))
+    elif url.scheme == "s3":
+        anon = url.username is None and url.password is None
+        s3 = s3fs.S3FileSystem(anon=anon, key=url.username, secret=url.password)
+        if url.path:
+            pattern = "%s/%s/*/%s" % (url.hostname, url.path, settings.ABOUT_FILENAME)
+        else:
+            pattern = "%s/*/%s" % (url.hostname, settings.ABOUT_FILENAME)
+        for match in s3.glob(pattern):
+            result.append(url._replace(path=match.split("/", 1)[1]))
     elif url.scheme.startswith("irods"):
         with data.create_irods_session(url) as irods_session:
             # Get pointed-to collection.
