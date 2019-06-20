@@ -27,6 +27,7 @@ ruamel.yaml
 # Unified access to files within archives or behind protocols.
 fs
 fs.sshfs
+s3fs  # NOT fs-s3fs
 # TODO: we need an fs[._]irods
 # Access to files through iRODS.
 python-irodsclient

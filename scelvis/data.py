@@ -20,6 +20,7 @@ import fs.tools
 from fs.sshfs import SSHFS as SSHFS
 from fs.ftpfs import FTPFS
 from fs.osfs import OSFS
+import s3fs
 from fs.tempfs import TempFS
 from irods.session import iRODSSession
 from irods.ticket import Ticket
@@ -195,6 +196,18 @@ def download_file(url, path, *more_components):
                     logger.info("Download complete.")
                     yield tmpfs.getospath(basename)
                     logger.info("Releasing %s" % tmpfs)
+        elif url.scheme == "s3":
+            logger.info("Connecting via S3...")
+            anon = url.username is None and url.password is None
+            s3 = s3fs.S3FileSystem(anon=anon, key=url.username, secret=url.password)
+            with TempFS() as tmpfs:
+                logger.info("Downloading file %s from %s" % (path, redacted_urlunparse(url)))
+                with s3.open("%s/%s" % (url.hostname, path), "rb") as inputf:
+                    with open(tmpfs.getospath(basename), "wb") as outputf:
+                        shutil.copyfileobj(inputf, outputf, settings.MAX_UPLOAD_DATA_SIZE)
+                logger.info("Download complete.")
+                yield tmpfs.getospath(basename)
+                logger.info("Releasing %s" % tmpfs)
         elif url.scheme.startswith("irods"):
             with create_irods_session(url) as irods_session:
                 logger.info("Downloading file...")
