@@ -2,9 +2,9 @@
 History
 =======
 
--------------------
-v0.3.0 (unreleased)
--------------------
+------
+v0.3.0
+------
 
 - Adding example data set.
 - Adding nice introduction to start page.
