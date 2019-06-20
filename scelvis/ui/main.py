@@ -25,7 +25,7 @@ def render_home():
     """Return site content for the home screen."""
     with open(os.path.join(os.path.dirname(__file__), "..", "static", "home.md")) as inputf:
         home_md = inputf.read()
-    return dbc.Row(dbc.Col(html.Div(dcc.Markdown(home_md))))
+    return dbc.Row(dbc.Col(html.Div(dcc.Markdown(home_md), className="home-text")))
 
 
 def render_dataset(identifier):
