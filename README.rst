@@ -40,7 +40,7 @@ A Docker container is also available via `Quay.io/Biocontainers <https://quay.io
 .. code-block:: shell
 
     $ docker run quay.io/biocontainers/scelvis:TAG scelvis --help
-    $ docker run -p 8050:8050 -v data:/data quay.io/biocontainers/scelvis:TAG scelvis --data-source /data
+    $ docker run -p 8050:8050 -v data:/data quay.io/biocontainers/scelvis:TAG scelvis run --data-source /data
 
 - Lookup the latest ``TAG`` to use at `here <https://quay.io/repository/biocontainers/scelvis?tab=tags>`_.
 
