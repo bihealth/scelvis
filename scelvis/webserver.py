@@ -77,6 +77,8 @@ def run(args, parser):
             "You either have to specify --data-sources or set environment variable SCELVIS_DATA_SOURCES "
             "(or use --fake-data)"
         )
+    args.data_sources = list(map(str, args.data_sources))
+
     # Configure the Dash app through ``settings`` module (see module docstring for more info).
     logger.info("Configuring settings from arguments %s", args)
     settings.FAKE_DATA = args.fake_data

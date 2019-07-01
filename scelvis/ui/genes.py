@@ -138,7 +138,6 @@ def render_controls(data):
                             "disabled": (data.markers is None),
                         }
                     ],
-                    values=[],
                     className="mt-2",
                     inputClassName="mr-1",
                 ),

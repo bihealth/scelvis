@@ -40,7 +40,7 @@ A Docker container is also available via `Quay.io/Biocontainers <https://quay.io
 .. code-block:: shell
 
     $ docker run quay.io/biocontainers/scelvis:TAG scelvis --help
-    $ docker run -p 8050:8050 -v data:/data quay.io/biocontainers/scelvis:TAG scelvis --data-source /data
+    $ docker run -p 8050:8050 -v data:/data quay.io/biocontainers/scelvis:TAG scelvis run --data-source /data
 
 - Lookup the latest ``TAG`` to use at `here <https://quay.io/repository/biocontainers/scelvis?tab=tags>`_.
 
@@ -60,9 +60,29 @@ explore a simulated dummy dataset or 1000 cells from a 1:1 Mixture of Fresh Froz
 Preparing Your Data
 -------------------
 
-Each data set consists of an HDF5 file called ``data.h5ad`` and a dataset description file ``about.md``.
+Each **dataset** consists of an HDF5 file called ``data.h5ad``.
 The HDF5 file is an `anndata <https://anndata.readthedocs.io/en/latest/index.html>`_ object that stores gene expression (sparse CSR matrix) and meta data with very fast read access.  
 You can use the ``scelvis convert`` command for converting your single-cell pipeline output into an appropriate HDF5 file.
+
+A **data source** is a dataset file or a directory containing dataset ``.h5ad`` files.
+You can convert your single-cell transcriptome analysis pipelines as follows.
+
+.. code-block:: shell
+
+    $ mkdir -p data/input_dir
+    $ scelvis convert --input-dir input_dir --output-dir data/text_input
+
+The possible contents of ``input_dir`` are described below.
+The format can be given explicitely using ``--format`` or you can let SCelVis autodetect it (default).
+See ``scelvis convert --help`` for more information.
+
+Dataset Description
+-------------------
+
+When converting, you can pass in the path to a dataset description Markdown file (with title and short title in a YAML header).
+The data is stored in the dataset ``.h5ad`` file.
+When placing the ``about.md`` file into your input directory, this file's contents will be picked up automatically.
+
 The ``about.md`` file should look as follows:
 
 ::
@@ -74,17 +94,48 @@ The ``about.md`` file should look as follows:
 
     A verbose description of the data in Markdown format.
 
-A directory containing both an ``data.h5ad`` and an ``about.md`` file is a **dataset directory**.
-For the input you can either specify one dataset directory or a **data directory** containing multiple dataset directories.
+Text Input
+----------
 
-You can convert your single-cell transcriptome analysis pipeline as follows.
-This does no further processing except log-normalization and uses PCA, tSNE, and clustering performed by ``cellranger``
+For "raw" text input, you need to prepare at least three files in the input directory:
+
+- ``expression.tsv.gz`` is a tab-separated file with normalized expression values for each gene (rows) in each cell (columns), e.g., like this::
+
+         .       cell_1   cell_2   cell_3  ...
+         gene_1  0.13     0.0      1.5     ...
+         gene_2  0.0      3.1      0.3     ...
+         gene_3  0.0      0.0      0.0     ...
+
+- ``annotation.tsv`` is a tab-separated file with annotations for each cell, e.g., like this::
+
+        .         cluster     genotype  ...
+        cell_1    cluster_1   WT        ...
+        cell_2    cluster_2   KO        ...
+
+
+- ``coords.tsv`` is a tab-separated file with embedding coordinates for each cell, e.g., like this::
+
+        .         tSNE_1   tSNE_2   UMAP_1  UMAP_2  ...
+        cell_1    20.53    -10.05   3.9     2.4     ...
+        cell_2    -5.34    13.94    -1.3    3.4     ...
+
+- ``markers.tsv`` is an optional tab-separated file with marker genes and **it needs to have a column named ``gene``**, e.g., like this::
+
+        gene    cluster     log2FC   adj_pval   ...
+        gene_1  cluster_1   3.4      1.5e-6     ...
+        gene_2  cluster_1   1.3      0.00004    ...
+        gene_3  cluster_2   2.1      5.3e-9     ...
+
+CellRanger Input
+----------------
+
+Alternatively, the output directory of ``CellRanger`` can be used. This is the directory called ``outs`` containing either a file called ``filtered_gene_bc_matrices_h5.h5`` (version 2) or a file called ``filtered_feature_bc_matrix.h5`` (version 3), and a folder ``analysis`` with clustering, embedding and differential expression results. This will not no any further processing except log-normalization.
 
 .. code-block:: shell
 
-    $ mkdir -p data/project
-    $ scelvis convert --input-dir cellranger-out --output-dir data/project
-    $ cat <<EOF
+    $ mkdir -p data/cellranger_input
+    $ scelvis convert --input-dir cellranger-out --output-dir data/cellranger_input
+    $ cat <<EOF > about.md
     ----
     title: My Project
     ----
@@ -92,24 +143,12 @@ This does no further processing except log-normalization and uses PCA, tSNE, and
     This is my project data.
     EOF
 
-    $ tree data
-    data
-    ├── other
-    │   ├── about.md
-    │   └── data.h5ad
-    └── project
-        ├── about.md
-        └── data.h5ad
-
-Note that right now only ``cellranger`` output is supported. 
-
-In ``examples/hgmm_1k/hgmm_1k.zip`` we provide ``cellranger`` output for the 1k 1:1 human mouse mix. Specifically, from the `outs` folder we selected
+In ``examples/hgmm_1k/hgmm_1k.zip`` we provide ``CellRanger`` output for the 1k 1:1 human mouse mix. Specifically, from the `outs` folder we selected
 
 - ``filtered_feature_bc_matrix.h5``
 - tSNE and PCA projections from ``analysis/tsne`` and ``analysis/pca``
 - clustering from ``analysis/clustering/graphclust`` and 
 - markers from ``analysis/diffexp/graphclust`` 
-
 
 ---------------------
 Visualizing Your Data
@@ -119,14 +158,10 @@ Visualizing Your Data
 
     $ tree data
     data
-    ├── other
-    │   ├── about.md
-    │   └── data.h5ad
-    └── project
-        ├── about.md
-        └── data.h5ad
+    ├── text_input.h5ad
+    └── cellranger_input.h5ad
 
-    $ scelvis run --data-source data/project
+    $ scelvis run --data-source data/text_input.h5ad
     # OR
     $ scelvis run --data-source data
 
@@ -143,6 +178,7 @@ Data sources can be:
     - Enable SSL via ``irods+ssl``
     - Switch to PAM authentication with ``irods+pam`` (you can combine this with ``+ssl`` in any order)
     - Enable ticket access by appending ``?ticket=TICKET``.
+- HTTP(S) URLs, e.g., ``https://user:password@host/path/to/data``.
 - S3 URLs, e.g., ``s3://bucket/path``, optionally ``s3://key:token@bucket/path``.
 
 Data sources can either point to directories that contain the ``about.md`` string directly (data sets) contain multiple data set directories.
@@ -206,7 +242,7 @@ Afterwards, you can run the visualization web server as follows:
     $ scelvis run --data-source path/to/data/dir
 
 Releasing Packages
-==================
+------------------
 
 For the `PyPi package <https://pypi.org/project/scelvis/>`_:
 

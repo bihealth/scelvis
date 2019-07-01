@@ -2,6 +2,14 @@
 History
 =======
 
+-------------------
+v0.4.0 (unreleased)
+-------------------
+
+- Adding support for HTTP(S) data sources.
+- Embedding ``about.md`` information in Anndata file.
+- Adding support for "plain text" input.
+
 ------
 v0.3.0
 ------

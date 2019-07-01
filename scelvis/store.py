@@ -10,11 +10,14 @@ perform a linear search for the collection's data objects and only THEN can we o
 """
 
 import urllib.parse
+from urllib.parse import urlunparse
 
 import fs.path
 import s3fs
 from irods.exception import CAT_SQL_ERR, DoesNotExist
+import htmllistparse
 from logzero import logger
+import requests
 
 from scelvis.data import redacted_urlunparse
 from . import data, settings
@@ -38,6 +41,11 @@ def does_exist(url, path, *more_components):
         anon = url.username is None and url.password is None
         s3 = s3fs.S3FileSystem(anon=anon, key=url.username, secret=url.password)
         return s3.exists("%s/%s" % (url.hostname, path))
+    elif url.scheme.startswith("http"):
+        path_full = fs.path.join(url.path, path, *more_components)
+        url._replace(path=path_full)
+        res = requests.get(urlunparse(url))
+        return res.ok
     elif url.scheme.startswith("irods"):
         path_full = fs.path.join(url.path, path, *more_components)
         with data.create_irods_session(url) as irods_session:
@@ -61,40 +69,46 @@ def glob_data_sets(url):
     result = []
     if url.scheme in data.PYFS_SCHEMES:
         curr_fs = data.make_fs(url)
-        for match in curr_fs.glob(fs.path.join("*", settings.ABOUT_FILENAME)):
+        for match in curr_fs.glob("*.h5ad"):
             match_path = fs.path.basename(match.path)
             logger.info("Found data set %s at %s" % (match_path, data.redacted_urlunparse(url)))
-            result.append(url._replace(path=fs.path.join(url.path, match.path)))
+            result.append(url._replace(path=fs.path.join(url.path, match.path[1:])))
     elif url.scheme == "s3":
         anon = url.username is None and url.password is None
         s3 = s3fs.S3FileSystem(anon=anon, key=url.username, secret=url.password)
         if url.path:
-            pattern = "%s/%s/*/%s" % (url.hostname, url.path, settings.ABOUT_FILENAME)
+            pattern = "%s/%s/*.h5ad" % (url.hostname, url.path)
         else:
-            pattern = "%s/*/%s" % (url.hostname, settings.ABOUT_FILENAME)
+            pattern = "%s/*.h5ad" % (url.hostname,)
         for match in s3.glob(pattern):
             result.append(url._replace(path=match.split("/", 1)[1]))
+    elif url.scheme.startswith("http"):
+        cwd, listing = htmllistparse.fetch_listing(urlunparse(url), timeout=30)
+        for entry in listing:
+            if entry.name.endswith(".h5ad"):
+                result.append(url._replace(path=fs.path.join(cwd, entry.name)))
     elif url.scheme.startswith("irods"):
         with data.create_irods_session(url) as irods_session:
             # Get pointed-to collection.
             collection = irods_session.collections.get(url.path)
-            for sub_coll in collection.subcollections:
-                for data_obj in sub_coll.data_objects:
-                    if data_obj.name == settings.ABOUT_FILENAME:
-                        result.append(
-                            url._replace(path=fs.path.join(url.path, sub_coll.name, data_obj.name))
-                        )
+            for data_obj in collection.data_objects:
+                if data_obj.name.endswith(".h5ad"):
+                    result.append(url._replace(path=fs.path.join(url.path, data_obj.name)))
     else:
         raise ScelVisException("Invalid URL scheme: %s" % url.scheme)
     return result
 
 
 @cache.memoize()
+def _load_data_cached(url, identifier):
+    return data.load_data(url, identifier)
+
+
+@cache.memoize()
 def load_all_metadata():
     """Load all meta data information from ``settings.DATA_SOURCES``.
 
-    If ``data_source`` itself contains a file called ``about.md``, it is assumed that only one dataset is available.
-    Otherwise, all sub directories will be scanned for ``about.md`` and one entry is returned for each dataset.
+    A data source can either be a URL to a file ending on ``.h5ad`` or a directory that contains ``.h5ad`` files.
     """
     result = []
 
@@ -102,16 +116,15 @@ def load_all_metadata():
         result = [data.fake_data().metadata]
 
     for url in settings.DATA_SOURCES:
-        if does_exist(url, settings.ABOUT_FILENAME):
+        if url.path.endswith(".h5ad"):
             logger.info("Loading single dataset from data source %s", data.redacted_urlunparse(url))
-            identifier = fs.path.basename(url.path)
-            collection = url._replace(path=fs.path.dirname(url.path))
-            result.append(data.load_metadata(collection, identifier))
+            identifier = fs.path.basename(url.path)[: -len(".h5ad")]
+            result.append(_load_data_cached(url, identifier).metadata)
         else:
             lst = []
             for match in glob_data_sets(url):
-                identifier = fs.path.basename(fs.path.dirname(match.path))
-                lst.append(data.load_metadata(url, identifier))
+                identifier = fs.path.basename(match.path)[: -len(".h5ad")]
+                lst.append(_load_data_cached(match, identifier).metadata)
             if lst:
                 logger.info("Loaded %d data sets from data directory.", len(lst))
             else:
@@ -122,32 +135,26 @@ def load_all_metadata():
     return result
 
 
-def _load(identifier, load_func):
-    urls = settings.DATA_SOURCES
-    if settings.UPLOAD_DIR:
-        urls += [urllib.parse.urlparse("file://%s" % settings.UPLOAD_DIR)]
-    for url in urls:
-        if fs.path.basename(url.path) == identifier:
-            url = url._replace(path=fs.path.dirname(url.path))
-            return load_func(url, identifier)
-        else:
-            if does_exist(url, identifier, settings.ABOUT_FILENAME):
-                return load_func(url, identifier)
-
-
-@cache.memoize()
-def load_metadata(identifier):
-    """Load metadata for the given identifier from data or upload directory."""
-    if identifier == data.FAKE_DATA_ID:
-        return data.fake_data().metadata
-    else:
-        return _load(identifier, data.load_metadata)
-
-
 @cache.memoize()
 def load_data(identifier):
     """Load data for the given identifier from data or upload directory."""
     if identifier == data.FAKE_DATA_ID:
         return data.fake_data()
     else:
-        return _load(identifier, data.load_data)
+        urls = settings.DATA_SOURCES
+        if settings.UPLOAD_DIR:
+            urls += [urllib.parse.urlparse("file://%s" % settings.UPLOAD_DIR)]
+        for url in urls:
+            if fs.path.basename(url.path)[: -len(".h5ad")] == identifier:
+                return data.load_data(url, identifier)
+            else:
+                if does_exist(url, identifier + ".h5ad"):
+                    return _load_data_cached(
+                        url._replace(path=fs.path.join(url.path, identifier + ".h5ad")), identifier
+                    )
+
+
+@cache.memoize()
+def load_metadata(identifier):
+    """Load metadata for the given identifier from data or upload directory."""
+    return load_data(identifier).metadata
