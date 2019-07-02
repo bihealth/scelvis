@@ -56,7 +56,7 @@ app.scripts.config.serve_locally = True
 
 # TODO: Better use the approach from this URL:
 # - https://community.plot.ly/t/dynamic-controls-and-dynamic-output-components/5519
-app.config.supress_callback_exceptions = True
+app.config.suppress_callback_exceptions = True
 
 # Setup the application's main layout.
 app.layout = build_layout()
