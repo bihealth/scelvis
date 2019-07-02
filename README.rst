@@ -106,12 +106,12 @@ for "raw" text input, you need to prepare at least three files in the input dire
 - ``about.md``, a markdown file with meta information about this dataset
 
   ::
-      ----
-      title: An Optional Long Data Set Title
-      short_title: optional short title
-      ----
-
-      A verbose description of the data in Markdown format.
+       ----
+       title: An Optional Long Data Set Title
+       short_title: optional short title
+       ----
+        
+       A verbose description of the data in Markdown format.
 
 .. code-block:: shell
 
