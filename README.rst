@@ -52,42 +52,17 @@ explore a simulated dummy dataset or 1000 cells from a 1:1 Mixture of Fresh Froz
 
 .. code-block:: shell
 
-    $ scelvis run --data-source /path/to/scelvis/examples/dummy
-    $ scelvis run --data-source /path/to/scelvis/examples/hgmm_1k
+    $ scelvis run --data-source /path/to/scelvis/examples/dummy.h5ad
+    $ scelvis run --data-source /path/to/scelvis/examples/hgmm_1k.h5ad
 
 
 -------------------
 Preparing Your Data
 -------------------
 
-Each data set consists of an HDF5 file called ``data.h5ad`` and a dataset description file ``about.md``.
-The HDF5 file is an `anndata <https://anndata.readthedocs.io/en/latest/index.html>`_ object that stores gene expression (sparse CSR matrix) and meta data with very fast read access.  
-You can use the ``scelvis convert`` command for converting your single-cell pipeline output into an appropriate HDF5 file.
-The ``about.md`` file should look as follows:
+Data sets are provided as HDF5 files (`anndata <https://anndata.readthedocs.io/en/latest/index.html>`_ objects) that store gene expression (sparse CSR matrix) and meta data with very fast read access.  You can use the ``scelvis convert`` command for converting your single-cell pipeline output into an appropriate HDF5 file.
 
-::
-
-    ----
-    title: An Optional Long Data Set Title
-    short_title: optional short title
-    ----
-
-    A verbose description of the data in Markdown format.
-
-A directory containing both an ``data.h5ad`` and an ``about.md`` file is a **dataset directory**.
-For the input you can either specify one dataset directory or a **data directory** containing multiple dataset directories, e.g., you could have
-
-.. code-block:: shell
-
-    $ tree data
-    data
-    ├── dataset1
-    │   ├── about.md
-    │   └── data.h5ad
-    └── dataset2
-        ├── about.md
-        └── data.h5ad
-
+For the input you can either specify one HDF5 file or a directory containing multiple such files.
 
 You can convert your single-cell transcriptome analysis pipeline as follows.
 
@@ -96,7 +71,7 @@ Text Input
 
 for "raw" text input, you need to prepare at least three files in the input directory:
 
-- ``expression.tsv.gz`` is a tab-separated file with normalized expression values for each gene (rows) in each cell (columns), e.g., like this
+- ``expression.tsv.gz``, a tab-separated file with normalized expression values for each gene (rows) in each cell (columns), e.g., like this
 
   ::
      .       cell_1   cell_2   cell_3  ...
@@ -104,7 +79,7 @@ for "raw" text input, you need to prepare at least three files in the input dire
      gene_2  0.0      3.1      0.3     ...
      gene_3  0.0      0.0      0.0     ...
 
-- ``annotation.tsv`` is a tab-separated file with annotations for each cell, e.g., like this
+- ``annotation.tsv``, a tab-separated file with annotations for each cell, e.g., like this
 
   ::
     .         cluster     genotype  ...
@@ -112,7 +87,7 @@ for "raw" text input, you need to prepare at least three files in the input dire
     cell_2    cluster_2   KO        ...
 
 
-- ``coords.tsv`` is a tab-separated file with embedding coordinates for each cell, e.g., like this
+- ``coords.tsv``, a tab-separated file with embedding coordinates for each cell, e.g., like this
 
   ::
 
@@ -120,7 +95,7 @@ for "raw" text input, you need to prepare at least three files in the input dire
     cell_1    20.53    -10.05   3.9     2.4     ...
     cell_2    -5.34    13.94    -1.3    3.4     ...
 
-- ``markers.tsv`` is an optional tab-separated file with marker genes and **it needs to have a column named ``gene``**, e.g., like this
+- ``markers.tsv``, an optional tab-separated file with marker genes and **it needs to have a column named ``gene``**, e.g., like this
 
   ::
        gene    cluster     log2FC   adj_pval   ...
@@ -128,52 +103,58 @@ for "raw" text input, you need to prepare at least three files in the input dire
        gene_2  cluster_1   1.3      0.00004    ...
        gene_3  cluster_2   2.1      5.3e-9     ...
 
+- ``about.md``, a markdown file with meta information about this dataset
+
+  ::
+      ----
+      title: An Optional Long Data Set Title
+      short_title: optional short title
+      ----
+
+      A verbose description of the data in Markdown format.
+
 .. code-block:: shell
 
     $ mkdir -p data/text_input
-    $ scelvis convert --input-dir text_input --output-dir data/text_input
+    $ scelvis convert --input-dir text_input --output-dir data/text_input --about-md about.md
 
 CellRanger Input
 ----------------
 
-Alternatively, the output directory of ``CellRanger`` can be used. This is the directory called ``outs`` containing either a file called ``filtered_gene_bc_matrices_h5.h5`` (version 2) or a file called ``filtered_feature_bc_matrix.h5`` (version 3), and a folder ``analysis`` with clustering, embedding and differential expression results. This will not no any further processing except log-normalization.
+Alternatively, the output directory of ``CellRanger`` can be used. This is the directory called ``outs`` containing either a file called ``filtered_gene_bc_matrices_h5.h5`` (version 2) or a file called ``filtered_feature_bc_matrix.h5`` (version 3), and a folder ``analysis`` with clustering, embedding and differential expression results. This will not no any further processing except log-normalization. Additionally, a markdown file provides meta information about the dataset (see above)
 
 .. code-block:: shell
 
-    $ mkdir -p data/cellranger_input
-    $ scelvis convert --input-dir cellranger-out --output-dir data/cellranger_input
-    $ cat <<EOF > about.md
+    $ mkdir -p data
+    $ cat <<EOF > data/about.md
     ----
     title: My Project
+    short_title: my_project
     ----
 
     This is my project data.
     EOF
+    $ scelvis convert --input-dir cellranger-out --output data/cellranger_input.h5ad --about-md data/about.md
 
-In ``examples/hgmm_1k/hgmm_1k.zip`` we provide ``CellRanger`` output for the 1k 1:1 human mouse mix. Specifically, from the `outs` folder we selected
+In ``examples/hgmm_1k_raw.zip`` we provide ``CellRanger`` output for the 1k 1:1 human mouse mix. Specifically, from the `outs` folder we selected
 
 - ``filtered_feature_bc_matrix.h5``
 - tSNE and PCA projections from ``analysis/tsne`` and ``analysis/pca``
 - clustering from ``analysis/clustering/graphclust`` and 
 - markers from ``analysis/diffexp/graphclust`` 
 
-
 ---------------------
 Visualizing Your Data
 ---------------------
 
-.. code-block::
+.. code-block:: shell
 
     $ tree data
     data
-    ├── text_input
-    │   ├── about.md
-    │   └── data.h5ad
-    └── cellranger_input
-        ├── about.md
-        └── data.h5ad
+    ├── dataset1.h5ad
+    └── dataset2.h5ad
 
-    $ scelvis run --data-source data/text_input
+    $ scelvis run --data-source data/dataset1.h5ad
     # OR
     $ scelvis run --data-source data
 
@@ -193,7 +174,7 @@ Data sources can be:
 - HTTP(S) URLs, e.g., ``https://user:password@host/path/to/data``.
 - S3 URLs, e.g., ``s3://bucket/path``, optionally ``s3://key:token@bucket/path``.
 
-Data sources can either point to directories that contain the ``about.md`` string directly (data sets) contain multiple data set directories.
+Data sources can either point to HDF5 files directly or to directories containing multiple HDF5 files.
 The only exception is iRODS with ticket-based access.
 Because of technical restrictions, you have to assign a unique ticket for each data set and specify the data sets individually.
 
