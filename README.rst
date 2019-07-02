@@ -103,7 +103,7 @@ for "raw" text input, you need to prepare at least three files in the input dire
        gene_2  cluster_1   1.3      0.00004    ...
        gene_3  cluster_2   2.1      5.3e-9     ...
 
-- ``about.md``, a markdown file with meta information about this dataset
+- a markdown file (e.g., ``text_input.md``) with information about this dataset
 
   ::
        ----
@@ -115,8 +115,9 @@ for "raw" text input, you need to prepare at least three files in the input dire
 
 .. code-block:: shell
 
-    $ mkdir -p data/text_input
-    $ scelvis convert --input-dir text_input --output-dir data/text_input --about-md about.md
+    $ scelvis convert --input-dir text_input --output data/text_input.h5ad --about-md text_input.md
+
+in ``examples/dummy_raw.zip`` and ``examples/dummy_about.md`` we provide raw data for the dummy dataset
 
 CellRanger Input
 ----------------
@@ -126,7 +127,7 @@ Alternatively, the output directory of ``CellRanger`` can be used. This is the d
 .. code-block:: shell
 
     $ mkdir -p data
-    $ cat <<EOF > data/about.md
+    $ cat <<EOF > data/cellranger.md
     ----
     title: My Project
     short_title: my_project
@@ -134,7 +135,7 @@ Alternatively, the output directory of ``CellRanger`` can be used. This is the d
 
     This is my project data.
     EOF
-    $ scelvis convert --input-dir cellranger-out --output data/cellranger_input.h5ad --about-md data/about.md
+    $ scelvis convert --input-dir cellranger-out --output data/cellranger_input.h5ad --about-md cellranger.md
 
 In ``examples/hgmm_1k_raw.zip`` we provide ``CellRanger`` output for the 1k 1:1 human mouse mix. Specifically, from the `outs` folder we selected
 
@@ -142,6 +143,8 @@ In ``examples/hgmm_1k_raw.zip`` we provide ``CellRanger`` output for the 1k 1:1 
 - tSNE and PCA projections from ``analysis/tsne`` and ``analysis/pca``
 - clustering from ``analysis/clustering/graphclust`` and 
 - markers from ``analysis/diffexp/graphclust`` 
+
+``examples/hgmm_1k_about.md`` contains information about this dataset
 
 ---------------------
 Visualizing Your Data
@@ -151,10 +154,10 @@ Visualizing Your Data
 
     $ tree data
     data
-    ├── dataset1.h5ad
-    └── dataset2.h5ad
+    ├── text_input.h5ad
+    └── cellranger_input.h5ad
 
-    $ scelvis run --data-source data/dataset1.h5ad
+    $ scelvis run --data-source data/cellranger_input.h5ad
     # OR
     $ scelvis run --data-source data
 
