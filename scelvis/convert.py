@@ -231,9 +231,25 @@ class TextConverter:
         annotation = self._load_annotation()
         markers = self._load_markers()
         ad = self._load_expression(coords, annotation, markers)
+        about = self._load_about()
+
+        # Write about meta data into anndata.
+        ad.uns["about_title"] = about.title
+        ad.uns["about_short_title"] = about.short_title
+        ad.uns["about_readme"] = about.readme
 
         self._write_output(ad)
         logger.info("All done. Have a nice day!")
+
+    def _load_about(self):
+        """Load the about.md file (if any)."""
+        if self.args.about_md:
+            return load_about_md(self.args.about_md)
+        elif os.path.exists(os.path.join(self.args.indir, "about.md")):
+            return load_about_md(os.path.join(self.args.indir, "about.md"))
+        else:
+            filename = os.path.basename(self.args.indir)
+            return About(title=filename, short_title=filename, readme=None)
 
     def _load_coords(self):
         coords_file = os.path.join(self.args.indir, "coords.tsv")
