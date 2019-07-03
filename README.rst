@@ -60,11 +60,16 @@ explore a simulated dummy dataset or 1000 cells from a 1:1 Mixture of Fresh Froz
 Preparing Your Data
 -------------------
 
-Data sets are provided as HDF5 files (`anndata <https://anndata.readthedocs.io/en/latest/index.html>`_ objects) that store gene expression (sparse CSR matrix) and meta data with very fast read access.  You can use the ``scelvis convert`` command for converting your single-cell pipeline output into an appropriate HDF5 file.
+Data sets are provided as HDF5 files (`anndata <https://anndata.readthedocs.io/en/latest/index.html>`_ objects) that store gene expression (sparse CSR matrix) and meta data with very fast read access.  
 
 For the input you can either specify one HDF5 file or a directory containing multiple such files.
 
-You can convert your single-cell transcriptome analysis pipeline as follows.
+You can use ``scanpy`` to create this HDF5 file directly or use the ``scelvis convert`` command for converting your single-cell pipeline output.
+
+HDF5 Input
+----------
+
+for HDF5 input, you can do your analysis with `scanpy <http://scanpy.rtfd.io>`_ to create an anndata object ``ad``. SCelVis will use embedding coordinates from ``ad.obsm``, cell annotation from ``ad.obs`` and expression data directly from ``ad.X`` (this should contain normalized and log-transformed expression values for all genes). Information about the dataset will be extracted from strings stored in ``ad.uns['about_title']``, ``ad.uns['about_short_title']`` and ``ad.uns['about_readme']`` (assumed to be Markdown). Information about marker genes will be taken from entries starting with ``marker_`` in ``ad.uns``: entries called ``marker_gene`` (required!), ``marker_cluster``, ``marker_padj``, ``marker_LFC`` will create a table with the columns ``gene``, ``cluster``, ``padj``, and ``LFC``.
 
 Text Input
 ----------
@@ -117,7 +122,7 @@ for "raw" text input, you need to prepare at least three files in the input dire
 
     $ scelvis convert --input-dir text_input --output data/text_input.h5ad --about-md text_input.md
 
-in ``examples/dummy_raw.zip`` and ``examples/dummy_about.md`` we provide raw data for the dummy dataset
+in ``examples/dummy_raw.zip`` and ``examples/dummy_about.md`` we provide raw data for the dummy dataset.
 
 CellRanger Input
 ----------------
