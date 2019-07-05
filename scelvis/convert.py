@@ -274,7 +274,7 @@ class TextConverter:
             return pd.DataFrame()
         else:
             logger.info("Reading markers from %s", marker_file)
-            return pd.read_csv(marker_file, header=0, index_col=0, sep="\t")
+            return pd.read_csv(marker_file, header=0, sep="\t")
 
     def _load_expression(self, coords, annotation, markers):
         expression_file = os.path.join(self.args.indir, "expression.tsv.gz")
@@ -290,8 +290,6 @@ class TextConverter:
         )
         # TODO: do we need to make variable names unique here or can we suppress the warning
         # TODO: with ``with_log_level(anndata.utils.logger, logging.WARN)``?
-        ad.obs["n_counts"] = ad.X.sum(1)
-        ad.obs["n_genes"] = (ad.X > 0).sum(1)
         for col in markers.columns:
             ad.uns["marker_" + col] = markers[col]
 
