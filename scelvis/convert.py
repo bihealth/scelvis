@@ -197,7 +197,7 @@ class CellRangerConverter:
         cols = "nUMI_" + species.unique()
         ratio = ad.obs[cols].divide(ad.obs[cols].sum(axis=1), axis=0)
         ad.obs["species"] = (ratio > 0.95).idxmax(axis=1).str.split("_").str[1]
-        ad.obs["species"][ratio.max(axis=1) < 0.95] = "other"
+        ad.obs["species"][ratio.max(axis=1) < 0.95] = "doublet"
         return ad
 
     def _normalize_filter_dge(ad):

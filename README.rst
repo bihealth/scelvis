@@ -55,6 +55,8 @@ explore a simulated dummy dataset or 1000 cells from a 1:1 Mixture of Fresh Froz
     $ scelvis run --data-source /path/to/scelvis/examples/dummy.h5ad
     $ scelvis run --data-source /path/to/scelvis/examples/hgmm_1k.h5ad
 
+and then point your browser to http://0.0.0.0:8050/.
+
 
 -------------------
 Preparing Your Data

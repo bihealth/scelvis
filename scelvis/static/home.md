@@ -2,8 +2,9 @@
 
 SCelVis is a web app for the visualization and interactive exploration of single-cell transcriptomic data.
 
-Select the dataset you want to work with from the `Go To` menu on the top right:
+**Start by selecting the dataset you want to work with from the `Go To` menu on the top right**:
 choose an existing dataset, or upload a new one.
+
 Conversion from raw text or `cellranger` output is also possible:
 upload a zip or tarball of the `outs` directory, containing at least the `filtered_feature_bc_matrix.h5` and the `analysis` subfolder.
 
