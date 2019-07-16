@@ -2,6 +2,12 @@
 History
 =======
 
+-----------------
+HEAD (unreleased)
+-----------------
+
+- Adding ``Dockerfile`` for building Docker images from intermediate versions.
+
 ------
 v0.4.0
 ------
