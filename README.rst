@@ -2,7 +2,6 @@
 SCelVis: Easy Single-Cell Visualization
 =======================================
 
-
 .. image:: https://img.shields.io/conda/dn/bioconda/scelvis.svg?label=Bioconda
     :target: https://bioconda.github.io/recipes/scelvis/README.html
 
@@ -76,49 +75,43 @@ for HDF5 input, you can do your analysis with `scanpy <http://scanpy.rtfd.io>`_ 
 Text Input
 ----------
 
-for "raw" text input, you need to prepare at least three files in the input directory:
+For "raw" text input, you need to prepare at least three files in the input directory:
 
-- ``expression.tsv.gz``, a tab-separated file with normalized expression values for each gene (rows) in each cell (columns), e.g., like this
+- ``expression.tsv.gz``, a tab-separated file with normalized expression values for each gene (rows) in each cell (columns), e.g., like this::
 
-  ::
-     .       cell_1   cell_2   cell_3  ...
-     gene_1  0.13     0.0      1.5     ...
-     gene_2  0.0      3.1      0.3     ...
-     gene_3  0.0      0.0      0.0     ...
+        .       cell_1   cell_2   cell_3  ...
+        gene_1  0.13     0.0      1.5     ...
+        gene_2  0.0      3.1      0.3     ...
+        gene_3  0.0      0.0      0.0     ...
 
-- ``annotation.tsv``, a tab-separated file with annotations for each cell, e.g., like this
+- ``annotation.tsv``, a tab-separated file with annotations for each cell, e.g., like this::
 
-  ::
-    .         cluster     genotype  ...
-    cell_1    cluster_1   WT        ...
-    cell_2    cluster_2   KO        ...
+        .         cluster     genotype  ...
+        cell_1    cluster_1   WT        ...
+        cell_2    cluster_2   KO        ...
 
 
-- ``coords.tsv``, a tab-separated file with embedding coordinates for each cell, e.g., like this
+- ``coords.tsv``, a tab-separated file with embedding coordinates for each cell, e.g., like this::
 
-  ::
+        .         tSNE_1   tSNE_2   UMAP_1  UMAP_2  ...
+        cell_1    20.53    -10.05   3.9     2.4     ...
+        cell_2    -5.34    13.94    -1.3    3.4     ...
 
-    .         tSNE_1   tSNE_2   UMAP_1  UMAP_2  ...
-    cell_1    20.53    -10.05   3.9     2.4     ...
-    cell_2    -5.34    13.94    -1.3    3.4     ...
+- ``markers.tsv``, an optional tab-separated file with marker genes and **it needs to have a column named ``gene``**, e.g., like this::
 
-- ``markers.tsv``, an optional tab-separated file with marker genes and **it needs to have a column named ``gene``**, e.g., like this
+        gene    cluster     log2FC   adj_pval   ...
+        gene_1  cluster_1   3.4      1.5e-6     ...
+        gene_2  cluster_1   1.3      0.00004    ...
+        gene_3  cluster_2   2.1      5.3e-9     ...
 
-  ::
-       gene    cluster     log2FC   adj_pval   ...
-       gene_1  cluster_1   3.4      1.5e-6     ...
-       gene_2  cluster_1   1.3      0.00004    ...
-       gene_3  cluster_2   2.1      5.3e-9     ...
+- a markdown file (e.g., ``text_input.md``) with information about this dataset::
 
-- a markdown file (e.g., ``text_input.md``) with information about this dataset
+        ----
+        title: An Optional Long Data Set Title
+        short_title: optional short title
+        ----
 
-  ::
-       ----
-       title: An Optional Long Data Set Title
-       short_title: optional short title
-       ----
-        
-       A verbose description of the data in Markdown format.
+        A verbose description of the data in Markdown format.
 
 .. code-block:: shell
 
@@ -148,8 +141,8 @@ In ``examples/hgmm_1k_raw.zip`` we provide ``CellRanger`` output for the 1k 1:1 
 
 - ``filtered_feature_bc_matrix.h5``
 - tSNE and PCA projections from ``analysis/tsne`` and ``analysis/pca``
-- clustering from ``analysis/clustering/graphclust`` and 
-- markers from ``analysis/diffexp/graphclust`` 
+- clustering from ``analysis/clustering/graphclust`` and
+- markers from ``analysis/diffexp/graphclust``
 
 ``examples/hgmm_1k_about.md`` contains information about this dataset
 
@@ -246,7 +239,7 @@ Afterwards, you can run the visualization web server as follows:
     $ scelvis run --data-source path/to/data/dir
 
 Releasing Packages
-==================
+------------------
 
 For the `PyPi package <https://pypi.org/project/scelvis/>`_:
 

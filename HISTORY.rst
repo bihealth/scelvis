@@ -2,9 +2,9 @@
 History
 =======
 
------------------
-HEAD (unreleased)
------------------
+------
+v0.4.0
+------
 
 - Adding support for HTTP(S) data sources.
 - Embedding ``about.md`` information in Anndata file.
