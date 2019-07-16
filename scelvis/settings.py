@@ -16,6 +16,9 @@ MAX_UPLOAD_TEXT_SIZE = 1_000_000
 
 # Currently configurable settings.
 
+#: The prefix that this app will be served with.  This has to be properly set into Flask and Dash.
+PUBLIC_URL_PREFIX = ""
+
 #: Whether or not to enable debugging
 DEBUG = False
 

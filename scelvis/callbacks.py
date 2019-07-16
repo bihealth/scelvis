@@ -45,7 +45,10 @@ def get_route(pathname):
     :kwargs: The arguments to render with.
     """
     pathname = pathname or "/dash/"
-    if pathname in ("/dash", "/dash/", "/dash/home"):
+    suffixes = ("dash", "dash/", "dash/home", "dash/home/")
+    prefixes = ("", settings.PUBLIC_URL_PREFIX + "/")
+    home_urls = ["%s%s" % (prefix, x) for prefix in prefixes for x in suffixes]
+    if pathname in home_urls:
         return "home", {}
     else:
         tokens = pathname.split("/")
@@ -370,6 +373,7 @@ def register_file_upload(app):
     logger.info("-> file_upload")
 
     # TODO: move main handler into "upload" module?
+    # TODO: upload still assumes about.md file; broken
     @app.callback(
         dash.dependencies.Output("url", "pathname"),
         [dash.dependencies.Input("file-upload", "contents")],

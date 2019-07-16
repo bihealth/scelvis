@@ -2,6 +2,7 @@
 """The Dash visualization app web server for visualizing the data."""
 
 import os
+import re
 import tempfile
 import urllib.parse
 
@@ -81,6 +82,7 @@ def run(args, parser):
 
     # Configure the Dash app through ``settings`` module (see module docstring for more info).
     logger.info("Configuring settings from arguments %s", args)
+    settings.PUBLIC_URL_PREFIX = re.sub(r"/+$", "", args.public_url_prefix or "")
     settings.FAKE_DATA = args.fake_data
     settings.DATA_SOURCES = data_sources
     settings.CACHE_DEFAULT_TIMEOUT = args.cache_default_timeout
@@ -144,6 +146,12 @@ def setup_argparse(parser):
         dest="upload_disabled",
         action="store_true",
         help="Whether or not to disable visualization uploads",
+    )
+
+    parser.add_argument(
+        "--public-url-prefix",
+        default=os.environ.get("SCELVIS_URL_PREFIX", ""),
+        help="The prefix that this app will be served under (e.g., if behind a reverse proxy.)",
     )
 
     parser.add_argument(

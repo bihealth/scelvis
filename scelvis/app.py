@@ -32,6 +32,8 @@ app_flask = flask.Flask(__name__)
 app_flask.config["UPLOAD_FOLDER"] = settings.TEMP_DIR
 # Setup maximal file upload size
 app_flask.config["MAX_CONTENT_LENGTH"] = settings.MAX_UPLOAD_SIZE
+# Setup URL prefix for Flask.
+app_flask.config["APPLICATION_ROOT"] = "%s/" % settings.PUBLIC_URL_PREFIX
 
 #: The Dash application to run.
 app = dash.Dash(
@@ -41,7 +43,8 @@ app = dash.Dash(
     # All files from "assets/" will be served as "/assets/*"
     assets_folder=ASSETS_FOLDER,
     # The visualization will be served below "/dash"
-    url_base_pathname="/dash/",
+    routes_pathname_prefix="/dash/",
+    requests_pathname_prefix="%s/dash/" % settings.PUBLIC_URL_PREFIX,
 )
 
 # Setup the cache.
@@ -86,7 +89,7 @@ callbacks.register_file_upload(app)
 # Add redirection for root.
 @app_flask.route("/")
 def redirect_root():
-    return flask.redirect("/dash/")
+    return flask.redirect("%s/dash/" % settings.PUBLIC_URL_PREFIX)
 
 
 # Mount conversion site.
@@ -157,7 +160,12 @@ def convert_route():
             <!doctype html>
             <title>Convert File</title>
             <h1>Upload ZIP or TAR.GZ of CellRanger Output</h1>
-            <a href="/dash/">Back to Visualisation</a>
+            <p>
+                The server will return a <tt>.h5a</tt> file that you can upload into the SCelVis visualization.
+            </p>
+            <p>
+                <a href="%(application_root)s/dash/">Back to Visualisation</a>
+            </p>
             <form method=post enctype=multipart/form-data>
             <label>Title</label> <input type=text name=title><br>
             <label>Short Title</label> <input type=text name=short_title><br>
@@ -166,4 +174,6 @@ def convert_route():
             <label>CellRanger Output</label> <input type=file name=file>
             <input type=submit value=Upload>
             </form>
-            """
+            """ % {
+            "application_root": settings.PUBLIC_URL_PREFIX
+        }

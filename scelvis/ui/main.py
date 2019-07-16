@@ -25,6 +25,8 @@ def render_home():
     """Return site content for the home screen."""
     with open(os.path.join(os.path.dirname(__file__), "..", "static", "home.md")) as inputf:
         home_md = inputf.read()
+        if settings.PUBLIC_URL_PREFIX:
+            home_md = home_md.replace("](assets", "](%s/dash/assets" % settings.PUBLIC_URL_PREFIX)
     return dbc.Row(dbc.Col(html.Div(dcc.Markdown(home_md), className="home-text")))
 
 
@@ -50,7 +52,7 @@ def render_upload():
                         ),
                         html.A(
                             children=[html.I(className="fas fa-redo mr-1"), "Convert Data"],
-                            href="/convert/",
+                            href="%s/convert/" % settings.PUBLIC_URL_PREFIX,
                         ),
                         ".",
                     ]
@@ -108,7 +110,7 @@ def render_navbar():
 def render_children_goto():
     """Render the "Go To" menu."""
     result = [
-        dbc.DropdownMenuItem("Home", href="/home"),
+        dbc.DropdownMenuItem("Home", href="/dash/home"),
         dbc.DropdownMenuItem(divider=True),
         dbc.DropdownMenuItem("Data Sets", header=True),
     ]
@@ -140,7 +142,7 @@ def render_children_goto():
             dbc.DropdownMenuItem(
                 html.Span(children=[html.I(className="fas fa-redo mr-1"), "Convert Data"]),
                 id="menu-item-convert",
-                href="/convert",
+                href="%s/convert/" % settings.PUBLIC_URL_PREFIX,
                 external_link=True,
             )
         )
