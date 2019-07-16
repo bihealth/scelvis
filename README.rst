@@ -16,7 +16,7 @@ SCelVis: Easy Single-Cell Visualization
     :target: https://www.codacy.com/app/bihealth/scelvis?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=bihealth/scelvis&amp;utm_campaign=Badge_Grade
 
 .. image:: https://api.codacy.com/project/badge/Coverage/9ee0ec1424c143dfad9977a649f917f7
-	:target: https://www.codacy.com/app/bihealth/scelvis?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=bihealth/scelvis&amp;utm_campaign=Badge_Coverage
+    :target: https://www.codacy.com/app/bihealth/scelvis?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=bihealth/scelvis&amp;utm_campaign=Badge_Coverage
 
 .. image:: https://travis-ci.org/bihealth/scelvis.svg?branch=master
     :target: https://travis-ci.org/bihealth/scelvis
@@ -203,6 +203,7 @@ You can use the following environment variables to configure the server.
 - ``SCELVIS_UPLOAD_DIR`` -- the directory to store uploaded data sets in (default is to create a temporary directory)
 - ``SCELVIS_UPLOAD_DISABLED`` -- set to "0" to disable upload feature
 - ``SCELVIS_CONVERSION_DISABLED`` -- set to "0" to disable the conversion feature
+- ``SCELVIS_URL_PREFIX`` -- set if you want to run scelvis below a non-root path (e.g., behind a reverse proxy)
 
 ---------------
 Developer Setup
