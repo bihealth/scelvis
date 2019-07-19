@@ -118,7 +118,7 @@ def render_children_goto():
     for meta in metas:
         result.append(
             dbc.DropdownMenuItem(
-                meta.short_title, id="menu-item-%s" % meta.id, href="/dash/viz/%s" % meta.id
+                meta.metadata.short_title, id="menu-item-%s" % meta.metadata.id, href="/dash/viz/%s" % meta.metadata.id
             )
         )
     if not metas:
