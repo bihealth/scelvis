@@ -6,6 +6,7 @@ History
 HEAD (unreleased)
 -----------------
 
+- Fixing bug with specifying single ``.h5ad`` file as data source.
 - Adding ``Dockerfile`` for building Docker images from intermediate versions.
 
 ------

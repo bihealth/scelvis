@@ -119,7 +119,7 @@ def load_all_metadata():
         if url.path.endswith(".h5ad"):
             logger.info("Loading single dataset from data source %s", data.redacted_urlunparse(url))
             identifier = fs.path.basename(url.path)[: -len(".h5ad")]
-            result.append(_load_data_cached(url, identifier))
+            result.append(_load_data_cached(url, identifier).metadata)
         else:
             lst = []
             for match in glob_data_sets(url):
