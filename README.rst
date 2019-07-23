@@ -20,6 +20,8 @@ SCelVis: Easy Single-Cell Visualization
 .. image:: https://travis-ci.org/bihealth/scelvis.svg?branch=master
     :target: https://travis-ci.org/bihealth/scelvis
 
+You can find the URL for the demo linked to on the top right of the Github repository page.
+
 ------------
 Installation
 ------------
