@@ -100,12 +100,10 @@ def render_controls_bars(data):
                         {
                             "label": "normalized",
                             "value": "normalized",
-                            "title": "plot fractions instead of cell numbers",
                         },
                         {
                             "label": "stacked",
                             "value": "stacked",
-                            "title": "stack bars instead of side-by-side",
                         },
                     ],
                     values=[],
@@ -167,6 +165,7 @@ def render(data):
 
 def render_plot_scatter(data, xc, yc, col, sample_size):
     """Render the scatter plot figure."""
+
     if xc is None or yc is None or col is None:
         return {}, "", True
 
@@ -256,7 +255,8 @@ def render_plot_scatter(data, xc, yc, col, sample_size):
 
 def render_plot_violin(data, variables, group, split, sample_size):
     """Render the violin plot figure."""
-    if variables is None or len(variables) == 0:
+
+    if variables is None or len(variables) == 0 or group is None:
         return {}, "", True
 
     if sample_size != "all":

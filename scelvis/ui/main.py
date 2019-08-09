@@ -174,7 +174,7 @@ def render_footer():
                         html.Div(
                             children=[
                                 html.Span(
-                                    "SVViz v%s by BIH CUBI" % __version__, className="text-muted"
+                                    "SCelVis v%s by BIH CUBI" % __version__, className="text-muted"
                                 )
                             ],
                             className="col-6",

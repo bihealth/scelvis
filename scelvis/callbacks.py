@@ -197,7 +197,6 @@ def register_update_cell_bar_chart_params(app):
                 {
                     "label": "normalized",
                     "value": "normalized",
-                    "title": "plot fractions instead of cell numbers",
                 }
             ]
         else:
@@ -205,12 +204,10 @@ def register_update_cell_bar_chart_params(app):
                 {
                     "label": "normalized",
                     "value": "normalized",
-                    "title": "plot fractions instead of cell numbers",
                 },
                 {
                     "label": "stacked",
                     "value": "stacked",
-                    "title": "stack bars instead of side-by-side",
                 },
             ]
 
