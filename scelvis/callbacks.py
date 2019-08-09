@@ -221,7 +221,7 @@ def register_update_cell_bar_chart_params(app):
             dash.dependencies.Input("url", "pathname"),
             dash.dependencies.Input("meta_bar_select_group", "value"),
             dash.dependencies.Input("meta_bar_select_split", "value"),
-            dash.dependencies.Input("meta_bar_options", "values"),
+            dash.dependencies.Input("meta_bar_options", "value"),
         ],
     )
     def get_meta_plot_bars(pathname, group, split, options):
@@ -268,7 +268,7 @@ def register_select_gene_marker_list(app):
         dash.dependencies.Output("expression_marker_list", "children"),
         [
             dash.dependencies.Input("url", "pathname"),
-            dash.dependencies.Input("expression_toggle_marker_list", "values"),
+            dash.dependencies.Input("expression_toggle_marker_list", "value"),
         ],
     )
     def toggle_marker_list(pathname, values):
@@ -284,7 +284,7 @@ def register_select_gene_marker_list(app):
         ],
         [
             dash.dependencies.State("marker_list", "selected_rows"),
-            dash.dependencies.State("expression_toggle_marker_list", "values"),
+            dash.dependencies.State("expression_toggle_marker_list", "value"),
         ],
     )
     def update_gene_selection(pathname, n_clicks, rows, values):

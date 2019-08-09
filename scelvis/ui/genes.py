@@ -9,7 +9,7 @@ import dash_table
 import numpy as np
 import pandas as pd
 import plotly.graph_objs as go
-import plotly.tools as tools
+import plotly.subplots as subplots
 
 from .. import settings
 from . import colors, common
@@ -138,7 +138,7 @@ def render_controls(data):
                             "disabled": (data.markers is None),
                         }
                     ],
-                    values=[],
+                    value=[],
                     className="mt-2",
                     inputClassName="mr-1",
                 ),
@@ -178,7 +178,7 @@ def render(data):
 
 
 def render_marker_list(data, values):
-    if "markers" in values:
+    if values is not None and "markers" in values:
         return [
             dbc.Row([dbc.Col(html.Hr())]),
             dbc.Row(
@@ -193,12 +193,11 @@ def render_marker_list(data, values):
                                 id="marker_list",
                                 columns=[{"name": i, "id": i} for i in data.markers.columns],
                                 data=data.markers.round(3).to_dict("rows"),
-                                n_fixed_rows=1,
+                                fixed_rows={"headers": True},
                                 style_as_list_view=True,
-                                sorting=True,
-                                sorting_type="single",
+                                sort_action="native",
+                                sort_mode="single",
                                 row_selectable="multi",
-                                pagination_mode=False,
                                 selected_rows=[],
                                 style_table={"maxHeight": 200, "overflowY": "scroll"},
                             )
@@ -210,7 +209,10 @@ def render_marker_list(data, values):
         ]
 
     else:
-        return [html.P()]
+        return [
+            dbc.Row([dbc.Col(html.P())]),
+            html.P()
+        ]
 
 
 def render_plot_scatter(data, xc, yc, genelist, sample_size):
@@ -235,7 +237,7 @@ def render_plot_scatter(data, xc, yc, genelist, sample_size):
         nrow = 1
         ncol = 1
 
-    fig = tools.make_subplots(
+    fig = subplots.make_subplots(
         rows=nrow,
         cols=ncol,
         specs=[[{} for c in range(ncol)] for r in range(nrow)],
@@ -313,7 +315,7 @@ def render_plot_violin(data, pathname, genelist, sample_size, group, split):
 
     ngenes = len(gl)
 
-    fig = tools.make_subplots(
+    fig = subplots.make_subplots(
         rows=ngenes, cols=1, specs=[[{}] for gene in gl], shared_xaxes=True, vertical_spacing=0.01
     )
     sg = 0

@@ -6,7 +6,7 @@ import dash_bootstrap_components as dbc
 import dash_core_components as dcc
 import dash_html_components as html
 import plotly.graph_objs as go
-import plotly.tools as tools
+import plotly.subplots as subplots
 
 from .. import settings
 from . import colors, common
@@ -106,7 +106,7 @@ def render_controls_bars(data):
                             "value": "stacked",
                         },
                     ],
-                    values=[],
+                    value=[],
                 ),
             ],
             title=(
@@ -274,7 +274,7 @@ def render_plot_violin(data, variables, group, split, sample_size):
 
     nvar = len(variables)
 
-    fig = tools.make_subplots(
+    fig = subplots.make_subplots(
         rows=nvar,
         cols=1,
         specs=[[{}] for var in variables],
@@ -350,6 +350,9 @@ def render_plot_bars(data, group, split, options):
 
     if group is None:
         return {}, "", True
+
+    if options is None:
+        options = []
 
     if split is None:
         groupvals = data.meta[group].unique()
