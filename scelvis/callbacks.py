@@ -370,7 +370,6 @@ def register_file_upload(app):
     logger.info("-> file_upload")
 
     # TODO: move main handler into "upload" module?
-    # TODO: upload still assumes about.md file; broken
     @app.callback(
         dash.dependencies.Output("url", "pathname"),
         [dash.dependencies.Input("file-upload", "contents")],
@@ -382,48 +381,30 @@ def register_file_upload(app):
         _content_type, content_string = contents.split(",")
         data_uuid = str(uuid.uuid4())
         logger.info("Data will have UUID %s", data_uuid)
-        with tempfile.TemporaryDirectory() as tmpdir:
-            logger.info("Using temporary directory %s", tmpdir)
-            # Create UUID directory to be moved later.
-            uuid_path = os.path.join(tmpdir, data_uuid)
-            os.makedirs(uuid_path)
-            # Decode base64 string and write out to temporary file.
-            filepath = os.path.join(tmpdir, filename)
-            with open(filepath, "wb") as tmpf:
-                tmpf.write(base64.b64decode(content_string))
-            # Try to open archive with PyFilesystem2
-            if filename.endswith(".zip"):
-                protocol = "zip"
-            elif filename.endswith(".tar") or filename.endswith(".tar.gz"):
-                protocol = "tar"
-            else:
-                raise ScelVisException(
-                    "Does not have one of the valid extensions .zip, .tar, or .tar.gz: %s"
-                    % filename
-                )
-            # Extract the files (up to a maximal size) from archive.
-            with fs.open_fs("%s://%s" % (protocol, filepath)) as archive_fs:
-                for path in archive_fs.walk(filter=["about.md"]):
-                    if path.files:
-                        base_path = path.path
-                        break
-                else:
-                    raise ScelVisException("Could not find about.md in %s" % filename)
-                # Extract about.md and data.h5ad.
-                for fname, max_size in (
-                    ("about.md", settings.MAX_UPLOAD_TEXT_SIZE),
-                    ("data.h5ad", settings.MAX_UPLOAD_DATA_SIZE),
-                ):
-                    path_inf = os.path.join(base_path, fname)
-                    path_outf = os.path.join(uuid_path, fname)
-                    logger.info(
-                        "Extracting %s from %s://%s to %s", path_inf, protocol, filepath, path_outf
-                    )
-                    with archive_fs.open(path_inf, "rb") as inf:
-                        with open(path_outf, "wb") as outf:
-                            shutil.copyfileobj(inf, outf, length=max_size)
-            # Move into upload directory.
-            dest_path = os.path.join(settings.UPLOAD_DIR, data_uuid)
-            shutil.move(uuid_path, dest_path)
-            # Redirect to view the data set.
-            return "/dash/viz/%s" % data_uuid
+        tmpdir = settings.TEMP_DIR
+        logger.info("Using temporary directory %s", tmpdir)
+        # Create UUID directory to be moved later.
+        uuid_path = os.path.join(tmpdir, data_uuid)
+        os.makedirs(uuid_path)
+        # Decode base64 string and write out to temporary file.
+        filepath = os.path.join(tmpdir, filename)
+        with open(filepath, "wb") as tmpf:
+            tmpf.write(base64.b64decode(content_string))
+        # Try to open archive with PyFilesystem2
+        protocol = 'osfs'
+        # Extract the files (up to a maximal size) from archive.
+        with fs.open_fs("%s://%s" % (protocol, tmpdir)) as input_fs:
+            # Extract about.md and data.h5ad.
+            path_inf = filename
+            path_outf = os.path.join(uuid_path, filename)
+            logger.info(
+                "Extracting %s from %s://%s to %s", path_inf, protocol, filepath, path_outf
+            )
+            with input_fs.open(path_inf, "rb") as inf:
+                with open(path_outf, "wb") as outf:
+                    shutil.copyfileobj(inf, outf, length=settings.MAX_UPLOAD_DATA_SIZE)
+        # Move into upload directory.
+        dest_path = os.path.join(settings.UPLOAD_DIR, data_uuid)
+        shutil.move(uuid_path, dest_path)
+        # Redirect to view the data set.
+        return "/dash/viz/%s" % data_uuid

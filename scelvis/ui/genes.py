@@ -14,7 +14,6 @@ import plotly.subplots as subplots
 from .. import settings
 from . import colors, common
 
-
 def render_controls_scatter(data):
     """Render "top left" controls for the scatter plot for the given ``data``."""
     return [
@@ -243,8 +242,8 @@ def render_plot_scatter(data, xc, yc, genelist, sample_size):
         specs=[[{} for c in range(ncol)] for r in range(nrow)],
         shared_xaxes=True,
         shared_yaxes=True,
-        vertical_spacing=0.01,
-        horizontal_spacing=0.01,
+        vertical_spacing=0.05,
+        horizontal_spacing=0.05,
         subplot_titles=gl,
     )
 
@@ -270,13 +269,17 @@ def render_plot_scatter(data, xc, yc, genelist, sample_size):
         nc = ng % ncol + 1
         nr = ng // ncol + 1
         fig.append_trace(trace, nr, nc)
+        if nc==1:
+            fig['layout']['yaxis'+(str(ng+1) if ng > 0 else '')].update(title=yc)
+        if nr==nrow:
+            fig['layout']['xaxis'+(str(ng+1) if ng > 0 else '')].update(title=xc)
 
     # fix axes labels and scales
-    for k in dir(fig["layout"]):
-        if k.startswith("yaxis"):
-            fig["layout"][k].update(title=yc)
-        elif k.startswith("xaxis"):
-            fig["layout"][k].update(title=xc)
+    #for k in dir(fig["layout"]):
+    #    if k.startswith("yaxis"):
+    #        fig["layout"][k].update(title=yc)
+    #    elif k.startswith("xaxis"):
+    #        fig["layout"][k].update(title=xc)
 
     fig["layout"].update(
         margin={"l": 40, "b": 40, "t": 40, "r": 40},
@@ -420,12 +423,11 @@ def render_plot_dot(data, pathname, genelist, group, split):
         # extra invisible traces for legend
         traces += [
             go.Scatter(
-                x=[0],
-                y=[0],
+                x=[None],
+                y=[None],
                 mode="markers",
                 marker={"size": 20 * s, "color": "black"},
                 name=p,
-                visible="legendonly",
                 legendgroup="size",
                 showlegend=True,
             )
@@ -433,12 +435,11 @@ def render_plot_dot(data, pathname, genelist, group, split):
         ]
         traces += [
             go.Scatter(
-                x=[0],
-                y=[0],
+                x=[None],
+                y=[None],
                 mode="markers",
                 marker={"size": 20, "color": colors.my_gradients[0][c][1], "symbol": "square"},
                 name=p,
-                visible="legendonly",
                 legendgroup="color",
                 showlegend=True,
             )
@@ -503,7 +504,6 @@ def render_plot_dot(data, pathname, genelist, group, split):
                 mode="markers",
                 marker={"size": 20 * s, "color": "black"},
                 name=p,
-                visible="legendonly",
                 legendgroup="size",
                 showlegend=True,
             )
@@ -516,7 +516,6 @@ def render_plot_dot(data, pathname, genelist, group, split):
                 mode="markers",
                 marker={"size": 20, "symbol": "square", "color": colors.my_gradients[-1][c][1]},
                 name=p,
-                visible="legendonly",
                 legendgroup="color",
                 showlegend=True,
             )
@@ -529,7 +528,6 @@ def render_plot_dot(data, pathname, genelist, group, split):
                 mode="markers",
                 marker={"size": 20, "symbol": "square", "color": colors.my_gradients[n][1][1]},
                 name=sv,
-                visible="legendonly",
                 legendgroup="split",
                 showlegend=True,
             )

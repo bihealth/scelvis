@@ -28,7 +28,7 @@ def render_plot(data_type, plot_type):
                     target="_blank",
                 ),
             ],
-            plot_type == "scatter",
+            plot_type!='scatter',
         )
 
 
