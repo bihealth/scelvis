@@ -381,30 +381,10 @@ def register_file_upload(app):
         _content_type, content_string = contents.split(",")
         data_uuid = str(uuid.uuid4())
         logger.info("Data will have UUID %s", data_uuid)
-        tmpdir = settings.TEMP_DIR
-        logger.info("Using temporary directory %s", tmpdir)
-        # Create UUID directory to be moved later.
-        uuid_path = os.path.join(tmpdir, data_uuid)
-        os.makedirs(uuid_path)
-        # Decode base64 string and write out to temporary file.
-        filepath = os.path.join(tmpdir, filename)
+        # Decode base64 string and write out to final file.
+        filepath = os.path.join(settings.UPLOAD_DIR, "%s.h5ad" % data_uuid)
+        logger.info("Writing to %s", filepath)
         with open(filepath, "wb") as tmpf:
             tmpf.write(base64.b64decode(content_string))
-        # Try to open archive with PyFilesystem2
-        protocol = 'osfs'
-        # Extract the files (up to a maximal size) from archive.
-        with fs.open_fs("%s://%s" % (protocol, tmpdir)) as input_fs:
-            # Extract about.md and data.h5ad.
-            path_inf = filename
-            path_outf = os.path.join(uuid_path, filename)
-            logger.info(
-                "Extracting %s from %s://%s to %s", path_inf, protocol, filepath, path_outf
-            )
-            with input_fs.open(path_inf, "rb") as inf:
-                with open(path_outf, "wb") as outf:
-                    shutil.copyfileobj(inf, outf, length=settings.MAX_UPLOAD_DATA_SIZE)
-        # Move into upload directory.
-        dest_path = os.path.join(settings.UPLOAD_DIR, data_uuid)
-        shutil.move(uuid_path, dest_path)
         # Redirect to view the data set.
         return "/dash/viz/%s" % data_uuid

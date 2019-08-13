@@ -13,6 +13,7 @@ import urllib.parse
 from urllib.parse import urlunparse
 
 import fs.path
+from fs.errors import ResourceInvalid
 import s3fs
 from irods.exception import CAT_SQL_ERR, DoesNotExist
 import htmllistparse
@@ -34,8 +35,14 @@ def does_exist(url, path, *more_components):
         redacted_urlunparse(url),
     )
     if url.scheme in data.PYFS_SCHEMES:
-        curr_fs = data.make_fs(url)
-        result = curr_fs.exists(fs.path.join(path, *more_components))
+        path_full = fs.path.join(url.path, path, *more_components)
+        path_dir = fs.path.dirname(path_full)
+        path_basename = fs.path.basename(path_full)
+        try:
+            curr_fs = data.make_fs(url._replace(path=path_dir))
+        except ResourceInvalid:
+            return False
+        result = curr_fs.exists(path_basename)
         return result
     elif url.scheme == "s3":
         anon = url.username is None and url.password is None
