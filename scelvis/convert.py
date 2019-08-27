@@ -1,6 +1,4 @@
 """Conversion from single-cell pipeline output to SCelVis HDF5 files.
-
-Currently, only conversion from the Cell-Ranger is supported.
 """
 
 import contextlib

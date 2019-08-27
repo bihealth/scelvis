@@ -23,13 +23,13 @@ def render_controls_scatter(data):
                 dcc.Dropdown(
                     id="expression_scatter_select_x",
                     options=[{"label": c, "value": c} for c in data.numerical_meta],
-                    value=data.meta.columns[0],
+                    value=data.numerical_meta[0],
                 ),
                 html.Label("select y axis"),
                 dcc.Dropdown(
                     id="expression_scatter_select_y",
                     options=[{"label": c, "value": c} for c in data.numerical_meta],
-                    value=data.meta.columns[1],
+                    value=data.numerical_meta[1],
                 ),
             ],
             title="""select x- and y-coordinates of embedding (e.g., TSNE or UMAP)""",
@@ -77,7 +77,7 @@ def render_controls_dot(data):
                 options=[
                     {"label": c, "value": c}
                     for c in data.categorical_meta
-                    if len(data.meta[c].unique()) < 4
+                    if len(data.ad.obs[c].unique()) < 4
                 ],
                 value=None,
             ),
@@ -216,17 +216,15 @@ def render_marker_list(data, values):
 
 def render_plot_scatter(data, xc, yc, genelist, sample_size):
 
-    gl = [g for g in genelist if g in data.DGE.index]
+    gl = [g for g in genelist if g in data.ad.var_names]
 
     if gl is None or len(gl) == 0 or xc is None or yc is None:
         return {}, "", True
 
     if sample_size != "all":
-        DGE_here = data.DGE.sample(n=sample_size, axis=1)
-        meta_here = data.meta.loc[DGE_here.columns]
+        ad_here = data.ad[np.random.choice(data.ad.obs_names,sample_size,replace=False),:]
     else:
-        DGE_here = data.DGE
-        meta_here = data.meta
+        ad_here = data.ad
 
     ngenes = len(gl)
     if ngenes > 1:
@@ -248,18 +246,18 @@ def render_plot_scatter(data, xc, yc, genelist, sample_size):
     )
 
     # rescale all expression values to the same min and max
-    maxval = max(1, DGE_here.loc[gl].max().max())
+    maxval = max(1, ad_here[:,gl].X.max().max())
 
     for ng, gene in enumerate(gl):
         # for numerical data, plot scatter all at once
         trace = go.Scatter(
-            x=meta_here[xc],
-            y=meta_here[yc],
-            text=data.cells,
+            x=ad_here.obs[xc],
+            y=ad_here.obs[yc],
+            text=ad_here.obs_names,
             mode="markers",
             marker={
                 "size": 3,
-                "color": maxval * DGE_here.loc[gene] / max(1, DGE_here.loc[gene].max()),
+                "color": maxval * ad_here[:,gene].X / max(1, ad_here[:,gene].X.max()),
                 "colorscale": "Viridis",
                 "colorbar": {"title": "expression", "titleside": "right"},
                 "showscale": (ng == 0),
@@ -288,7 +286,7 @@ def render_plot_scatter(data, xc, yc, genelist, sample_size):
         height=settings.PLOT_HEIGHT,
     )
 
-    plot_data = data.DGE.loc[gl].T.to_csv(index=True, header=True, encoding="utf-8")
+    plot_data = data.ad[:,gl].to_df().to_csv(index=True, header=True, encoding="utf-8")
     csv_string = "data:text/csv;charset=utf-8," + urllib.parse.quote(plot_data)
 
     return fig, csv_string, False
@@ -296,24 +294,22 @@ def render_plot_scatter(data, xc, yc, genelist, sample_size):
 
 def render_plot_violin(data, pathname, genelist, sample_size, group, split):
 
-    gl = [g for g in genelist if g in data.DGE.index]
+    gl = [g for g in genelist if g in data.ad.var_names]
 
     if gl is None or len(gl) == 0 or group is None:
         return {}, "", True
 
     if sample_size != "all":
-        DGE_here = data.DGE.sample(n=sample_size, axis=1)
-        meta_here = data.meta.loc[DGE_here.columns]
+        ad_here = data.ad[np.random.choice(data.ad.obs_names,sample_size,replace=False),:]
     else:
-        DGE_here = data.DGE
-        meta_here = data.meta
+        ad_here = data.ad
 
     # select color palette
     if split is None:
-        groupvals = meta_here[group].cat.categories
+        groupvals = ad_here.obs[group].cat.categories
         cm = colors.get_cm(groupvals)
     else:
-        splitvals = meta_here[split].cat.categories
+        splitvals = ad_here.obs[split].cat.categories
         cm = colors.get_cm(splitvals)
 
     ngenes = len(gl)
@@ -326,7 +322,7 @@ def render_plot_violin(data, pathname, genelist, sample_size, group, split):
 
         if split is None:
             for n, cv in enumerate(groupvals):
-                y = DGE_here.loc[gene, meta_here[group] == cv]
+                y = ad_here[ad_here.obs[group] == cv,:][:,gene].X
                 tr = go.Violin(
                     y=y,
                     name=cv,
@@ -340,12 +336,12 @@ def render_plot_violin(data, pathname, genelist, sample_size, group, split):
                 )
                 fig.append_trace(tr, ngenes - ng, 1)
                 sg += 1
-            plot_data = data.DGE.loc[gl].T.join(data.meta[group])
+            plot_data = data.ad[:,gl].to_df().join(data.ad.obs[group])
         else:
             for n, sv in enumerate(splitvals):
-                y = DGE_here.loc[gene, meta_here[split] == sv]
+                y = ad_here[ad_here.obs[split] == sv,:][:,gene].X
                 tr = go.Violin(
-                    x=meta_here[meta_here[split] == sv][group],
+                    x=ad_here[ad_here.obs[split] == sv].obs[group],
                     y=y,
                     name=sv,
                     offsetgroup=n,
@@ -359,7 +355,7 @@ def render_plot_violin(data, pathname, genelist, sample_size, group, split):
                 )
                 fig.append_trace(tr, ngenes - ng, 1)
                 sg += 1
-            plot_data = data.DGE.loc[gl].T.join(data.meta[[group, split]])
+            plot_data = data.ad[:,gl].to_df().join(data.ad.obs[[group, split]])
 
     for ng, gene in enumerate(gl):
         if ngenes - ng == 1:
@@ -367,8 +363,10 @@ def render_plot_violin(data, pathname, genelist, sample_size, group, split):
         else:
             fig["layout"]["yaxis" + str(ngenes - ng)].update(title=gene)
 
+    fig['layout']['xaxis'+(str(ngenes) if ngenes > 1 else '')].update(title=group)
+
     fig["layout"].update(
-        xaxis={"title": group, "tickangle": -45},
+        xaxis={"tickangle": -45},
         margin={"l": 50, "b": 80, "t": 10, "r": 10},
         legend={"x": 1.05, "y": 1},
         hovermode="closest",
@@ -387,12 +385,12 @@ def render_plot_violin(data, pathname, genelist, sample_size, group, split):
 
 def render_plot_dot(data, pathname, genelist, group, split):
 
-    gl = [g for g in genelist if g in data.DGE.index]
+    gl = [g for g in genelist if g in data.ad.var_names]
 
     if gl is None or len(gl) == 0 or group is None:
         return {}, "", True
 
-    groupvals = data.meta[group].cat.categories
+    groupvals = data.ad.obs[group].cat.categories
     ngroup = len(groupvals)
     ngenes = len(gl)
 
@@ -401,7 +399,7 @@ def render_plot_dot(data, pathname, genelist, group, split):
 
     if split is None:
         plot_data = (
-            data.DGE.loc[gl].T.join(data.meta[group]).groupby(group).apply(my_agg).unstack(level=1)
+            data.ad[:,gl].to_df().join(data.ad.obs[group]).groupby(group).apply(my_agg).unstack(level=1)
         )
         means = plot_data.xs("expression", axis=1, level=1).values
         sizes = plot_data.xs("pct_cells", axis=1, level=1).values
@@ -453,7 +451,7 @@ def render_plot_dot(data, pathname, genelist, group, split):
                 tickvals=np.arange(ngenes),
                 ticktext=gl,
                 tickangle=-90,
-            ),
+           ),
             yaxis=go.layout.YAxis(
                 showgrid=False,
                 zeroline=False,
@@ -468,15 +466,19 @@ def render_plot_dot(data, pathname, genelist, group, split):
         )
 
     else:
-        splitvals = data.meta[split].cat.categories
+        splitvals = data.ad.obs[split].cat.categories
         nsplit = len(splitvals)
         traces = []
+        # fix bug in pandas groupby when having more than one grouping variable
+        ii=pd.MultiIndex.from_arrays(pd.core.reshape.util.cartesian_product([groupvals,splitvals]))
         plot_data = (
-            data.DGE.loc[gl]
-            .T.join(data.meta[[group, split]])
+            data.ad[:,gl].to_df()
+            .join(data.ad.obs[[group, split]])
             .groupby([group, split])
             .apply(my_agg)
             .unstack(level=2)
+            .reindex(ii)
+            .fillna(0)
         )
         for n, sv in enumerate(splitvals):
             means = plot_data.xs("expression", axis=1, level=1).xs(sv, axis=0, level=1).values

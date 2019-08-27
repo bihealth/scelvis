@@ -33,7 +33,8 @@ def render_plot(data_type, plot_type):
 
 
 def render_subsampling_dropdown(data, token):
-    sample_choices = [{"label": g, "value": g} for g in [1000, 5000] if g < data.meta.shape[0]] + [
+    
+    sample_choices = [{"label": g, "value": g} for g in [1000, 5000] if g < data.ad.obs.shape[0]] + [
         {"label": "all", "value": "all"}
     ]
     return html.Div(

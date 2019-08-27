@@ -141,14 +141,8 @@ class Data:
     #: String with Markdown-formatted "about" text.
     metadata: MetaData
 
-    # The raw ad file content. (not necessary)
-    # ad: anndata.AnnData
-    # The coordinates. (not necessary)
-    # coords: typing.Dict
-    # The meta information.
-    meta: pd.DataFrame
-    #: The DGE data
-    DGE: pd.DataFrame
+    # The raw ad file content.
+    ad: anndata.AnnData
     #: The genes data
     genes: pd.Index
     #: The cells data
@@ -264,23 +258,20 @@ def load_data(data_source, identifier):
             coords[k] = pd.DataFrame(
                 ad.obsm[k],
                 index=ad.obs.index,
-                columns=[k[2:].upper() + str(n + 1) for n in range(ad.obsm[k].shape[1])],
+                columns=[k[2:].upper() + str(n + 1) for n in range(min(ad.obsm[k].shape[1],3))],
             )
         if len(coords) > 0:
-            meta = pd.concat(coords.values(), axis=1).join(ad.obs)
-        else:
-            meta = ad.obs
-        DGE = ad.to_df().T
+            ad.obs = pd.concat(coords.values(), axis=1).join(ad.obs)
         # Separate numerical and categorical columns for later.
         numerical_meta = []
         categorical_meta = []
-        for col in meta.columns:
-            if pd.api.types.is_numeric_dtype(meta[col]):
+        for col in ad.obs_keys():
+            if pd.api.types.is_numeric_dtype(ad.obs[col]):
                 numerical_meta.append(col)
             else:
                 categorical_meta.append(col)
-        genes = DGE.index
-        cells = DGE.columns
+        genes = ad.var_names
+        cells = ad.obs_names
         markers = {}
         for c in ad.uns_keys():
             if c.startswith("marker"):
@@ -296,8 +287,7 @@ def load_data(data_source, identifier):
 
     return Data(
         metadata=metadata,
-        meta=meta,
-        DGE=DGE,
+        ad=ad,
         genes=genes,
         cells=cells,
         markers=markers,
@@ -314,21 +304,24 @@ def fake_data(seed=42):
     ncells = 50
     genes = ["gene_{0}".format(i + 1) for i in range(ngenes)]
     cells = ["cell_{0}".format(i + 1) for i in range(ncells)]
-    DGE = pd.DataFrame(
-        np.random.negative_binomial(1, 0.5, size=(ngenes, ncells)), index=genes, columns=cells
-    )
-    meta = pd.DataFrame(
+    dge = np.random.negative_binomial(1, 0.5, size=(ncells, ngenes))
+    meta=pd.DataFrame(
         {
-            "TSNE1": np.random.random(size=ncells),
-            "TSNE2": np.random.random(size=ncells),
-            "cluster": ["cluster_{0}".format("ABCD"[i]) for i in np.random.randint(4, size=ncells)],
-            "sample": ["sample_{0}".format("ABC"[i]) for i in np.random.randint(3, size=ncells)],
-            "n_genes": (DGE > 0).sum(axis=0),
-            "n_counts": DGE.sum(axis=0),
+            "TSNE_1" : np.random.random(size=ncells),
+            "TSNE_2" : np.random.random(size=ncells),
+            "cluster": pd.Categorical(["cluster_{0}".format("ABCD"[i]) for i in np.random.randint(4, size=ncells)]),
+            "sample": pd.Categorical(["sample_{0}".format("ABC"[i]) for i in np.random.randint(3, size=ncells)]),
+            "n_genes": (dge > 0).sum(axis=1),
+            "n_counts": dge.sum(axis=1),
         },
         index=cells,
     )
-    numerical_meta = ["TSNE1", "TSNE2", "n_genes", "n_counts"]
+    ad = anndata.AnnData(dge,
+                         obs=meta,
+                         var=pd.DataFrame([],
+                                          index=genes),
+    )
+    numerical_meta = ["TSNE_1","TSNE_2","n_genes", "n_counts"]
     categorical_meta = ["cluster", "sample"]
     markers = pd.DataFrame(
         {
@@ -342,8 +335,7 @@ def fake_data(seed=42):
         metadata=MetaData(
             id=FAKE_DATA_ID, title="fake data", short_title="fake", readme="fake data"
         ),
-        meta=meta,
-        DGE=DGE,
+        ad=ad,
         genes=genes,
         cells=cells,
         markers=markers,
