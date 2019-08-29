@@ -451,7 +451,7 @@ def render_plot_dot(data, pathname, genelist, group, split):
                 tickvals=np.arange(ngenes),
                 ticktext=gl,
                 tickangle=-90,
-           ),
+            ),
             yaxis=go.layout.YAxis(
                 showgrid=False,
                 zeroline=False,

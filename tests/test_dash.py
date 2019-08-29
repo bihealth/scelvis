@@ -1,11 +1,9 @@
 """Tests for the Dash application."""
 
+import dash
 import pytest
-from pytest_dash import wait_for
-from pytest_dash.application_runners import import_app
-
+import sys
 from scelvis import settings
-
 
 @pytest.yield_fixture(scope="function")
 def scelvis_settings(tmpdir):
@@ -36,88 +34,89 @@ def scelvis_settings(tmpdir):
     settings.FAKE_DATA = old_fakedata
 
 
-def test_render_upload(dash_threaded, scelvis_settings):
-    driver = dash_threaded.driver
-    dash_threaded(import_app("scelvis.app"))
+def test_render_upload(dash_duo, scelvis_settings):
+
+    app = dash.testing.application_runners.import_app("scelvis.app")
+    dash_duo.start_server(app)
+
 
     # Click "Go To" menu.
-    item_goto = wait_for.wait_for_element_by_css_selector(driver, "#page-goto")
+    item_goto = dash_duo.wait_for_element_by_css_selector("#page-goto")
     item_goto.click()
     # Click contained "Upload" item.
-    item_upload = wait_for.wait_for_element_by_css_selector(driver, "#menu-item-upload")
+    item_upload = dash_duo.wait_for_element_by_css_selector("#menu-item-upload")
     item_upload.click()
     # Make sure that the site navigates to the "upload data" page.
-    wait_for.wait_for_text_to_equal(driver, "#page-brand", "Upload Data")
+    dash_duo.wait_for_text_to_equal("#page-brand", "Upload Data")
     # TODO: actually test the upload page
 
 
-def test_nagivate_to_data(dash_threaded, scelvis_settings):
-    driver = dash_threaded.driver
-    dash_threaded(import_app("scelvis.app"))
+def test_nagivate_to_data(dash_duo, scelvis_settings):
+
+    app = dash.testing.application_runners.import_app("scelvis.app")
+    dash_duo.start_server(app)
 
     # Click "Go To" menu.
-    item_goto = wait_for.wait_for_element_by_css_selector(driver, "#page-goto")
+    item_goto = dash_duo.wait_for_element_by_css_selector("#page-goto")
     item_goto.click()
     # Click contained "fake data" item.
-    item_upload = wait_for.wait_for_element_by_css_selector(driver, "#menu-item-builtin-fake-data")
+    item_upload = dash_duo.wait_for_element_by_css_selector("#menu-item-builtin-fake-data")
     item_upload.click()
     # Make sure that the site navigates to the "fake data" page.
-    wait_for.wait_for_text_to_equal(driver, "#page-brand", "fake data")
+    dash_duo.wait_for_text_to_equal("#page-brand", "fake data")
 
 
-def test_render_cell_annotation(dash_threaded, scelvis_settings):
+def test_render_cell_annotation(dash_duo, scelvis_settings):
     """Click through the cell annotation"""
-    driver = dash_threaded.driver
-    dash_threaded(import_app("scelvis.app"))
+
+    app = dash.testing.application_runners.import_app("scelvis.app")
+    dash_duo.start_server(app)
 
     # Click "Go To" menu.
-    item_goto = wait_for.wait_for_element_by_css_selector(driver, "#page-goto")
+    item_goto = dash_duo.wait_for_element_by_css_selector("#page-goto")
     item_goto.click()
 
     # Click contained "fake data" item.
-    item_upload = wait_for.wait_for_element_by_css_selector(driver, "#menu-item-builtin-fake-data")
+    item_upload = dash_duo.wait_for_element_by_css_selector("#menu-item-builtin-fake-data")
     item_upload.click()
 
     # Make sure that the site navigates to the "fake data" page.
-    wait_for.wait_for_text_to_equal(driver, "#page-brand", "fake data")
+    dash_duo.wait_for_text_to_equal("#page-brand", "fake data")
 
     # Click through the different plot types.
-    item = wait_for.wait_for_element_by_xpath(driver, "//label[contains(text(), 'scatter plot')]")
+    item = dash_duo.wait_for_element_by_css_selector("#meta_plot_type.label:contains('scatter plot')")
     item.click()
-    item = wait_for.wait_for_element_by_xpath(driver, "//label[contains(text(), 'violin plot')]")
+    item = dash_duo.wait_for_element_by_css_selector("#meta_plot_type.label:contains('violin plot')")
     item.click()
-    item = wait_for.wait_for_element_by_xpath(driver, "//label[contains(text(), 'bar plot')]")
+    item = dash_duo.wait_for_element_by_css_selector("#meta_plot_type.label:contains('bar plot')")
     item.click()
 
 
-def test_render_gene_annotation(dash_threaded, scelvis_settings):
+def test_render_gene_annotation(dash_duo, scelvis_settings):
     """Click through the cell annotation"""
-    driver = dash_threaded.driver
-    dash_threaded(import_app("scelvis.app"))
+
+    app = dash.testing.application_runners.import_app("scelvis.app")
+    dash_duo.start_server(app)
 
     # Click "Go To" menu.
-    item_goto = wait_for.wait_for_element_by_css_selector(driver, "#page-goto")
+    item_goto = dash_duo.wait_for_element_by_css_selector("#page-goto")
     item_goto.click()
 
     # Click contained "fake data" item.
-    item_upload = wait_for.wait_for_element_by_css_selector(driver, "#menu-item-builtin-fake-data")
+    item_upload = dash_duo.wait_for_element_by_css_selector("#menu-item-builtin-fake-data")
     item_upload.click()
 
     # Make sure that the site navigates to the "fake data" page.
-    wait_for.wait_for_text_to_equal(driver, "#page-brand", "fake data")
+    dash_duo.wait_for_text_to_equal("#page-brand", "fake data")
 
     # Navigate to gene expression.
-    tab = wait_for.wait_for_element_by_xpath(driver, "//a[contains(text(), 'Gene Expression')]")
+    tab = dash_duo.wait_for_element_by_css_selector("#li.nav-item:contains('Gene Expression')")
     tab.click()
 
     # Click through the different plot types.
-    item = wait_for.wait_for_element_by_xpath(
-        driver, "(//label[contains(text(), 'scatter plot')])[2]"
-    )
+    item = dash_duo.wait_for_element_by_css_selector("#expression_plot_type.label:contains('scatter plot')")
     item.click()
-    item = wait_for.wait_for_element_by_xpath(
-        driver, "(//label[contains(text(), 'violin plot')])[2]"
-    )
+    item = dash_duo.wait_for_element_by_css_selector("#expression_plot_type.label:contains('violin plot')")
     item.click()
-    item = wait_for.wait_for_element_by_xpath(driver, "//label[contains(text(), 'dot plot')]")
+    item = dash_duo.wait_for_element_by_css_selector("#expression_plot_type.label:contains('dot plot')")
     item.click()
