@@ -73,22 +73,24 @@ def test_render_cell_annotation(dash_duo, scelvis_settings):
     dash_duo.start_server(app)
 
     # Click "Go To" menu.
-    item_goto = dash_duo.wait_for_element_by_css_selector("#page-goto")
-    item_goto.click()
+    item = dash_duo.wait_for_element_by_css_selector("#page-goto")
+    item.click()
 
     # Click contained "fake data" item.
-    item_upload = dash_duo.wait_for_element_by_css_selector("#menu-item-builtin-fake-data")
-    item_upload.click()
+    item = dash_duo.wait_for_element_by_css_selector("#menu-item-builtin-fake-data")
+    item.click()
 
     # Make sure that the site navigates to the "fake data" page.
     dash_duo.wait_for_text_to_equal("#page-brand", "fake data")
 
     # Click through the different plot types.
-    item = dash_duo.wait_for_element_by_css_selector("#meta_plot_type.label:contains('scatter plot')")
+    item = dash_duo.wait_for_element_by_css_selector("#meta_plot_type *:nth-child(1)")
     item.click()
-    item = dash_duo.wait_for_element_by_css_selector("#meta_plot_type.label:contains('violin plot')")
+    
+    item = dash_duo.wait_for_element_by_css_selector("#meta_plot_type *:nth-child(2)")
     item.click()
-    item = dash_duo.wait_for_element_by_css_selector("#meta_plot_type.label:contains('bar plot')")
+    
+    item = dash_duo.wait_for_element_by_css_selector("#meta_plot_type *:nth-child(3)")
     item.click()
 
 
@@ -103,20 +105,26 @@ def test_render_gene_annotation(dash_duo, scelvis_settings):
     item_goto.click()
 
     # Click contained "fake data" item.
-    item_upload = dash_duo.wait_for_element_by_css_selector("#menu-item-builtin-fake-data")
-    item_upload.click()
+    item = dash_duo.wait_for_element_by_css_selector("#menu-item-builtin-fake-data")
+    item.click()
 
     # Make sure that the site navigates to the "fake data" page.
     dash_duo.wait_for_text_to_equal("#page-brand", "fake data")
 
     # Navigate to gene expression.
-    tab = dash_duo.wait_for_element_by_css_selector("#li.nav-item:contains('Gene Expression')")
+    tab = dash_duo.wait_for_element_by_css_selector(".nav-tabs li:nth-child(3)")
     tab.click()
 
     # Click through the different plot types.
-    item = dash_duo.wait_for_element_by_css_selector("#expression_plot_type.label:contains('scatter plot')")
+    item = dash_duo.wait_for_element_by_css_selector("#expression_plot_type *:nth-child(1)")
     item.click()
-    item = dash_duo.wait_for_element_by_css_selector("#expression_plot_type.label:contains('violin plot')")
+
+    #uncomment this to call up interactive ipython session
+    #from IPython import embed
+    #embed()
+
+    item = dash_duo.wait_for_element_by_css_selector("#expression_plot_type *:nth-child(2)")
     item.click()
-    item = dash_duo.wait_for_element_by_css_selector("#expression_plot_type.label:contains('dot plot')")
+    
+    item = dash_duo.wait_for_element_by_css_selector("#expression_plot_type *:nth-child(3)")
     item.click()
