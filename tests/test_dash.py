@@ -35,6 +35,7 @@ def scelvis_settings(tmpdir):
 
 
 def test_render_upload(dash_duo, scelvis_settings):
+    """test upload functionality"""
 
     app = dash.testing.application_runners.import_app("scelvis.app")
     dash_duo.start_server(app)
@@ -49,22 +50,6 @@ def test_render_upload(dash_duo, scelvis_settings):
     # Make sure that the site navigates to the "upload data" page.
     dash_duo.wait_for_text_to_equal("#page-brand", "Upload Data")
     # TODO: actually test the upload page
-
-
-def test_nagivate_to_data(dash_duo, scelvis_settings):
-
-    app = dash.testing.application_runners.import_app("scelvis.app")
-    dash_duo.start_server(app)
-
-    # Click "Go To" menu.
-    item_goto = dash_duo.wait_for_element_by_css_selector("#page-goto")
-    item_goto.click()
-    # Click contained "fake data" item.
-    item_upload = dash_duo.wait_for_element_by_css_selector("#menu-item-builtin-fake-data")
-    item_upload.click()
-    # Make sure that the site navigates to the "fake data" page.
-    dash_duo.wait_for_text_to_equal("#page-brand", "fake data")
-
 
 def test_render_cell_annotation(dash_duo, scelvis_settings):
     """Click through the cell annotation"""
@@ -86,12 +71,24 @@ def test_render_cell_annotation(dash_duo, scelvis_settings):
     # Click through the different plot types.
     item = dash_duo.wait_for_element_by_css_selector("#meta_plot_type *:nth-child(1)")
     item.click()
+    plot = dash_duo.wait_for_element_by_css_selector('#meta_scatter_plot')
+    #dash_duo.take_snapshot('meta_scatter')
     
     item = dash_duo.wait_for_element_by_css_selector("#meta_plot_type *:nth-child(2)")
     item.click()
+    # select sth from the dropdown
+    dropdown = dash_duo.wait_for_element_by_css_selector('#meta_violin_select_vars')
+    dropdown.click() 
+    menu = dropdown.find_element_by_css_selector("div.Select-menu-outer")
+    options = menu.find_elements_by_css_selector("div.VirtualizedSelectOption")
+    options[3].click()
+    plot = dash_duo.wait_for_element_by_css_selector('#meta_violin_plot')
+    #dash_duo.take_snapshot('meta_violin')
     
     item = dash_duo.wait_for_element_by_css_selector("#meta_plot_type *:nth-child(3)")
     item.click()
+    plot = dash_duo.wait_for_element_by_css_selector('#meta_bar_plot')
+    #dash_duo.take_snapshot('meta_bar')
 
 
 def test_render_gene_annotation(dash_duo, scelvis_settings):
@@ -99,6 +96,10 @@ def test_render_gene_annotation(dash_duo, scelvis_settings):
 
     app = dash.testing.application_runners.import_app("scelvis.app")
     dash_duo.start_server(app)
+
+    #uncomment this to call up interactive ipython session
+    #from IPython import embed
+    #embed()
 
     # Click "Go To" menu.
     item_goto = dash_duo.wait_for_element_by_css_selector("#page-goto")
@@ -119,12 +120,21 @@ def test_render_gene_annotation(dash_duo, scelvis_settings):
     item = dash_duo.wait_for_element_by_css_selector("#expression_plot_type *:nth-child(1)")
     item.click()
 
-    #uncomment this to call up interactive ipython session
-    #from IPython import embed
-    #embed()
+    # select a gene from the dropdown
+    dropdown = dash_duo.wait_for_element_by_css_selector('#expression_select_genes')
+    dropdown.click() 
+    menu = dropdown.find_element_by_css_selector("div.Select-menu-outer")
+    options = menu.find_elements_by_css_selector("div.VirtualizedSelectOption")
+    options[1].click()
+    plot = dash_duo.wait_for_element_by_css_selector('#expression_scatter_plot')
+    #dash_duo.take_snapshot('expression_scatter')
 
     item = dash_duo.wait_for_element_by_css_selector("#expression_plot_type *:nth-child(2)")
     item.click()
-    
+    plot = dash_duo.wait_for_element_by_css_selector('#expression_violin_plot')
+    #dash_duo.take_snapshot('expression_violin')
+
     item = dash_duo.wait_for_element_by_css_selector("#expression_plot_type *:nth-child(3)")
     item.click()
+    plot = dash_duo.wait_for_element_by_css_selector('#expression_dot_plot')
+    #dash_duo.take_snapshot('expression_dot')
