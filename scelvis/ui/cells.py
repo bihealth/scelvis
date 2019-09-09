@@ -152,9 +152,7 @@ def render(data):
         children=[
             dbc.Col(children=render_controls(data), className="col-3"),
             # Placeholder for the plot.
-            dbc.Col(
-                children=[dcc.Loading(id="meta_plot", type="circle")], className="col-9"
-            ),
+            dbc.Col(children=[dcc.Loading(id="meta_plot", type="circle")], className="col-9"),
         ]
     )
 
@@ -374,9 +372,7 @@ def render_plot_bars(data, group, split, options):
         "layout": go.Layout(
             barmode="stack" if "stacked" in options else "group",
             xaxis={"title": group, "tickangle": -45},
-            yaxis={
-                "title": "cell frequency" if "normalized" in options else "cell number"
-            },
+            yaxis={"title": "cell frequency" if "normalized" in options else "cell number"},
             margin={"l": 50, "b": 100, "t": 10, "r": 10},
             legend={"x": 1.05, "y": 1},
             plot_bgcolor="rgb(255,255,255)",

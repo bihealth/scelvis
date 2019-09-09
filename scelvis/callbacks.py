@@ -324,9 +324,7 @@ def register_select_gene_violin_plot(app):
     def get_expression_plot_violin(pathname, genelist, sample_size, group, split):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
-        return ui.genes.render_plot_violin(
-            data, pathname, genelist, sample_size, group, split
-        )
+        return ui.genes.render_plot_violin(data, pathname, genelist, sample_size, group, split)
 
 
 def register_select_gene_dot_plot(app):

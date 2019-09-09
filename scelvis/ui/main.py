@@ -23,14 +23,10 @@ def render_not_found():
 
 def render_home():
     """Return site content for the home screen."""
-    with open(
-        os.path.join(os.path.dirname(__file__), "..", "static", "home.md")
-    ) as inputf:
+    with open(os.path.join(os.path.dirname(__file__), "..", "static", "home.md")) as inputf:
         home_md = inputf.read()
         if settings.PUBLIC_URL_PREFIX:
-            home_md = home_md.replace(
-                "](assets", "](%s/dash/assets" % settings.PUBLIC_URL_PREFIX
-            )
+            home_md = home_md.replace("](assets", "](%s/dash/assets" % settings.PUBLIC_URL_PREFIX)
     return dbc.Row(dbc.Col(html.Div(dcc.Markdown(home_md), className="home-text")))
 
 
@@ -55,10 +51,7 @@ def render_upload():
                             "your pipeline output to such a file using "
                         ),
                         html.A(
-                            children=[
-                                html.I(className="fas fa-redo mr-1"),
-                                "Convert Data",
-                            ],
+                            children=[html.I(className="fas fa-redo mr-1"), "Convert Data"],
                             href="%s/convert/" % settings.PUBLIC_URL_PREFIX,
                         ),
                         ".",
@@ -93,8 +86,7 @@ def render_navbar():
             children=[
                 # Use row and col to control vertical alignment of logo / brand
                 dbc.NavbarBrand(
-                    [html.I(className="fas fa-home mr-1"), settings.HOME_BRAND],
-                    id="page-brand",
+                    [html.I(className="fas fa-home mr-1"), settings.HOME_BRAND], id="page-brand"
                 ),
                 dbc.Nav(
                     dbc.DropdownMenu(
@@ -126,16 +118,12 @@ def render_children_goto():
     for meta in metas:
         result.append(
             dbc.DropdownMenuItem(
-                meta.short_title,
-                id="menu-item-%s" % meta.id,
-                href="/dash/viz/%s" % meta.id,
+                meta.short_title, id="menu-item-%s" % meta.id, href="/dash/viz/%s" % meta.id
             )
         )
     if not metas:
         result.append(
-            dbc.DropdownMenuItem(
-                html.Span("no dataset available", className="text-muted")
-            )
+            dbc.DropdownMenuItem(html.Span("no dataset available", className="text-muted"))
         )
     if settings.UPLOAD_ENABLED or settings.CONVERSION_ENABLED:
         result.append(dbc.DropdownMenuItem(divider=True))
@@ -143,10 +131,7 @@ def render_children_goto():
         result.append(
             dbc.DropdownMenuItem(
                 html.Span(
-                    children=[
-                        html.I(className="fas fa-cloud-upload-alt mr-1"),
-                        "Upload Data",
-                    ]
+                    children=[html.I(className="fas fa-cloud-upload-alt mr-1"), "Upload Data"]
                 ),
                 id="menu-item-upload",
                 href="/dash/upload",
@@ -155,9 +140,7 @@ def render_children_goto():
     if settings.CONVERSION_ENABLED:
         result.append(
             dbc.DropdownMenuItem(
-                html.Span(
-                    children=[html.I(className="fas fa-redo mr-1"), "Convert Data"]
-                ),
+                html.Span(children=[html.I(className="fas fa-redo mr-1"), "Convert Data"]),
                 id="menu-item-convert",
                 href="%s/convert/" % settings.PUBLIC_URL_PREFIX,
                 external_link=True,
@@ -191,8 +174,7 @@ def render_footer():
                         html.Div(
                             children=[
                                 html.Span(
-                                    "SCelVis v%s by BIH CUBI" % __version__,
-                                    className="text-muted",
+                                    "SCelVis v%s by BIH CUBI" % __version__, className="text-muted"
                                 )
                             ],
                             className="col-6",
@@ -234,8 +216,7 @@ def render_dataset_page(data):
         children=[
             dbc.Tab(
                 html.Div(
-                    dbc.Row(dbc.Col(dcc.Markdown(data.metadata.readme))),
-                    className="mx-2 mt-2",
+                    dbc.Row(dbc.Col(dcc.Markdown(data.metadata.readme))), className="mx-2 mt-2"
                 ),
                 label="About",
                 tab_id="tab-about",

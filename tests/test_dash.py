@@ -117,9 +117,7 @@ def test_render_gene_annotation(dash_duo, scelvis_settings):
     tab.click()
 
     # Click through the different plot types.
-    item = dash_duo.wait_for_element_by_css_selector(
-        "#expression_plot_type *:nth-child(1)"
-    )
+    item = dash_duo.wait_for_element_by_css_selector("#expression_plot_type *:nth-child(1)")
     item.click()
 
     # select a gene from the dropdown
@@ -131,16 +129,12 @@ def test_render_gene_annotation(dash_duo, scelvis_settings):
     # plot = dash_duo.wait_for_element_by_css_selector('#expression_scatter_plot')
     # dash_duo.take_snapshot('expression_scatter')
 
-    item = dash_duo.wait_for_element_by_css_selector(
-        "#expression_plot_type *:nth-child(2)"
-    )
+    item = dash_duo.wait_for_element_by_css_selector("#expression_plot_type *:nth-child(2)")
     item.click()
     # plot = dash_duo.wait_for_element_by_css_selector('#expression_violin_plot')
     # dash_duo.take_snapshot('expression_violin')
 
-    item = dash_duo.wait_for_element_by_css_selector(
-        "#expression_plot_type *:nth-child(3)"
-    )
+    item = dash_duo.wait_for_element_by_css_selector("#expression_plot_type *:nth-child(3)")
     item.click()
     # plot = dash_duo.wait_for_element_by_css_selector('#expression_dot_plot')
     # dash_duo.take_snapshot('expression_dot')

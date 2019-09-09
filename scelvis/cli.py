@@ -27,23 +27,15 @@ def main(argv=None):
     """Main entry point before parsing command line arguments."""
 
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--verbose", action="store_true", default=False, help="Increase verbosity."
-    )
-    parser.add_argument(
-        "--version", action="version", version="%%(prog)s %s" % __version__
-    )
+    parser.add_argument("--verbose", action="store_true", default=False, help="Increase verbosity.")
+    parser.add_argument("--version", action="version", version="%%(prog)s %s" % __version__)
 
     subparsers = parser.add_subparsers(dest="cmd")
 
     setup_argparse_convert(
-        subparsers.add_parser(
-            "convert", help="Convert pipeline output to SCelVis input."
-        )
+        subparsers.add_parser("convert", help="Convert pipeline output to SCelVis input.")
     )
-    setup_argparse_webserver(
-        subparsers.add_parser("run", help="Run the SCelVis web server.")
-    )
+    setup_argparse_webserver(subparsers.add_parser("run", help="Run the SCelVis web server."))
 
     args = parser.parse_args(argv)
 
@@ -59,9 +51,7 @@ def main(argv=None):
 
     # Disable duplicated crypto warnings from paramiko, triggered by fs.sshfs.
     warnings.filterwarnings(
-        "once",
-        module="paramiko.ecdsakey",
-        message=".*unsafe construction of public numbers.*",
+        "once", module="paramiko.ecdsakey", message=".*unsafe construction of public numbers.*"
     )
 
     return cmds[args.cmd](args, parser)

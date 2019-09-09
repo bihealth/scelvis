@@ -170,11 +170,7 @@ def render(data):
             ),
             dbc.Row(
                 children=[
-                    dbc.Col(
-                        children=[
-                            dcc.Loading(id="expression_marker_list", type="circle")
-                        ]
-                    )
+                    dbc.Col(children=[dcc.Loading(id="expression_marker_list", type="circle")])
                 ]
             ),
         ]
@@ -188,22 +184,14 @@ def render_marker_list(data, values):
             dbc.Row(
                 [
                     dbc.Col(
-                        [
-                            dbc.Button(
-                                "use selected genes",
-                                color="primary",
-                                id="marker_selection",
-                            )
-                        ],
+                        [dbc.Button("use selected genes", color="primary", id="marker_selection")],
                         className="col-3",
                     ),
                     dbc.Col(
                         [
                             dash_table.DataTable(
                                 id="marker_list",
-                                columns=[
-                                    {"name": i, "id": i} for i in data.markers.columns
-                                ],
+                                columns=[{"name": i, "id": i} for i in data.markers.columns],
                                 data=data.markers.round(3).to_dict("rows"),
                                 fixed_rows={"headers": True},
                                 style_as_list_view=True,
@@ -232,9 +220,7 @@ def render_plot_scatter(data, xc, yc, genelist, sample_size):
         return {}, "", True
 
     if sample_size != "all":
-        ad_here = data.ad[
-            np.random.choice(data.ad.obs_names, sample_size, replace=False), :
-        ]
+        ad_here = data.ad[np.random.choice(data.ad.obs_names, sample_size, replace=False), :]
     else:
         ad_here = data.ad
 
@@ -313,9 +299,7 @@ def render_plot_violin(data, pathname, genelist, sample_size, group, split):
         return {}, "", True
 
     if sample_size != "all":
-        ad_here = data.ad[
-            np.random.choice(data.ad.obs_names, sample_size, replace=False), :
-        ]
+        ad_here = data.ad[np.random.choice(data.ad.obs_names, sample_size, replace=False), :]
     else:
         ad_here = data.ad
 
@@ -330,11 +314,7 @@ def render_plot_violin(data, pathname, genelist, sample_size, group, split):
     ngenes = len(gl)
 
     fig = subplots.make_subplots(
-        rows=ngenes,
-        cols=1,
-        specs=[[{}] for gene in gl],
-        shared_xaxes=True,
-        vertical_spacing=0.01,
+        rows=ngenes, cols=1, specs=[[{}] for gene in gl], shared_xaxes=True, vertical_spacing=0.01
     )
     sg = 0
     for ng, gene in enumerate(gl):
@@ -415,9 +395,7 @@ def render_plot_dot(data, pathname, genelist, group, split):
     ngenes = len(gl)
 
     def my_agg(x):
-        return pd.DataFrame(
-            [x.mean(), (x > 0).mean()], index=["expression", "pct_cells"]
-        )
+        return pd.DataFrame([x.mean(), (x > 0).mean()], index=["expression", "pct_cells"])
 
     if split is None:
         plot_data = (
@@ -463,11 +441,7 @@ def render_plot_dot(data, pathname, genelist, group, split):
                 x=[None],
                 y=[None],
                 mode="markers",
-                marker={
-                    "size": 20,
-                    "color": colors.my_gradients[0][c][1],
-                    "symbol": "square",
-                },
+                marker={"size": 20, "color": colors.my_gradients[0][c][1], "symbol": "square"},
                 name=p,
                 legendgroup="color",
                 showlegend=True,
@@ -515,16 +489,8 @@ def render_plot_dot(data, pathname, genelist, group, split):
             .fillna(0)
         )
         for n, sv in enumerate(splitvals):
-            means = (
-                plot_data.xs("expression", axis=1, level=1)
-                .xs(sv, axis=0, level=1)
-                .values
-            )
-            sizes = (
-                plot_data.xs("pct_cells", axis=1, level=1)
-                .xs(sv, axis=0, level=1)
-                .values
-            )
+            means = plot_data.xs("expression", axis=1, level=1).xs(sv, axis=0, level=1).values
+            sizes = plot_data.xs("pct_cells", axis=1, level=1).xs(sv, axis=0, level=1).values
             xv, yv = np.meshgrid(np.arange(ngenes), (nsplit + 1) * np.arange(ngroup))
             tr = go.Scatter(
                 x=xv.ravel(),
@@ -558,11 +524,7 @@ def render_plot_dot(data, pathname, genelist, group, split):
                 x=[None],
                 y=[None],
                 mode="markers",
-                marker={
-                    "size": 20,
-                    "symbol": "square",
-                    "color": colors.my_gradients[-1][c][1],
-                },
+                marker={"size": 20, "symbol": "square", "color": colors.my_gradients[-1][c][1]},
                 name=p,
                 legendgroup="color",
                 showlegend=True,
@@ -574,11 +536,7 @@ def render_plot_dot(data, pathname, genelist, group, split):
                 x=[None],
                 y=[None],
                 mode="markers",
-                marker={
-                    "size": 20,
-                    "symbol": "square",
-                    "color": colors.my_gradients[n][1][1],
-                },
+                marker={"size": 20, "symbol": "square", "color": colors.my_gradients[n][1][1]},
                 name=sv,
                 legendgroup="split",
                 showlegend=True,

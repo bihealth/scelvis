@@ -67,18 +67,14 @@ def make_ftpfs(url):
     """Construct FTPFS from url."""
     if url.scheme != "ftp":
         raise ValueError("Scheme must be == 'ftp'")
-    return FTPFS(
-        host=url.hostname, user=url.username, passwd=url.password, port=(url.port or 21)
-    )
+    return FTPFS(host=url.hostname, user=url.username, passwd=url.password, port=(url.port or 21))
 
 
 def make_ssfs(url):
     """Construct SSHFS from url."""
     if url.scheme != "sftp":
         raise ValueError("Scheme must be == 'sftp'")
-    return SSHFS(
-        host=url.hostname, user=url.username, passwd=url.password, port=(url.port or 22)
-    )
+    return SSHFS(host=url.hostname, user=url.username, passwd=url.password, port=(url.port or 22))
 
 
 def make_fs(url):
@@ -185,9 +181,7 @@ def download_file(url, path=None, *more_components):
                 yield None
             else:
                 with TempFS() as tmpfs:
-                    logger.info(
-                        "Downloading file %s from %s" % (path, redacted_urlunparse(url))
-                    )
+                    logger.info("Downloading file %s from %s" % (path, redacted_urlunparse(url)))
                     with open(tmpfs.getospath(basename), "wb") as tmpf:
                         src_fs.download(path, tmpf)
                     logger.info("Download complete.")
@@ -198,26 +192,18 @@ def download_file(url, path=None, *more_components):
             anon = url.username is None and url.password is None
             s3 = s3fs.S3FileSystem(anon=anon, key=url.username, secret=url.password)
             with TempFS() as tmpfs:
-                logger.info(
-                    "Downloading file %s from %s" % (path, redacted_urlunparse(url))
-                )
+                logger.info("Downloading file %s from %s" % (path, redacted_urlunparse(url)))
                 with s3.open("%s/%s" % (url.hostname, path), "rb") as inputf:
                     with open(tmpfs.getospath(basename), "wb") as outputf:
-                        shutil.copyfileobj(
-                            inputf, outputf, settings.MAX_UPLOAD_DATA_SIZE
-                        )
+                        shutil.copyfileobj(inputf, outputf, settings.MAX_UPLOAD_DATA_SIZE)
                 logger.info("Download complete.")
                 yield tmpfs.getospath(basename)
                 logger.info("Releasing %s" % tmpfs)
         elif url.scheme.startswith("http"):
             logger.info("Downloading via HTTP(S)...")
             with TempFS() as tmpfs:
-                logger.info(
-                    "Downloading file %s from %s" % (path, redacted_urlunparse(url))
-                )
-                r = requests.get(
-                    urlunparse(url._replace(path=full_path)), allow_redirects=True
-                )
+                logger.info("Downloading file %s from %s" % (path, redacted_urlunparse(url)))
+                r = requests.get(urlunparse(url._replace(path=full_path)), allow_redirects=True)
                 r.raise_for_status()
                 with open(tmpfs.getospath(basename), "wb") as outputf:
                     outputf.write(r.content)
@@ -228,13 +214,9 @@ def download_file(url, path=None, *more_components):
             with create_irods_session(url) as irods_session:
                 logger.info("Downloading file...")
                 with TempFS() as tmpfs:
-                    logger.info(
-                        "Downloading file %s from %s" % (path, redacted_urlunparse(url))
-                    )
+                    logger.info("Downloading file %s from %s" % (path, redacted_urlunparse(url)))
                     path_tmp = tmpfs.getospath(basename)
-                    collection = irods_session.collections.get(
-                        fs.path.dirname(full_path)
-                    )
+                    collection = irods_session.collections.get(fs.path.dirname(full_path))
                     name = fs.path.basename(full_path)
                     for data_object in collection.data_objects:
                         if data_object.name == name:
@@ -246,8 +228,7 @@ def download_file(url, path=None, *more_components):
                                     break
                     else:
                         raise ScelVisException(
-                            "Could not find %s in %s"
-                            % (full_path, redacted_urlunparse(url))
+                            "Could not find %s in %s" % (full_path, redacted_urlunparse(url))
                         )
                     logger.info("Download complete.")
                     yield path_tmp
@@ -261,9 +242,7 @@ def load_data(data_source, identifier):
     if identifier == FAKE_DATA_ID:
         return fake_data()
 
-    logger.info(
-        "Loading anndata for %s from %s", redacted_urlunparse(data_source), identifier
-    )
+    logger.info("Loading anndata for %s from %s", redacted_urlunparse(data_source), identifier)
     with download_file(data_source) as path_anndata:
         ad = anndata.read_h5ad(path_anndata)
         # Extract the meta data
@@ -279,10 +258,7 @@ def load_data(data_source, identifier):
             coords[k] = pd.DataFrame(
                 ad.obsm[k],
                 index=ad.obs.index,
-                columns=[
-                    k[2:].upper() + str(n + 1)
-                    for n in range(min(ad.obsm[k].shape[1], 3))
-                ],
+                columns=[k[2:].upper() + str(n + 1) for n in range(min(ad.obsm[k].shape[1], 3))],
             )
         if len(coords) > 0:
             ad.obs = pd.concat(coords.values(), axis=1).join(ad.obs)
@@ -334,16 +310,10 @@ def fake_data(seed=42):
             "TSNE_1": np.random.random(size=ncells),
             "TSNE_2": np.random.random(size=ncells),
             "cluster": pd.Categorical(
-                [
-                    "cluster_{0}".format("ABCD"[i])
-                    for i in np.random.randint(4, size=ncells)
-                ]
+                ["cluster_{0}".format("ABCD"[i]) for i in np.random.randint(4, size=ncells)]
             ),
             "sample": pd.Categorical(
-                [
-                    "sample_{0}".format("ABC"[i])
-                    for i in np.random.randint(3, size=ncells)
-                ]
+                ["sample_{0}".format("ABC"[i]) for i in np.random.randint(3, size=ncells)]
             ),
             "n_genes": (dge > 0).sum(axis=1),
             "n_counts": dge.sum(axis=1),

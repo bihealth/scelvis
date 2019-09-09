@@ -154,16 +154,11 @@ def convert_route():
                             print("short_title: %s" % short_title, file=aboutf)
                         print("----", file=aboutf)
                     print(description or "No description", file=aboutf)
-                out_file = os.path.join(
-                    tmpdir2, re.sub(".zip|.tar.gz|.tar", ".h5ad", filename)
-                )
+                out_file = os.path.join(tmpdir2, re.sub(".zip|.tar.gz|.tar", ".h5ad", filename))
                 logger.info("Performing conversion (%s)", out_file)
                 convert.run(
                     convert.Config(
-                        indir=input_dir,
-                        about_md=about_md,
-                        out_file=out_file,
-                        format=format_,
+                        indir=input_dir, about_md=about_md, out_file=out_file, format=format_
                     )
                 )
                 logger.info("Sending file to the user")
