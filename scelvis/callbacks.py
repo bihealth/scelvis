@@ -6,20 +6,15 @@ any component building itself.  Instead, this is done in the module ``.ui``.
 
 import base64
 import os.path
-import shutil
-import tempfile
 import uuid
 
-import fs
 import dash
 import dash_html_components as html
 from logzero import logger
 from werkzeug.utils import secure_filename
 
 from . import ui, settings, store
-from .exceptions import ScelVisException
 from .ui import cells, common, genes
-
 
 def get_route(pathname):
     """Helper function for routing URLs.

@@ -281,6 +281,7 @@ def render_plot_scatter(data, xc, yc, genelist, sample_size):
 
     fig["layout"].update(
         margin={"l": 40, "b": 40, "t": 40, "r": 40},
+        plot_bgcolor='rgb(255,255,255)',
         showlegend=False,
         hovermode="closest",
         height=settings.PLOT_HEIGHT,
@@ -367,6 +368,7 @@ def render_plot_violin(data, pathname, genelist, sample_size, group, split):
 
     fig["layout"].update(
         xaxis={"tickangle": -45},
+        plot_bgcolor='rgb(255,255,255)',
         margin={"l": 50, "b": 80, "t": 10, "r": 10},
         legend={"x": 1.05, "y": 1},
         hovermode="closest",
@@ -556,6 +558,7 @@ def render_plot_dot(data, pathname, genelist, group, split):
             showlegend=True,
             hovermode="closest",
             height=settings.PLOT_HEIGHT,
+            plot_bgcolor='rgb(255,255,255)',
         )
 
     csv_string = "data:text/csv;charset=utf-8," + urllib.parse.quote(

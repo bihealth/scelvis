@@ -230,6 +230,7 @@ def render_plot_scatter(data, xc, yc, col, sample_size):
             yaxis={"title": yc},
             margin={"l": 40, "b": 40, "t": 10, "r": 10},
             legend={"x": 1.05, "y": 1},
+            plot_bgcolor='rgb(255,255,255)',
             hovermode="closest",
             height=settings.PLOT_HEIGHT,
         ),
@@ -316,6 +317,7 @@ def render_plot_violin(data, variables, group, split, sample_size):
         margin={"l": 50, "b": 80, "t": 10, "r": 10},
         legend={"x": 1.05, "y": 1},
         hovermode="closest",
+        plot_bgcolor='rgb(255,255,255)',
         height=settings.PLOT_HEIGHT,
     )
 
@@ -379,6 +381,7 @@ def render_plot_bars(data, group, split, options):
             yaxis={"title": "cell frequency" if "normalized" in options else "cell number"},
             margin={"l": 50, "b": 100, "t": 10, "r": 10},
             legend={"x": 1.05, "y": 1},
+            plot_bgcolor='rgb(255,255,255)',
             hovermode="closest",
             height=settings.PLOT_HEIGHT,
         ),

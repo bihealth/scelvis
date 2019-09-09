@@ -9,7 +9,7 @@ import typing
 import anndata
 import attr
 import scanpy as sc
-import scipy.sparse 
+import scipy.sparse
 import pandas as pd
 from logzero import logger
 

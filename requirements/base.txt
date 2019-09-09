@@ -1,7 +1,7 @@
 # Base requirements
 
 # Dash and friends.
-dash 
+dash[testing]
 dash-renderer 
 dash-html-components 
 dash-core-components 

@@ -2,7 +2,6 @@
 
 import dash
 import pytest
-import sys
 from scelvis import settings
 
 @pytest.yield_fixture(scope="function")
@@ -71,7 +70,7 @@ def test_render_cell_annotation(dash_duo, scelvis_settings):
     # Click through the different plot types.
     item = dash_duo.wait_for_element_by_css_selector("#meta_plot_type *:nth-child(1)")
     item.click()
-    plot = dash_duo.wait_for_element_by_css_selector('#meta_scatter_plot')
+    #plot = dash_duo.wait_for_element_by_css_selector('#meta_scatter_plot')
     #dash_duo.take_snapshot('meta_scatter')
     
     item = dash_duo.wait_for_element_by_css_selector("#meta_plot_type *:nth-child(2)")
@@ -82,12 +81,12 @@ def test_render_cell_annotation(dash_duo, scelvis_settings):
     menu = dropdown.find_element_by_css_selector("div.Select-menu-outer")
     options = menu.find_elements_by_css_selector("div.VirtualizedSelectOption")
     options[3].click()
-    plot = dash_duo.wait_for_element_by_css_selector('#meta_violin_plot')
+    #plot = dash_duo.wait_for_element_by_css_selector('#meta_violin_plot')
     #dash_duo.take_snapshot('meta_violin')
-    
+
     item = dash_duo.wait_for_element_by_css_selector("#meta_plot_type *:nth-child(3)")
     item.click()
-    plot = dash_duo.wait_for_element_by_css_selector('#meta_bar_plot')
+    #plot = dash_duo.wait_for_element_by_css_selector('#meta_bar_plot')
     #dash_duo.take_snapshot('meta_bar')
 
 
@@ -122,19 +121,19 @@ def test_render_gene_annotation(dash_duo, scelvis_settings):
 
     # select a gene from the dropdown
     dropdown = dash_duo.wait_for_element_by_css_selector('#expression_select_genes')
-    dropdown.click() 
+    dropdown.click()
     menu = dropdown.find_element_by_css_selector("div.Select-menu-outer")
     options = menu.find_elements_by_css_selector("div.VirtualizedSelectOption")
     options[1].click()
-    plot = dash_duo.wait_for_element_by_css_selector('#expression_scatter_plot')
+    #plot = dash_duo.wait_for_element_by_css_selector('#expression_scatter_plot')
     #dash_duo.take_snapshot('expression_scatter')
 
     item = dash_duo.wait_for_element_by_css_selector("#expression_plot_type *:nth-child(2)")
     item.click()
-    plot = dash_duo.wait_for_element_by_css_selector('#expression_violin_plot')
+    #plot = dash_duo.wait_for_element_by_css_selector('#expression_violin_plot')
     #dash_duo.take_snapshot('expression_violin')
 
     item = dash_duo.wait_for_element_by_css_selector("#expression_plot_type *:nth-child(3)")
     item.click()
-    plot = dash_duo.wait_for_element_by_css_selector('#expression_dot_plot')
+    #plot = dash_duo.wait_for_element_by_css_selector('#expression_dot_plot')
     #dash_duo.take_snapshot('expression_dot')

@@ -18,6 +18,3 @@ flake8 >=3.5.0
 
 # Pygments for setup.py check
 pygments
-
-# dash test
-dash[testing]
