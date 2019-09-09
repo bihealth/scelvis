@@ -99,12 +99,17 @@ def run(args, parser):
 
 def setup_argparse(parser):
     """Setup argparse sub parser."""
-    parser.add_argument("--debug", default=False, action="store_true", help="Enable debug mode")
+    parser.add_argument(
+        "--debug", default=False, action="store_true", help="Enable debug mode"
+    )
     parser.add_argument(
         "--host", help="Server host", default=os.environ.get("SCELVIS_HOST", "0.0.0.0")
     )
     parser.add_argument(
-        "--port", type=int, help="Server port", default=int(os.environ.get("SCELVIS_PORT", 8050))
+        "--port",
+        type=int,
+        help="Server port",
+        default=int(os.environ.get("SCELVIS_PORT", 8050)),
     )
     parser.add_argument(
         "--fake-data",
@@ -142,7 +147,8 @@ def setup_argparse(parser):
     )
     parser.add_argument(
         "--disable-upload",
-        default=os.environ.get("SCELVIS_UPLOAD_DISABLED", "0") not in ("", "0", "N", "n"),
+        default=os.environ.get("SCELVIS_UPLOAD_DISABLED", "0")
+        not in ("", "0", "N", "n"),
         dest="upload_disabled",
         action="store_true",
         help="Whether or not to disable visualization uploads",
@@ -156,7 +162,8 @@ def setup_argparse(parser):
 
     parser.add_argument(
         "--disable-conversion",
-        default=os.environ.get("SCELVIS_CONVERSION_DISABLED", "0") not in ("", "0", "N", "n"),
+        default=os.environ.get("SCELVIS_CONVERSION_DISABLED", "0")
+        not in ("", "0", "N", "n"),
         dest="conversion_disabled",
         action="store_true",
         help="Directory for visualization uploads, default is to create temporary directory",

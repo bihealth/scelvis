@@ -16,6 +16,7 @@ from werkzeug.utils import secure_filename
 from . import ui, settings, store
 from .ui import cells, common, genes
 
+
 def get_route(pathname):
     """Helper function for routing URLs.
 
@@ -188,22 +189,11 @@ def register_update_cell_bar_chart_params(app):
     )
     def toggle_meta_bar_options(split):
         if split is None:
-            return [
-                {
-                    "label": "normalized",
-                    "value": "normalized",
-                }
-            ]
+            return [{"label": "normalized", "value": "normalized"}]
         else:
             return [
-                {
-                    "label": "normalized",
-                    "value": "normalized",
-                },
-                {
-                    "label": "stacked",
-                    "value": "stacked",
-                },
+                {"label": "normalized", "value": "normalized"},
+                {"label": "stacked", "value": "stacked"},
             ]
 
     @app.callback(
@@ -334,7 +324,9 @@ def register_select_gene_violin_plot(app):
     def get_expression_plot_violin(pathname, genelist, sample_size, group, split):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
-        return ui.genes.render_plot_violin(data, pathname, genelist, sample_size, group, split)
+        return ui.genes.render_plot_violin(
+            data, pathname, genelist, sample_size, group, split
+        )
 
 
 def register_select_gene_dot_plot(app):

@@ -112,7 +112,9 @@ class CellRangerConverter:
             self.args.indir, "analysis", "tsne", "2_components", "projection.csv"
         )
         if not os.path.isfile(tsne_file):
-            raise ScelVisException("cannot find tSNE output at %s" % tsne_file)  # pragma nocover
+            raise ScelVisException(
+                "cannot find tSNE output at %s" % tsne_file
+            )  # pragma nocover
         else:
             logger.info("Reading tSNE output from %s", tsne_file)
             return pd.read_csv(tsne_file, header=0, index_col=0)
@@ -137,7 +139,11 @@ class CellRangerConverter:
 
     def _load_diffexp(self):
         diffexp_file = os.path.join(
-            self.args.indir, "analysis", "diffexp", "graphclust", "differential_expression.csv"
+            self.args.indir,
+            "analysis",
+            "diffexp",
+            "graphclust",
+            "differential_expression.csv",
         )
         if not os.path.isfile(diffexp_file):
             raise ScelVisException(
@@ -152,18 +158,31 @@ class CellRangerConverter:
                 .rename(["Cluster", "Obs"])
             )
             diffexp = diffexp.stack(level=0).reset_index()
-            diffexp.columns = ["GeneID", "gene", "Cluster", "p_adj", "log2_fc", "mean_counts"]
+            diffexp.columns = [
+                "GeneID",
+                "gene",
+                "Cluster",
+                "p_adj",
+                "log2_fc",
+                "mean_counts",
+            ]
             return diffexp
 
     def _load_expression(self, clustering, tsne, diffexp):
-        expression_file_v3 = os.path.join(self.args.indir, "filtered_feature_bc_matrix.h5")
-        expression_file_v2 = os.path.join(self.args.indir, "filtered_gene_bc_matrices_h5.h5")
+        expression_file_v3 = os.path.join(
+            self.args.indir, "filtered_feature_bc_matrix.h5"
+        )
+        expression_file_v2 = os.path.join(
+            self.args.indir, "filtered_gene_bc_matrices_h5.h5"
+        )
         if os.path.isfile(expression_file_v3):
             expression_file = expression_file_v3
         elif os.path.isfile(expression_file_v2):
             expression_file = expression_file_v2
         else:
-            raise ScelVisException("cannot find expression file at %s" % self.args.indir)
+            raise ScelVisException(
+                "cannot find expression file at %s" % self.args.indir
+            )
         logger.info("Reading gene expression from %s", expression_file)
         with with_log_level(anndata.utils.logger, logging.WARN):
             ad = sc.read_10x_h5(expression_file)
@@ -261,7 +280,9 @@ class TextConverter:
     def _load_annotation(self):
         annotation_file = os.path.join(self.args.indir, "annotation.tsv")
         if not os.path.isfile(annotation_file):
-            raise ScelVisException("cannot find cell annotation at %s " % annotation_file)
+            raise ScelVisException(
+                "cannot find cell annotation at %s " % annotation_file
+            )
         else:
             logger.info("Reading cell annotation from %s", annotation_file)
             return pd.read_csv(annotation_file, header=0, index_col=0, sep="\t")
@@ -278,13 +299,17 @@ class TextConverter:
     def _load_expression(self, coords, annotation, markers):
         expression_file = os.path.join(self.args.indir, "expression.tsv.gz")
         if not os.path.isfile(expression_file):
-            raise ScelVisException("cannot find expression file at %s" % expression_file)
+            raise ScelVisException(
+                "cannot find expression file at %s" % expression_file
+            )
         logger.info("Reading gene expression from %s", expression_file)
         DGE = pd.read_csv(expression_file, header=0, index_col=0, sep="\t")
         logger.info("Combining data")
         ad = sc.AnnData(
             X=scipy.sparse.csr_matrix(DGE.values.T),
-            obs=pd.concat([coords.loc[DGE.columns], annotation.loc[DGE.columns]], axis=1),
+            obs=pd.concat(
+                [coords.loc[DGE.columns], annotation.loc[DGE.columns]], axis=1
+            ),
             var=pd.DataFrame([], index=DGE.index),
         )
         # TODO: do we need to make variable names unique here or can we suppress the warning
@@ -346,10 +371,16 @@ def setup_argparse(parser):
         help="path to input/pipeline output directory",
     )
     parser.add_argument(
-        "-a", "--about-md", help="Path to about.md file to embed in the resulting .h5ad file"
+        "-a",
+        "--about-md",
+        help="Path to about.md file to embed in the resulting .h5ad file",
     )
     parser.add_argument(
-        "-o", "--output", required=True, dest="out_file", help="Path to the .h5ad file to write to"
+        "-o",
+        "--output",
+        required=True,
+        dest="out_file",
+        help="Path to the .h5ad file to write to",
     )
     parser.add_argument(
         "-f",

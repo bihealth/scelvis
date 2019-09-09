@@ -135,9 +135,9 @@ def convert_route():
                 raw_needle = "coords.tsv"
                 logger.info("Looking for %s file", raw_needle)
                 needle_path = find(raw_needle, tmpdir)
-                format_ = 'text'
+                format_ = "text"
             else:
-                format_ = 'cell-ranger'
+                format_ = "cell-ranger"
             input_dir = os.path.dirname(needle_path)
             logger.info("Starting conversion...")
             with tempfile.TemporaryDirectory() as tmpdir2:
@@ -154,11 +154,18 @@ def convert_route():
                             print("short_title: %s" % short_title, file=aboutf)
                         print("----", file=aboutf)
                     print(description or "No description", file=aboutf)
-                out_file = os.path.join(tmpdir2, re.sub('.zip|.tar.gz|.tar',
-                                                        '.h5ad',
-                                                        filename))
+                out_file = os.path.join(
+                    tmpdir2, re.sub(".zip|.tar.gz|.tar", ".h5ad", filename)
+                )
                 logger.info("Performing conversion (%s)", out_file)
-                convert.run(convert.Config(indir=input_dir, about_md=about_md, out_file=out_file, format=format_))
+                convert.run(
+                    convert.Config(
+                        indir=input_dir,
+                        about_md=about_md,
+                        out_file=out_file,
+                        format=format_,
+                    )
+                )
                 logger.info("Sending file to the user")
                 return helpers.send_file(
                     out_file, mimetype="application/binary", as_attachment=True

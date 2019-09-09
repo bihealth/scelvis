@@ -97,14 +97,8 @@ def render_controls_bars(data):
                 dcc.Checklist(
                     id="meta_bar_options",
                     options=[
-                        {
-                            "label": "normalized",
-                            "value": "normalized",
-                        },
-                        {
-                            "label": "stacked",
-                            "value": "stacked",
-                        },
+                        {"label": "normalized", "value": "normalized"},
+                        {"label": "stacked", "value": "stacked"},
                     ],
                     value=[],
                 ),
@@ -158,7 +152,9 @@ def render(data):
         children=[
             dbc.Col(children=render_controls(data), className="col-3"),
             # Placeholder for the plot.
-            dbc.Col(children=[dcc.Loading(id="meta_plot", type="circle")], className="col-9"),
+            dbc.Col(
+                children=[dcc.Loading(id="meta_plot", type="circle")], className="col-9"
+            ),
         ]
     )
 
@@ -230,7 +226,7 @@ def render_plot_scatter(data, xc, yc, col, sample_size):
             yaxis={"title": yc},
             margin={"l": 40, "b": 40, "t": 10, "r": 10},
             legend={"x": 1.05, "y": 1},
-            plot_bgcolor='rgb(255,255,255)',
+            plot_bgcolor="rgb(255,255,255)",
             hovermode="closest",
             height=settings.PLOT_HEIGHT,
         ),
@@ -317,7 +313,7 @@ def render_plot_violin(data, variables, group, split, sample_size):
         margin={"l": 50, "b": 80, "t": 10, "r": 10},
         legend={"x": 1.05, "y": 1},
         hovermode="closest",
-        plot_bgcolor='rgb(255,255,255)',
+        plot_bgcolor="rgb(255,255,255)",
         height=settings.PLOT_HEIGHT,
     )
 
@@ -378,10 +374,12 @@ def render_plot_bars(data, group, split, options):
         "layout": go.Layout(
             barmode="stack" if "stacked" in options else "group",
             xaxis={"title": group, "tickangle": -45},
-            yaxis={"title": "cell frequency" if "normalized" in options else "cell number"},
+            yaxis={
+                "title": "cell frequency" if "normalized" in options else "cell number"
+            },
             margin={"l": 50, "b": 100, "t": 10, "r": 10},
             legend={"x": 1.05, "y": 1},
-            plot_bgcolor='rgb(255,255,255)',
+            plot_bgcolor="rgb(255,255,255)",
             hovermode="closest",
             height=settings.PLOT_HEIGHT,
         ),

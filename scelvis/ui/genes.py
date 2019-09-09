@@ -14,6 +14,7 @@ import plotly.subplots as subplots
 from .. import settings
 from . import colors, common
 
+
 def render_controls_scatter(data):
     """Render "top left" controls for the scatter plot for the given ``data``."""
     return [
@@ -169,7 +170,11 @@ def render(data):
             ),
             dbc.Row(
                 children=[
-                    dbc.Col(children=[dcc.Loading(id="expression_marker_list", type="circle")])
+                    dbc.Col(
+                        children=[
+                            dcc.Loading(id="expression_marker_list", type="circle")
+                        ]
+                    )
                 ]
             ),
         ]
@@ -183,14 +188,22 @@ def render_marker_list(data, values):
             dbc.Row(
                 [
                     dbc.Col(
-                        [dbc.Button("use selected genes", color="primary", id="marker_selection")],
+                        [
+                            dbc.Button(
+                                "use selected genes",
+                                color="primary",
+                                id="marker_selection",
+                            )
+                        ],
                         className="col-3",
                     ),
                     dbc.Col(
                         [
                             dash_table.DataTable(
                                 id="marker_list",
-                                columns=[{"name": i, "id": i} for i in data.markers.columns],
+                                columns=[
+                                    {"name": i, "id": i} for i in data.markers.columns
+                                ],
                                 data=data.markers.round(3).to_dict("rows"),
                                 fixed_rows={"headers": True},
                                 style_as_list_view=True,
@@ -208,10 +221,7 @@ def render_marker_list(data, values):
         ]
 
     else:
-        return [
-            dbc.Row([dbc.Col(html.P())]),
-            html.P()
-        ]
+        return [dbc.Row([dbc.Col(html.P())]), html.P()]
 
 
 def render_plot_scatter(data, xc, yc, genelist, sample_size):
@@ -222,7 +232,9 @@ def render_plot_scatter(data, xc, yc, genelist, sample_size):
         return {}, "", True
 
     if sample_size != "all":
-        ad_here = data.ad[np.random.choice(data.ad.obs_names,sample_size,replace=False),:]
+        ad_here = data.ad[
+            np.random.choice(data.ad.obs_names, sample_size, replace=False), :
+        ]
     else:
         ad_here = data.ad
 
@@ -246,7 +258,7 @@ def render_plot_scatter(data, xc, yc, genelist, sample_size):
     )
 
     # rescale all expression values to the same min and max
-    maxval = max(1, ad_here[:,gl].X.max().max())
+    maxval = max(1, ad_here[:, gl].X.max().max())
 
     for ng, gene in enumerate(gl):
         # for numerical data, plot scatter all at once
@@ -257,7 +269,7 @@ def render_plot_scatter(data, xc, yc, genelist, sample_size):
             mode="markers",
             marker={
                 "size": 3,
-                "color": maxval * ad_here[:,gene].X / max(1, ad_here[:,gene].X.max()),
+                "color": maxval * ad_here[:, gene].X / max(1, ad_here[:, gene].X.max()),
                 "colorscale": "Viridis",
                 "colorbar": {"title": "expression", "titleside": "right"},
                 "showscale": (ng == 0),
@@ -267,13 +279,13 @@ def render_plot_scatter(data, xc, yc, genelist, sample_size):
         nc = ng % ncol + 1
         nr = ng // ncol + 1
         fig.append_trace(trace, nr, nc)
-        if nc==1:
-            fig['layout']['yaxis'+(str(ng+1) if ng > 0 else '')].update(title=yc)
-        if nr==nrow:
-            fig['layout']['xaxis'+(str(ng+1) if ng > 0 else '')].update(title=xc)
+        if nc == 1:
+            fig["layout"]["yaxis" + (str(ng + 1) if ng > 0 else "")].update(title=yc)
+        if nr == nrow:
+            fig["layout"]["xaxis" + (str(ng + 1) if ng > 0 else "")].update(title=xc)
 
     # fix axes labels and scales
-    #for k in dir(fig["layout"]):
+    # for k in dir(fig["layout"]):
     #    if k.startswith("yaxis"):
     #        fig["layout"][k].update(title=yc)
     #    elif k.startswith("xaxis"):
@@ -281,13 +293,13 @@ def render_plot_scatter(data, xc, yc, genelist, sample_size):
 
     fig["layout"].update(
         margin={"l": 40, "b": 40, "t": 40, "r": 40},
-        plot_bgcolor='rgb(255,255,255)',
+        plot_bgcolor="rgb(255,255,255)",
         showlegend=False,
         hovermode="closest",
         height=settings.PLOT_HEIGHT,
     )
 
-    plot_data = data.ad[:,gl].to_df().to_csv(index=True, header=True, encoding="utf-8")
+    plot_data = data.ad[:, gl].to_df().to_csv(index=True, header=True, encoding="utf-8")
     csv_string = "data:text/csv;charset=utf-8," + urllib.parse.quote(plot_data)
 
     return fig, csv_string, False
@@ -301,7 +313,9 @@ def render_plot_violin(data, pathname, genelist, sample_size, group, split):
         return {}, "", True
 
     if sample_size != "all":
-        ad_here = data.ad[np.random.choice(data.ad.obs_names,sample_size,replace=False),:]
+        ad_here = data.ad[
+            np.random.choice(data.ad.obs_names, sample_size, replace=False), :
+        ]
     else:
         ad_here = data.ad
 
@@ -316,14 +330,18 @@ def render_plot_violin(data, pathname, genelist, sample_size, group, split):
     ngenes = len(gl)
 
     fig = subplots.make_subplots(
-        rows=ngenes, cols=1, specs=[[{}] for gene in gl], shared_xaxes=True, vertical_spacing=0.01
+        rows=ngenes,
+        cols=1,
+        specs=[[{}] for gene in gl],
+        shared_xaxes=True,
+        vertical_spacing=0.01,
     )
     sg = 0
     for ng, gene in enumerate(gl):
 
         if split is None:
             for n, cv in enumerate(groupvals):
-                y = ad_here[ad_here.obs[group] == cv,:][:,gene].X
+                y = ad_here[ad_here.obs[group] == cv, :][:, gene].X
                 tr = go.Violin(
                     y=y,
                     name=cv,
@@ -337,10 +355,10 @@ def render_plot_violin(data, pathname, genelist, sample_size, group, split):
                 )
                 fig.append_trace(tr, ngenes - ng, 1)
                 sg += 1
-            plot_data = data.ad[:,gl].to_df().join(data.ad.obs[group])
+            plot_data = data.ad[:, gl].to_df().join(data.ad.obs[group])
         else:
             for n, sv in enumerate(splitvals):
-                y = ad_here[ad_here.obs[split] == sv,:][:,gene].X
+                y = ad_here[ad_here.obs[split] == sv, :][:, gene].X
                 tr = go.Violin(
                     x=ad_here[ad_here.obs[split] == sv].obs[group],
                     y=y,
@@ -356,7 +374,7 @@ def render_plot_violin(data, pathname, genelist, sample_size, group, split):
                 )
                 fig.append_trace(tr, ngenes - ng, 1)
                 sg += 1
-            plot_data = data.ad[:,gl].to_df().join(data.ad.obs[[group, split]])
+            plot_data = data.ad[:, gl].to_df().join(data.ad.obs[[group, split]])
 
     for ng, gene in enumerate(gl):
         if ngenes - ng == 1:
@@ -364,11 +382,11 @@ def render_plot_violin(data, pathname, genelist, sample_size, group, split):
         else:
             fig["layout"]["yaxis" + str(ngenes - ng)].update(title=gene)
 
-    fig['layout']['xaxis'+(str(ngenes) if ngenes > 1 else '')].update(title=group)
+    fig["layout"]["xaxis" + (str(ngenes) if ngenes > 1 else "")].update(title=group)
 
     fig["layout"].update(
         xaxis={"tickangle": -45},
-        plot_bgcolor='rgb(255,255,255)',
+        plot_bgcolor="rgb(255,255,255)",
         margin={"l": 50, "b": 80, "t": 10, "r": 10},
         legend={"x": 1.05, "y": 1},
         hovermode="closest",
@@ -397,11 +415,18 @@ def render_plot_dot(data, pathname, genelist, group, split):
     ngenes = len(gl)
 
     def my_agg(x):
-        return pd.DataFrame([x.mean(), (x > 0).mean()], index=["expression", "pct_cells"])
+        return pd.DataFrame(
+            [x.mean(), (x > 0).mean()], index=["expression", "pct_cells"]
+        )
 
     if split is None:
         plot_data = (
-            data.ad[:,gl].to_df().join(data.ad.obs[group]).groupby(group).apply(my_agg).unstack(level=1)
+            data.ad[:, gl]
+            .to_df()
+            .join(data.ad.obs[group])
+            .groupby(group)
+            .apply(my_agg)
+            .unstack(level=1)
         )
         means = plot_data.xs("expression", axis=1, level=1).values
         sizes = plot_data.xs("pct_cells", axis=1, level=1).values
@@ -438,7 +463,11 @@ def render_plot_dot(data, pathname, genelist, group, split):
                 x=[None],
                 y=[None],
                 mode="markers",
-                marker={"size": 20, "color": colors.my_gradients[0][c][1], "symbol": "square"},
+                marker={
+                    "size": 20,
+                    "color": colors.my_gradients[0][c][1],
+                    "symbol": "square",
+                },
                 name=p,
                 legendgroup="color",
                 showlegend=True,
@@ -472,9 +501,12 @@ def render_plot_dot(data, pathname, genelist, group, split):
         nsplit = len(splitvals)
         traces = []
         # fix bug in pandas groupby when having more than one grouping variable
-        ii=pd.MultiIndex.from_arrays(pd.core.reshape.util.cartesian_product([groupvals,splitvals]))
+        ii = pd.MultiIndex.from_arrays(
+            pd.core.reshape.util.cartesian_product([groupvals, splitvals])
+        )
         plot_data = (
-            data.ad[:,gl].to_df()
+            data.ad[:, gl]
+            .to_df()
             .join(data.ad.obs[[group, split]])
             .groupby([group, split])
             .apply(my_agg)
@@ -483,8 +515,16 @@ def render_plot_dot(data, pathname, genelist, group, split):
             .fillna(0)
         )
         for n, sv in enumerate(splitvals):
-            means = plot_data.xs("expression", axis=1, level=1).xs(sv, axis=0, level=1).values
-            sizes = plot_data.xs("pct_cells", axis=1, level=1).xs(sv, axis=0, level=1).values
+            means = (
+                plot_data.xs("expression", axis=1, level=1)
+                .xs(sv, axis=0, level=1)
+                .values
+            )
+            sizes = (
+                plot_data.xs("pct_cells", axis=1, level=1)
+                .xs(sv, axis=0, level=1)
+                .values
+            )
             xv, yv = np.meshgrid(np.arange(ngenes), (nsplit + 1) * np.arange(ngroup))
             tr = go.Scatter(
                 x=xv.ravel(),
@@ -518,7 +558,11 @@ def render_plot_dot(data, pathname, genelist, group, split):
                 x=[None],
                 y=[None],
                 mode="markers",
-                marker={"size": 20, "symbol": "square", "color": colors.my_gradients[-1][c][1]},
+                marker={
+                    "size": 20,
+                    "symbol": "square",
+                    "color": colors.my_gradients[-1][c][1],
+                },
                 name=p,
                 legendgroup="color",
                 showlegend=True,
@@ -530,7 +574,11 @@ def render_plot_dot(data, pathname, genelist, group, split):
                 x=[None],
                 y=[None],
                 mode="markers",
-                marker={"size": 20, "symbol": "square", "color": colors.my_gradients[n][1][1]},
+                marker={
+                    "size": 20,
+                    "symbol": "square",
+                    "color": colors.my_gradients[n][1][1],
+                },
                 name=sv,
                 legendgroup="split",
                 showlegend=True,
@@ -558,7 +606,7 @@ def render_plot_dot(data, pathname, genelist, group, split):
             showlegend=True,
             hovermode="closest",
             height=settings.PLOT_HEIGHT,
-            plot_bgcolor='rgb(255,255,255)',
+            plot_bgcolor="rgb(255,255,255)",
         )
 
     csv_string = "data:text/csv;charset=utf-8," + urllib.parse.quote(

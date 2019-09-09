@@ -78,7 +78,9 @@ def glob_data_sets(url):
         curr_fs = data.make_fs(url)
         for match in curr_fs.glob("*.h5ad"):
             match_path = fs.path.basename(match.path)
-            logger.info("Found data set %s at %s" % (match_path, data.redacted_urlunparse(url)))
+            logger.info(
+                "Found data set %s at %s" % (match_path, data.redacted_urlunparse(url))
+            )
             result.append(url._replace(path=fs.path.join(url.path, match.path[1:])))
     elif url.scheme == "s3":
         anon = url.username is None and url.password is None
@@ -100,7 +102,9 @@ def glob_data_sets(url):
             collection = irods_session.collections.get(url.path)
             for data_obj in collection.data_objects:
                 if data_obj.name.endswith(".h5ad"):
-                    result.append(url._replace(path=fs.path.join(url.path, data_obj.name)))
+                    result.append(
+                        url._replace(path=fs.path.join(url.path, data_obj.name))
+                    )
     else:
         raise ScelVisException("Invalid URL scheme: %s" % url.scheme)
     return result
@@ -124,7 +128,10 @@ def load_all_metadata():
 
     for url in settings.DATA_SOURCES:
         if url.path.endswith(".h5ad"):
-            logger.info("Loading single dataset from data source %s", data.redacted_urlunparse(url))
+            logger.info(
+                "Loading single dataset from data source %s",
+                data.redacted_urlunparse(url),
+            )
             identifier = fs.path.basename(url.path)[: -len(".h5ad")]
             result.append(_load_data_cached(url, identifier).metadata)
         else:
@@ -136,7 +143,8 @@ def load_all_metadata():
                 logger.info("Loaded %d data sets from data directory.", len(lst))
             else:
                 logger.warn(
-                    "No data sets found in data directory %s", data.redacted_urlunparse(url)
+                    "No data sets found in data directory %s",
+                    data.redacted_urlunparse(url),
                 )
             result += lst
     return result
@@ -157,7 +165,8 @@ def load_data(identifier):
             else:
                 if does_exist(url, identifier + ".h5ad"):
                     return _load_data_cached(
-                        url._replace(path=fs.path.join(url.path, identifier + ".h5ad")), identifier
+                        url._replace(path=fs.path.join(url.path, identifier + ".h5ad")),
+                        identifier,
                     )
 
 
