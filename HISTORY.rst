@@ -2,9 +2,9 @@
 History
 =======
 
-----------------
-HEAD (unreleased)
-----------------
+------
+v0.5.0
+------
 
 - upgrades to Dash v1
 - fixes to UI, upload and conversion
