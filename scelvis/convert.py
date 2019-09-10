@@ -1,6 +1,4 @@
 """Conversion from single-cell pipeline output to SCelVis HDF5 files.
-
-Currently, only conversion from the Cell-Ranger is supported.
 """
 
 import contextlib
@@ -10,7 +8,8 @@ import typing
 
 import anndata
 import attr
-import scanpy.api as sc
+import scanpy as sc
+import scipy.sparse
 import pandas as pd
 from logzero import logger
 
@@ -284,7 +283,7 @@ class TextConverter:
         DGE = pd.read_csv(expression_file, header=0, index_col=0, sep="\t")
         logger.info("Combining data")
         ad = sc.AnnData(
-            X=DGE.values.T,
+            X=scipy.sparse.csr_matrix(DGE.values.T),
             obs=pd.concat([coords.loc[DGE.columns], annotation.loc[DGE.columns]], axis=1),
             var=pd.DataFrame([], index=DGE.index),
         )

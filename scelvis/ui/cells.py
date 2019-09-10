@@ -6,7 +6,7 @@ import dash_bootstrap_components as dbc
 import dash_core_components as dcc
 import dash_html_components as html
 import plotly.graph_objs as go
-import plotly.tools as tools
+import plotly.subplots as subplots
 
 from .. import settings
 from . import colors, common
@@ -21,18 +21,18 @@ def render_controls_scatter(data):
                 dcc.Dropdown(
                     id="meta_scatter_select_x",
                     options=[{"label": c, "value": c} for c in data.numerical_meta],
-                    value=data.meta.columns[0],
+                    value=data.numerical_meta[0],
                 ),
                 html.Label("select y axis"),
                 dcc.Dropdown(
                     id="meta_scatter_select_y",
                     options=[{"label": c, "value": c} for c in data.numerical_meta],
-                    value=data.meta.columns[1],
+                    value=data.numerical_meta[1],
                 ),
                 html.Label("select coloring"),
                 dcc.Dropdown(
                     id="meta_scatter_select_color",
-                    options=[{"label": c, "value": c} for c in data.meta.columns],
+                    options=[{"label": c, "value": c} for c in data.ad.obs.columns],
                     value=data.categorical_meta[0],
                 ),
             ],
@@ -97,18 +97,10 @@ def render_controls_bars(data):
                 dcc.Checklist(
                     id="meta_bar_options",
                     options=[
-                        {
-                            "label": "normalized",
-                            "value": "normalized",
-                            "title": "plot fractions instead of cell numbers",
-                        },
-                        {
-                            "label": "stacked",
-                            "value": "stacked",
-                            "title": "stack bars instead of side-by-side",
-                        },
+                        {"label": "normalized", "value": "normalized"},
+                        {"label": "stacked", "value": "stacked"},
                     ],
-                    values=[],
+                    value=[],
                 ),
             ],
             title=(
@@ -167,13 +159,14 @@ def render(data):
 
 def render_plot_scatter(data, xc, yc, col, sample_size):
     """Render the scatter plot figure."""
+
     if xc is None or yc is None or col is None:
         return {}, "", True
 
     if sample_size != "all":
-        meta_here = data.meta.sample(n=sample_size)
+        meta_here = data.ad.obs.sample(n=sample_size)
     else:
-        meta_here = data.meta
+        meta_here = data.ad.obs
 
     if col in data.categorical_meta:
         # select color palette
@@ -199,22 +192,6 @@ def render_plot_scatter(data, xc, yc, col, sample_size):
                     name=cv,
                 )
             )
-            # extra trace for legend with bigger marker
-    #            traces.append(
-    #                go.Scatter(
-    #                    x=[None],
-    #                    y=[None],
-    #                    mode="markers",
-    #                    marker={
-    #                        "size": 20,
-    #                        "color": cm[n % 40],
-    #                        "line": {"width": 0.1, "color": "gray"},
-    #                    },
-    #                    showlegend=True,
-    #                    visible="legendonly",
-    #                    name=cv,
-    #                )
-    #            )
     else:
         # for numerical data, plot scatter all at once
         traces = [
@@ -235,7 +212,7 @@ def render_plot_scatter(data, xc, yc, col, sample_size):
             )
         ]
 
-    plot_data = data.meta[[xc, yc, col]]
+    plot_data = data.ad.obs[[xc, yc, col]]
     csv_string = "data:text/csv;charset=utf-8," + urllib.parse.quote(
         plot_data.to_csv(index=True, header=True, encoding="utf-8")
     )
@@ -247,6 +224,7 @@ def render_plot_scatter(data, xc, yc, col, sample_size):
             yaxis={"title": yc},
             margin={"l": 40, "b": 40, "t": 10, "r": 10},
             legend={"x": 1.05, "y": 1},
+            plot_bgcolor="rgb(255,255,255)",
             hovermode="closest",
             height=settings.PLOT_HEIGHT,
         ),
@@ -256,13 +234,14 @@ def render_plot_scatter(data, xc, yc, col, sample_size):
 
 def render_plot_violin(data, variables, group, split, sample_size):
     """Render the violin plot figure."""
-    if variables is None or len(variables) == 0:
+
+    if variables is None or len(variables) == 0 or group is None:
         return {}, "", True
 
     if sample_size != "all":
-        meta_here = data.meta.sample(n=sample_size)
+        meta_here = data.ad.obssample(n=sample_size)
     else:
-        meta_here = data.meta
+        meta_here = data.ad.obs
 
     # select color palette
     if split is None:
@@ -274,7 +253,7 @@ def render_plot_violin(data, variables, group, split, sample_size):
 
     nvar = len(variables)
 
-    fig = tools.make_subplots(
+    fig = subplots.make_subplots(
         rows=nvar,
         cols=1,
         specs=[[{}] for var in variables],
@@ -300,7 +279,7 @@ def render_plot_violin(data, variables, group, split, sample_size):
                 )
                 fig.append_trace(tr, nvar - nv, 1)
                 sg += 1
-            plot_data = data.meta[variables + [group]]
+            plot_data = data.ad.obs[variables + [group]]
         else:
             for n, sv in enumerate(splitvals):
                 y = meta_here[meta_here[split] == sv][var]
@@ -319,7 +298,7 @@ def render_plot_violin(data, variables, group, split, sample_size):
                 )
                 fig.append_trace(tr, nvar - nv, 1)
                 sg += 1
-            plot_data = data.meta[variables + [group, split]]
+            plot_data = data.ad.obs[variables + [group, split]]
 
     for nv, var in enumerate(variables):
         if len(variables) - nv == 1:
@@ -332,6 +311,7 @@ def render_plot_violin(data, variables, group, split, sample_size):
         margin={"l": 50, "b": 80, "t": 10, "r": 10},
         legend={"x": 1.05, "y": 1},
         hovermode="closest",
+        plot_bgcolor="rgb(255,255,255)",
         height=settings.PLOT_HEIGHT,
     )
 
@@ -351,10 +331,13 @@ def render_plot_bars(data, group, split, options):
     if group is None:
         return {}, "", True
 
+    if options is None:
+        options = []
+
     if split is None:
-        groupvals = data.meta[group].unique()
+        groupvals = data.ad.obs[group].unique()
         cm = colors.get_cm(groupvals)
-        tally = data.meta.groupby(group).size()
+        tally = data.ad.obs.groupby(group).size()
         if "normalized" in options:
             tally = tally.divide(tally.sum())
         traces = []
@@ -368,10 +351,10 @@ def render_plot_bars(data, group, split, options):
             traces.append(tr)
 
     else:
-        splitvals = data.meta[split].cat.categories
+        splitvals = data.ad.obs[split].cat.categories
         cm = colors.get_cm(splitvals)
 
-        tally = data.meta.groupby([group, split]).size()
+        tally = data.ad.obs.groupby([group, split]).size()
         if "normalized" in options:
             tally = tally.divide(tally.sum(level=0).astype(float), level=0)
         traces = []
@@ -392,6 +375,7 @@ def render_plot_bars(data, group, split, options):
             yaxis={"title": "cell frequency" if "normalized" in options else "cell number"},
             margin={"l": 50, "b": 100, "t": 10, "r": 10},
             legend={"x": 1.05, "y": 1},
+            plot_bgcolor="rgb(255,255,255)",
             hovermode="closest",
             height=settings.PLOT_HEIGHT,
         ),

@@ -1,13 +1,12 @@
 # Base requirements
 
 # Dash and friends.
-# NOTE: we need dash <1.0 (v0.4.3)
-dash <1.0
-dash-renderer <1.0
-dash-html-components <1.0
-dash-core-components <1.0
+dash[testing]
+dash-renderer 
+dash-html-components 
+dash-core-components 
 dash-bootstrap-components
-dash_table ==3.7.0
+dash_table 
 plotly
 
 # Numpy, Pandas and friends.

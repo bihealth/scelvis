@@ -6,18 +6,14 @@ any component building itself.  Instead, this is done in the module ``.ui``.
 
 import base64
 import os.path
-import shutil
-import tempfile
 import uuid
 
-import fs
 import dash
 import dash_html_components as html
 from logzero import logger
 from werkzeug.utils import secure_filename
 
 from . import ui, settings, store
-from .exceptions import ScelVisException
 from .ui import cells, common, genes
 
 
@@ -193,25 +189,11 @@ def register_update_cell_bar_chart_params(app):
     )
     def toggle_meta_bar_options(split):
         if split is None:
-            return [
-                {
-                    "label": "normalized",
-                    "value": "normalized",
-                    "title": "plot fractions instead of cell numbers",
-                }
-            ]
+            return [{"label": "normalized", "value": "normalized"}]
         else:
             return [
-                {
-                    "label": "normalized",
-                    "value": "normalized",
-                    "title": "plot fractions instead of cell numbers",
-                },
-                {
-                    "label": "stacked",
-                    "value": "stacked",
-                    "title": "stack bars instead of side-by-side",
-                },
+                {"label": "normalized", "value": "normalized"},
+                {"label": "stacked", "value": "stacked"},
             ]
 
     @app.callback(
@@ -224,7 +206,7 @@ def register_update_cell_bar_chart_params(app):
             dash.dependencies.Input("url", "pathname"),
             dash.dependencies.Input("meta_bar_select_group", "value"),
             dash.dependencies.Input("meta_bar_select_split", "value"),
-            dash.dependencies.Input("meta_bar_options", "values"),
+            dash.dependencies.Input("meta_bar_options", "value"),
         ],
     )
     def get_meta_plot_bars(pathname, group, split, options):
@@ -271,7 +253,7 @@ def register_select_gene_marker_list(app):
         dash.dependencies.Output("expression_marker_list", "children"),
         [
             dash.dependencies.Input("url", "pathname"),
-            dash.dependencies.Input("expression_toggle_marker_list", "values"),
+            dash.dependencies.Input("expression_toggle_marker_list", "value"),
         ],
     )
     def toggle_marker_list(pathname, values):
@@ -287,7 +269,7 @@ def register_select_gene_marker_list(app):
         ],
         [
             dash.dependencies.State("marker_list", "selected_rows"),
-            dash.dependencies.State("expression_toggle_marker_list", "values"),
+            dash.dependencies.State("expression_toggle_marker_list", "value"),
         ],
     )
     def update_gene_selection(pathname, n_clicks, rows, values):
@@ -373,7 +355,6 @@ def register_file_upload(app):
     logger.info("-> file_upload")
 
     # TODO: move main handler into "upload" module?
-    # TODO: upload still assumes about.md file; broken
     @app.callback(
         dash.dependencies.Output("url", "pathname"),
         [dash.dependencies.Input("file-upload", "contents")],
@@ -385,48 +366,10 @@ def register_file_upload(app):
         _content_type, content_string = contents.split(",")
         data_uuid = str(uuid.uuid4())
         logger.info("Data will have UUID %s", data_uuid)
-        with tempfile.TemporaryDirectory() as tmpdir:
-            logger.info("Using temporary directory %s", tmpdir)
-            # Create UUID directory to be moved later.
-            uuid_path = os.path.join(tmpdir, data_uuid)
-            os.makedirs(uuid_path)
-            # Decode base64 string and write out to temporary file.
-            filepath = os.path.join(tmpdir, filename)
-            with open(filepath, "wb") as tmpf:
-                tmpf.write(base64.b64decode(content_string))
-            # Try to open archive with PyFilesystem2
-            if filename.endswith(".zip"):
-                protocol = "zip"
-            elif filename.endswith(".tar") or filename.endswith(".tar.gz"):
-                protocol = "tar"
-            else:
-                raise ScelVisException(
-                    "Does not have one of the valid extensions .zip, .tar, or .tar.gz: %s"
-                    % filename
-                )
-            # Extract the files (up to a maximal size) from archive.
-            with fs.open_fs("%s://%s" % (protocol, filepath)) as archive_fs:
-                for path in archive_fs.walk(filter=["about.md"]):
-                    if path.files:
-                        base_path = path.path
-                        break
-                else:
-                    raise ScelVisException("Could not find about.md in %s" % filename)
-                # Extract about.md and data.h5ad.
-                for fname, max_size in (
-                    ("about.md", settings.MAX_UPLOAD_TEXT_SIZE),
-                    ("data.h5ad", settings.MAX_UPLOAD_DATA_SIZE),
-                ):
-                    path_inf = os.path.join(base_path, fname)
-                    path_outf = os.path.join(uuid_path, fname)
-                    logger.info(
-                        "Extracting %s from %s://%s to %s", path_inf, protocol, filepath, path_outf
-                    )
-                    with archive_fs.open(path_inf, "rb") as inf:
-                        with open(path_outf, "wb") as outf:
-                            shutil.copyfileobj(inf, outf, length=max_size)
-            # Move into upload directory.
-            dest_path = os.path.join(settings.UPLOAD_DIR, data_uuid)
-            shutil.move(uuid_path, dest_path)
-            # Redirect to view the data set.
-            return "/dash/viz/%s" % data_uuid
+        # Decode base64 string and write out to final file.
+        filepath = os.path.join(settings.UPLOAD_DIR, "%s.h5ad" % data_uuid)
+        logger.info("Writing to %s", filepath)
+        with open(filepath, "wb") as tmpf:
+            tmpf.write(base64.b64decode(content_string))
+        # Redirect to view the data set.
+        return "/dash/viz/%s" % data_uuid

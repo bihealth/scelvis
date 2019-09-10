@@ -2,6 +2,14 @@
 History
 =======
 
+----------------
+HEAD (unreleased)
+----------------
+
+- upgrades to Dash v1
+- fixes to UI, upload and conversion
+- avoid creation of dense matrices
+
 ------
 v0.4.1
 ------

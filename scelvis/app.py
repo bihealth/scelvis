@@ -6,6 +6,7 @@ this module is imported, the values in ``.settings`` must already have been setu
 
 import os.path
 import os
+import re
 import tempfile
 import tarfile
 import zipfile
@@ -120,17 +121,23 @@ def convert_route():
                     zipf.extractall(tmpdir)
             elif filepath.endswith(".tar") or filepath.endswith(".tar.gz"):
                 logger.info("Extracting TAR file %s to %s", filepath, tmpdir)
-                with tarfile.TarFile(filepath) as tarf:
+                with tarfile.open(filepath) as tarf:
                     tarf.extractall(tmpdir)
             else:
                 raise ScelVisException(
                     "Does not have one of the valid extensions .zip, .tar, or .tar.gz: %s"
                     % filepath
                 )
-            needle = "filtered_feature_bc_matrix.h5"
-            logger.info("Looking for %s file", needle)
-            needle_path = find(needle, tmpdir)
-            # TODO: properly handle not found
+            cellranger_needle = "filtered_feature_bc_matrix.h5"
+            logger.info("Looking for %s file", cellranger_needle)
+            needle_path = find(cellranger_needle, tmpdir)
+            if needle_path is None:
+                raw_needle = "coords.tsv"
+                logger.info("Looking for %s file", raw_needle)
+                needle_path = find(raw_needle, tmpdir)
+                format_ = "text"
+            else:
+                format_ = "cell-ranger"
             input_dir = os.path.dirname(needle_path)
             logger.info("Starting conversion...")
             with tempfile.TemporaryDirectory() as tmpdir2:
@@ -147,9 +154,13 @@ def convert_route():
                             print("short_title: %s" % short_title, file=aboutf)
                         print("----", file=aboutf)
                     print(description or "No description", file=aboutf)
-                out_file = os.path.join(tmpdir2, filename + ".h5ad")
+                out_file = os.path.join(tmpdir2, re.sub(".zip|.tar.gz|.tar", ".h5ad", filename))
                 logger.info("Performing conversion (%s)", out_file)
-                convert.run(convert.Config(indir=input_dir, about_md=about_md, out_file=out_file))
+                convert.run(
+                    convert.Config(
+                        indir=input_dir, about_md=about_md, out_file=out_file, format=format_
+                    )
+                )
                 logger.info("Sending file to the user")
                 return helpers.send_file(
                     out_file, mimetype="application/binary", as_attachment=True
