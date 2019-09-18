@@ -5,6 +5,7 @@ import contextlib
 import logging
 import os
 import typing
+import json
 
 import anndata
 import attr
@@ -86,6 +87,8 @@ class CellRangerConverter:
 
         if self.args.split_species:
             ad = CellRangerConverter._split_species(ad)
+        if self.args.split_samples:
+            ad = self._split_samples(ad)
         if not self.args.use_raw:
             ad = CellRangerConverter._normalize_filter_dge(ad)
 
@@ -197,6 +200,18 @@ class CellRangerConverter:
         ratio = ad.obs[cols].divide(ad.obs[cols].sum(axis=1), axis=0)
         ad.obs["species"] = (ratio > 0.95).idxmax(axis=1).str.split("_").str[1]
         ad.obs["species"][ratio.max(axis=1) < 0.95] = "doublet"
+        return ad
+
+    def _split_samples(self, ad):
+        logger.info("splitting samples")
+        samples = ad.obs_names.str.rsplit("-", n=1).str[1]
+        summary_json = os.path.join(self.args.indir, "summary.json")
+        if not os.path.isfile(summary_json):
+            raise ScelVisException("could not find summary.json")
+        with open(summary_json) as json_file:
+            batches = json.load(json_file)["batches"]
+        sample_table = pd.Series(batches, index=map(str, range(1, len(batches) + 1)))
+        ad.obs["sample"] = sample_table.loc[samples].values
         return ad
 
     def _normalize_filter_dge(ad):
@@ -314,6 +329,8 @@ class Config:
     nmarkers: int = 10
     #: Whether to split by species.
     split_species: bool = False
+    #: Whether to split by sample
+    split_samples: bool = False
     #: The format to use for conversion.
     format: str = "auto"
     #: Use raw signal.
@@ -372,6 +389,13 @@ def setup_argparse(parser):
         default=False,
         action="store_true",
         help="Split species",
+    )
+    parser.add_argument(
+        "--split-samples",
+        dest="split_samples",
+        default=False,
+        action="store_true",
+        help="""split samples according to summary.json file produced by cellranger aggr""",
     )
     parser.add_argument(
         "--nmarkers",

@@ -17,6 +17,7 @@ def config_no_about_md(tmp_path):
         out_file=str(outdir / "out.h5ad"),
         about_md=None,
         split_species=True,
+        split_samples=False,
         use_raw=False,
     )
 
@@ -43,6 +44,7 @@ def config_with_about_md(tmp_path):
         out_file=str(outdir / "out.h5ad"),
         about_md=str(tmp_path / "about.md"),
         split_species=True,
+        split_samples=False,
         use_raw=False,
     )
 
