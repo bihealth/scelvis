@@ -1,6 +1,7 @@
 """Rendering of common Dash components."""
 
 import dash_core_components as dcc
+import dash_bootstrap_components as dbc
 import dash_html_components as html
 
 from ..exceptions import ScelVisException
@@ -13,8 +14,7 @@ def render_plot(data_type, plot_type):
     elif data_type not in ("expression", "meta"):
         raise ScelVisException("Invalid data type: %s" % data_type)
     else:
-        return (
-            [
+        return [
                 dcc.Graph(id="%s_%s_plot" % (data_type, plot_type)),
                 html.A(
                     children=[
@@ -27,9 +27,7 @@ def render_plot(data_type, plot_type):
                     hidden=True,
                     target="_blank",
                 ),
-            ],
-            plot_type != "scatter",
-        )
+        ]
 
 
 def render_subsampling_dropdown(data, token):
@@ -49,3 +47,71 @@ def render_subsampling_dropdown(data, token):
         ],
         title="Use random sample of cells for faster rendering.",
     )
+
+def render_filter_cells_collapse (data, token):
+
+    return html.Div(
+        [
+            dbc.Button(
+                "filter cells",
+                id="%s_filter_cells_button" % token,
+                className='mb-3',
+                color='secondary',
+            ),
+            dbc.Collapse(
+                dbc.Card(dbc.CardBody(render_filter_cells_controls(data,token))),
+                id="%s_filter_cells_collapse" % token,
+            ),
+        ]
+    )
+
+def render_filter_cells_controls (data, token):
+
+    output = [
+        html.Div(
+            [
+                html.Label("filter cells by "),
+                dcc.Dropdown(
+                    id="%s_filter_cells_attribute" % token,
+                    options=[{"label": c, "value": c} for c in data.categorical_meta],
+                    value="None",
+                    multi=True,
+                ),
+            ],
+            title=("choose attribute by which to filter cells"),
+        ),
+    ]
+    for attribute in data.categorical_meta:
+        output.append(
+            dcc.Checklist(
+                id = "%s_filter_cells_%s" % (token, attribute),
+                options = [
+                    {"label": c, "value": c} for c in data.ad.obs[attribute].cat.categories
+                    ],
+                value=data.ad.obs[attribute].cat.categories,
+                className="mt-2",
+                inputClassName="mr-1",
+                style = {"display": "none"},
+                )
+            )
+
+    return output
+
+def render_filter_cells_choices (data, token):
+
+    return [
+        html.Div(
+            [
+                html.Label("filter cells by "),
+                dcc.Dropdown(
+                    id="%s_filter_cells_attribute" % token,
+                    options=[{"label": c, "value": c} for c in data.ad.obs_keys()],
+                    value="None",
+                ),
+            ],
+            title=("choose attribute by which to filter cells"),
+        ),
+        # Placeholder for the attribute-specific controls.
+        dcc.Loading(id="filter_select_cell_controls", type="circle")
+    ]
+

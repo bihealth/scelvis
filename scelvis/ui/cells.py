@@ -141,8 +141,8 @@ def render_controls(data):
         # Placeholder for the plot-specific controls.
         dcc.Loading(id="meta_plot_controls", type="circle"),
         html.Hr(),
-        # Control for sub-sampling of cells.
-        common.render_subsampling_dropdown(data, "meta"),
+        # Control for filtering of cells.
+        common.render_filter_cells_collapse(data, "meta"),
     ]
 
 

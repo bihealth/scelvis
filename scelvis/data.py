@@ -255,10 +255,11 @@ def load_data(data_source, identifier):
         # Extract the payload data
         coords = {}
         for k in ad.obsm.keys():
+            ndim = min(ad.obsm[k].shape[1], 3)
             coords[k] = pd.DataFrame(
-                ad.obsm[k],
+                ad.obsm[k][:,:ndim],
                 index=ad.obs.index,
-                columns=[k[2:].upper() + str(n + 1) for n in range(min(ad.obsm[k].shape[1], 3))],
+                columns=[k[2:].upper() + str(n + 1) for n in range(ndim)],
             )
         if len(coords) > 0:
             ad.obs = pd.concat(coords.values(), axis=1).join(ad.obs)

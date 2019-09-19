@@ -149,8 +149,8 @@ def render_controls(data):
             ),
         ),
         html.Hr(),
-        # Control for sub-sampling of cells.
-        common.render_subsampling_dropdown(data, "expression"),
+        # Control for filtering of cells.
+        common.render_filter_cells_collapse(data, "expression"),
     ]
 
 
@@ -291,7 +291,7 @@ def render_plot_scatter(data, xc, yc, genelist, sample_size):
     return fig, csv_string, False
 
 
-def render_plot_violin(data, pathname, genelist, sample_size, group, split):
+def render_plot_violin(data, pathname, genelist, group, split, sample_size):
 
     gl = [g for g in genelist if g in data.ad.var_names]
 

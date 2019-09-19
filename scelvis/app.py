@@ -76,6 +76,7 @@ callbacks.register_select_cell_plot_type(app)
 callbacks.register_update_cell_scatter_plot_params(app)
 callbacks.register_update_cell_violin_plot_params(app)
 callbacks.register_update_cell_bar_chart_params(app)
+callbacks.register_update_filter_cells_params(app, 'meta')
 
 # Cellbacks for the "genes" tab pane.
 callbacks.register_select_gene_plot_type(app)
@@ -83,6 +84,7 @@ callbacks.register_select_gene_marker_list(app)
 callbacks.register_select_gene_scatter_plot(app)
 callbacks.register_select_gene_violin_plot(app)
 callbacks.register_select_gene_dot_plot(app)
+callbacks.register_update_filter_cells_params(app, 'expression')
 
 # Callbacks for the file upload.
 callbacks.register_file_upload(app)

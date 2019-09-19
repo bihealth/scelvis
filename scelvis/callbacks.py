@@ -124,10 +124,7 @@ def register_select_cell_plot_type(app):
         return plots[plot_type](data)
 
     @app.callback(
-        [
-            dash.dependencies.Output("meta_plot", "children"),
-            dash.dependencies.Output("meta_select_cell_sample", "disabled"),
-        ],
+        dash.dependencies.Output("meta_plot", "children"),
         [dash.dependencies.Input("meta_plot_type", "value")],
     )
     def update_meta_plots(plot_type):
@@ -148,13 +145,13 @@ def register_update_cell_scatter_plot_params(app):
             dash.dependencies.Input("meta_scatter_select_x", "value"),
             dash.dependencies.Input("meta_scatter_select_y", "value"),
             dash.dependencies.Input("meta_scatter_select_color", "value"),
-            dash.dependencies.Input("meta_select_cell_sample", "value"),
+            #dash.dependencies.Input("meta_select_cell_sample", "value"),
         ],
     )
-    def get_meta_plot_scatter(pathname, xc, yc, col, sample_size):
+    def get_meta_plot_scatter(pathname, xc, yc, col):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
-        return cells.render_plot_scatter(data, xc, yc, col, sample_size)
+        return cells.render_plot_scatter(data, xc, yc, col, 'all')
 
 
 def register_update_cell_violin_plot_params(app):
@@ -171,13 +168,13 @@ def register_update_cell_violin_plot_params(app):
             dash.dependencies.Input("meta_violin_select_vars", "value"),
             dash.dependencies.Input("meta_violin_select_group", "value"),
             dash.dependencies.Input("meta_violin_select_split", "value"),
-            dash.dependencies.Input("meta_select_cell_sample", "value"),
+            #dash.dependencies.Input("meta_select_cell_sample", "value"),
         ],
     )
-    def get_meta_plot_violin(pathname, variables, group, split, sample_size):
+    def get_meta_plot_violin(pathname, variables, group, split):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
-        return cells.render_plot_violin(data, variables, group, split, sample_size)
+        return cells.render_plot_violin(data, variables, group, split, 'all')
 
 
 def register_update_cell_bar_chart_params(app):
@@ -214,7 +211,6 @@ def register_update_cell_bar_chart_params(app):
         data = store.load_data(kwargs.get("dataset"))
         return cells.render_plot_bars(data, group, split, options)
 
-
 def register_select_gene_plot_type(app):
     """Register callback for changing the controls on updating "Gene Expression" plot type."""
 
@@ -236,13 +232,10 @@ def register_select_gene_plot_type(app):
         return [plots[plot_type](data)]
 
     @app.callback(
-        [
-            dash.dependencies.Output("expression_plot", "children"),
-            dash.dependencies.Output("expression_select_cell_sample", "disabled"),
-        ],
+        dash.dependencies.Output("expression_plot", "children"),
         [dash.dependencies.Input("expression_plot_type", "value")],
     )
-    def update_meta_plots(plot_type):
+    def update_expression_plots(plot_type):
         return common.render_plot("expression", plot_type)
 
 
@@ -295,13 +288,13 @@ def register_select_gene_scatter_plot(app):
             dash.dependencies.Input("expression_scatter_select_x", "value"),
             dash.dependencies.Input("expression_scatter_select_y", "value"),
             dash.dependencies.Input("expression_select_genes", "value"),
-            dash.dependencies.Input("expression_select_cell_sample", "value"),
+            #dash.dependencies.Input("expression_select_cell_sample", "value"),
         ],
     )
-    def get_expression_plot_scatter(pathname, xc, yc, genelist, sample_size):
+    def get_expression_plot_scatter(pathname, xc, yc, genelist):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
-        return ui.genes.render_plot_scatter(data, xc, yc, genelist, sample_size)
+        return ui.genes.render_plot_scatter(data, xc, yc, genelist, 'all')
 
 
 def register_select_gene_violin_plot(app):
@@ -316,15 +309,15 @@ def register_select_gene_violin_plot(app):
         [
             dash.dependencies.Input("url", "pathname"),
             dash.dependencies.Input("expression_select_genes", "value"),
-            dash.dependencies.Input("expression_select_cell_sample", "value"),
+            #dash.dependencies.Input("expression_select_cell_sample", "value"),
             dash.dependencies.Input("expression_violin_select_group", "value"),
             dash.dependencies.Input("expression_violin_select_split", "value"),
         ],
     )
-    def get_expression_plot_violin(pathname, genelist, sample_size, group, split):
+    def get_expression_plot_violin(pathname, genelist, group, split):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
-        return ui.genes.render_plot_violin(data, pathname, genelist, sample_size, group, split)
+        return ui.genes.render_plot_violin(data, pathname, genelist, group, split, 'all')
 
 
 def register_select_gene_dot_plot(app):
@@ -348,6 +341,18 @@ def register_select_gene_dot_plot(app):
         data = store.load_data(kwargs.get("dataset"))
         return ui.genes.render_plot_dot(data, pathname, genelist, group, split)
 
+
+def register_update_filter_cells_params(app, token):
+
+    @app.callback(
+        dash.dependencies.Output("%s_filter_cells_collapse" % token, "is_open"),
+        [dash.dependencies.Input("%s_filter_cells_button" % token, "n_clicks")],
+        [dash.dependencies.State("%s_filter_cells_collapse" % token, "is_open")]
+    )
+    def toggle_filter_cells_collapse(n, is_open):
+        if n:
+            return not is_open
+        return is_open
 
 def register_file_upload(app):
     """Register callbacks for the file upload"""
