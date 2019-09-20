@@ -4,7 +4,10 @@ import dash_core_components as dcc
 import dash_bootstrap_components as dbc
 import dash_html_components as html
 
+import json
+
 from ..exceptions import ScelVisException
+from .. import callbacks,settings
 
 
 def render_plot(data_type, plot_type):
@@ -30,24 +33,6 @@ def render_plot(data_type, plot_type):
         ]
 
 
-def render_subsampling_dropdown(data, token):
-
-    sample_choices = [
-        {"label": g, "value": g} for g in [1000, 5000] if g < data.ad.obs.shape[0]
-    ] + [{"label": "all", "value": "all"}]
-    return html.Div(
-        [
-            html.Label("select cell sample"),
-            dcc.Dropdown(
-                id="%s_select_cell_sample" % token,
-                options=sample_choices,
-                value="all",
-                disabled=False,
-            ),
-        ],
-        title="Use random sample of cells for faster rendering.",
-    )
-
 def render_filter_cells_collapse (data, token):
 
     return html.Div(
@@ -72,46 +57,33 @@ def render_filter_cells_controls (data, token):
             [
                 html.Label("filter cells by "),
                 dcc.Dropdown(
-                    id="%s_filter_cells_attribute" % token,
-                    options=[{"label": c, "value": c} for c in data.categorical_meta],
-                    value="None",
-                    multi=True,
+                    id="%s_filter_cells_options" % token,
+                    options=[{"label": c, "value": k} for k,c in enumerate(data.categorical_meta)],
+                    value="None"
                 ),
             ],
             title=("choose attribute by which to filter cells"),
         ),
     ]
-    for attribute in data.categorical_meta:
+    choices = {}
+    for n,attribute in enumerate(data.categorical_meta):
         output.append(
             dcc.Checklist(
-                id = "%s_filter_cells_%s" % (token, attribute),
+                id = "%s_filter_cells_%i" % (token, n),
                 options = [
-                    {"label": c, "value": c} for c in data.ad.obs[attribute].cat.categories
-                    ],
-                value=data.ad.obs[attribute].cat.categories,
+                    {"label": c, "value": k} for k,c in enumerate(data.ad.obs[attribute].cat.categories)
+                ],
+                value=list(range(len(data.ad.obs[attribute].cat.categories))),
                 className="mt-2",
                 inputClassName="mr-1",
                 style = {"display": "none"},
                 )
             )
+        choices[attribute] = list(data.ad.obs[attribute].cat.categories)
+
+    output.append(html.Div(id="%s_filter_cells_choices" % token,
+                           style={"display": "block"},
+                           children=json.dumps(choices)))
 
     return output
-
-def render_filter_cells_choices (data, token):
-
-    return [
-        html.Div(
-            [
-                html.Label("filter cells by "),
-                dcc.Dropdown(
-                    id="%s_filter_cells_attribute" % token,
-                    options=[{"label": c, "value": c} for c in data.ad.obs_keys()],
-                    value="None",
-                ),
-            ],
-            title=("choose attribute by which to filter cells"),
-        ),
-        # Placeholder for the attribute-specific controls.
-        dcc.Loading(id="filter_select_cell_controls", type="circle")
-    ]
 

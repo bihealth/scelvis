@@ -5,6 +5,8 @@ import urllib.parse
 import dash_bootstrap_components as dbc
 import dash_core_components as dcc
 import dash_html_components as html
+import json
+import numpy as np
 import plotly.graph_objs as go
 import plotly.subplots as subplots
 
@@ -157,16 +159,19 @@ def render(data):
     )
 
 
-def render_plot_scatter(data, xc, yc, col, sample_size):
+def render_plot_scatter(data, xc, yc, col, choices_json):
     """Render the scatter plot figure."""
+
+    print("choices_json = %s" % choices_json)
 
     if xc is None or yc is None or col is None:
         return {}, "", True
 
-    if sample_size != "all":
-        meta_here = data.ad.obs.sample(n=sample_size)
-    else:
-        meta_here = data.ad.obs
+    take = np.zeros(data.ad.obs.shape[0],dtype=bool)
+    for col,selected in json.loads(choices_json).items():
+        print("selecting %s from col %s" % (selected, col))
+        take = take | data.ad.obs[col].isin(selected).values
+    meta_here = data.ad[take,:].obs
 
     if col in data.categorical_meta:
         # select color palette
@@ -212,7 +217,7 @@ def render_plot_scatter(data, xc, yc, col, sample_size):
             )
         ]
 
-    plot_data = data.ad.obs[[xc, yc, col]]
+    plot_data = meta_here[[xc, yc, col]]
     csv_string = "data:text/csv;charset=utf-8," + urllib.parse.quote(
         plot_data.to_csv(index=True, header=True, encoding="utf-8")
     )
@@ -232,16 +237,16 @@ def render_plot_scatter(data, xc, yc, col, sample_size):
     return fig, csv_string, False
 
 
-def render_plot_violin(data, variables, group, split, sample_size):
+def render_plot_violin(data, variables, group, split, choices_json):
     """Render the violin plot figure."""
 
     if variables is None or len(variables) == 0 or group is None:
         return {}, "", True
 
-    if sample_size != "all":
-        meta_here = data.ad.obssample(n=sample_size)
-    else:
-        meta_here = data.ad.obs
+    take = np.zeros(data.ad.obs.shape[0],dtype=bool)
+    for col,selected in json.loads(choices_json).items():
+        take = take | data.ad.obs[col].isin(selected).values
+    meta_here = data.ad[take,:].obs
 
     # select color palette
     if split is None:
@@ -279,7 +284,7 @@ def render_plot_violin(data, variables, group, split, sample_size):
                 )
                 fig.append_trace(tr, nvar - nv, 1)
                 sg += 1
-            plot_data = data.ad.obs[variables + [group]]
+            plot_data = meta_here[variables + [group]]
         else:
             for n, sv in enumerate(splitvals):
                 y = meta_here[meta_here[split] == sv][var]
@@ -298,7 +303,7 @@ def render_plot_violin(data, variables, group, split, sample_size):
                 )
                 fig.append_trace(tr, nvar - nv, 1)
                 sg += 1
-            plot_data = data.ad.obs[variables + [group, split]]
+            plot_data = meta_here[variables + [group, split]]
 
     for nv, var in enumerate(variables):
         if len(variables) - nv == 1:
@@ -325,7 +330,7 @@ def render_plot_violin(data, variables, group, split, sample_size):
     return fig, csv_string, False
 
 
-def render_plot_bars(data, group, split, options):
+def render_plot_bars(data, group, split, options, choices_json):
     """render the bar chart plot."""
 
     if group is None:
@@ -334,10 +339,15 @@ def render_plot_bars(data, group, split, options):
     if options is None:
         options = []
 
+    take = np.zeros(data.ad.obs.shape[0],dtype=bool)
+    for col,selected in json.loads(choices_json).items():
+        take = take | data.ad.obs[col].isin(selected).values
+    meta_here = data.ad[take,:].obs
+        
     if split is None:
-        groupvals = data.ad.obs[group].unique()
+        groupvals = meta_here[group].unique()
         cm = colors.get_cm(groupvals)
-        tally = data.ad.obs.groupby(group).size()
+        tally = meta_here.groupby(group).size()
         if "normalized" in options:
             tally = tally.divide(tally.sum())
         traces = []
@@ -351,10 +361,10 @@ def render_plot_bars(data, group, split, options):
             traces.append(tr)
 
     else:
-        splitvals = data.ad.obs[split].cat.categories
+        splitvals = meta_here[split].cat.categories
         cm = colors.get_cm(splitvals)
 
-        tally = data.ad.obs.groupby([group, split]).size()
+        tally = meta_here.groupby([group, split]).size()
         if "normalized" in options:
             tally = tally.divide(tally.sum(level=0).astype(float), level=0)
         traces = []

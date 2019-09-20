@@ -77,6 +77,10 @@ callbacks.register_update_cell_scatter_plot_params(app)
 callbacks.register_update_cell_violin_plot_params(app)
 callbacks.register_update_cell_bar_chart_params(app)
 callbacks.register_update_filter_cells_params(app, 'meta')
+# ugly hack for registering up to 10 callbacks for options that depend on unknown columns in data set
+for k in range(10):
+    callbacks.register_update_filter_cells_controls(app, 'meta', k)
+callbacks.register_update_filter_cells_choices(app, 'meta')
 
 # Cellbacks for the "genes" tab pane.
 callbacks.register_select_gene_plot_type(app)
@@ -85,6 +89,10 @@ callbacks.register_select_gene_scatter_plot(app)
 callbacks.register_select_gene_violin_plot(app)
 callbacks.register_select_gene_dot_plot(app)
 callbacks.register_update_filter_cells_params(app, 'expression')
+# ugly hack for registering up to 10 callbacks for options that depend on unknown columns in data set
+for k in range(10):
+    callbacks.register_update_filter_cells_controls(app, 'expression', k)
+callbacks.register_update_filter_cells_choices(app, 'expression')
 
 # Callbacks for the file upload.
 callbacks.register_file_upload(app)

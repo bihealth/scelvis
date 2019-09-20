@@ -10,11 +10,11 @@ import uuid
 
 import dash
 import dash_html_components as html
+import json
 from logzero import logger
 from werkzeug.utils import secure_filename
 
 from . import ui, settings, store
-from .ui import cells, common, genes
 
 
 def get_route(pathname):
@@ -117,9 +117,9 @@ def register_select_cell_plot_type(app):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
         plots = {
-            "scatter": cells.render_controls_scatter,
-            "violin": cells.render_controls_violin,
-            "bar": cells.render_controls_bars,
+            "scatter": ui.cells.render_controls_scatter,
+            "violin": ui.cells.render_controls_violin,
+            "bar": ui.cells.render_controls_bars,
         }
         return plots[plot_type](data)
 
@@ -128,7 +128,7 @@ def register_select_cell_plot_type(app):
         [dash.dependencies.Input("meta_plot_type", "value")],
     )
     def update_meta_plots(plot_type):
-        return common.render_plot("meta", plot_type)
+        return ui.common.render_plot("meta", plot_type)
 
 
 def register_update_cell_scatter_plot_params(app):
@@ -145,13 +145,13 @@ def register_update_cell_scatter_plot_params(app):
             dash.dependencies.Input("meta_scatter_select_x", "value"),
             dash.dependencies.Input("meta_scatter_select_y", "value"),
             dash.dependencies.Input("meta_scatter_select_color", "value"),
-            #dash.dependencies.Input("meta_select_cell_sample", "value"),
+            dash.dependencies.Input("meta_filter_cells_choices", "children"),
         ],
     )
-    def get_meta_plot_scatter(pathname, xc, yc, col):
+    def get_meta_plot_scatter(pathname, xc, yc, col, choices_json):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
-        return cells.render_plot_scatter(data, xc, yc, col, 'all')
+        return ui.cells.render_plot_scatter(data, xc, yc, col, choices_json)
 
 
 def register_update_cell_violin_plot_params(app):
@@ -168,13 +168,13 @@ def register_update_cell_violin_plot_params(app):
             dash.dependencies.Input("meta_violin_select_vars", "value"),
             dash.dependencies.Input("meta_violin_select_group", "value"),
             dash.dependencies.Input("meta_violin_select_split", "value"),
-            #dash.dependencies.Input("meta_select_cell_sample", "value"),
+            dash.dependencies.Input("meta_filter_cells_choices", "children"),
         ],
     )
-    def get_meta_plot_violin(pathname, variables, group, split):
+    def get_meta_plot_violin(pathname, variables, group, split, choices_json):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
-        return cells.render_plot_violin(data, variables, group, split, 'all')
+        return ui.cells.render_plot_violin(data, variables, group, split, choices_json)
 
 
 def register_update_cell_bar_chart_params(app):
@@ -204,12 +204,13 @@ def register_update_cell_bar_chart_params(app):
             dash.dependencies.Input("meta_bar_select_group", "value"),
             dash.dependencies.Input("meta_bar_select_split", "value"),
             dash.dependencies.Input("meta_bar_options", "value"),
+            dash.dependencies.Input("meta_filter_cells_choices", "children"),
         ],
     )
-    def get_meta_plot_bars(pathname, group, split, options):
+    def get_meta_plot_bars(pathname, group, split, options, choices_json):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
-        return cells.render_plot_bars(data, group, split, options)
+        return ui.cells.render_plot_bars(data, group, split, options, choices_json)
 
 def register_select_gene_plot_type(app):
     """Register callback for changing the controls on updating "Gene Expression" plot type."""
@@ -225,9 +226,9 @@ def register_select_gene_plot_type(app):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
         plots = {
-            "scatter": genes.render_controls_scatter,
-            "violin": genes.render_controls_violin,
-            "dot": genes.render_controls_dot,
+            "scatter": ui.genes.render_controls_scatter,
+            "violin": ui.genes.render_controls_violin,
+            "dot": ui.genes.render_controls_dot,
         }
         return [plots[plot_type](data)]
 
@@ -236,7 +237,7 @@ def register_select_gene_plot_type(app):
         [dash.dependencies.Input("expression_plot_type", "value")],
     )
     def update_expression_plots(plot_type):
-        return common.render_plot("expression", plot_type)
+        return ui.common.render_plot("expression", plot_type)
 
 
 def register_select_gene_marker_list(app):
@@ -288,13 +289,13 @@ def register_select_gene_scatter_plot(app):
             dash.dependencies.Input("expression_scatter_select_x", "value"),
             dash.dependencies.Input("expression_scatter_select_y", "value"),
             dash.dependencies.Input("expression_select_genes", "value"),
-            #dash.dependencies.Input("expression_select_cell_sample", "value"),
+            dash.dependencies.Input("expression_filter_cells_choices", "children"),
         ],
     )
-    def get_expression_plot_scatter(pathname, xc, yc, genelist):
+    def get_expression_plot_scatter(pathname, xc, yc, genelist, choices_json):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
-        return ui.genes.render_plot_scatter(data, xc, yc, genelist, 'all')
+        return ui.genes.render_plot_scatter(data, xc, yc, genelist, choices_json)
 
 
 def register_select_gene_violin_plot(app):
@@ -309,15 +310,15 @@ def register_select_gene_violin_plot(app):
         [
             dash.dependencies.Input("url", "pathname"),
             dash.dependencies.Input("expression_select_genes", "value"),
-            #dash.dependencies.Input("expression_select_cell_sample", "value"),
             dash.dependencies.Input("expression_violin_select_group", "value"),
             dash.dependencies.Input("expression_violin_select_split", "value"),
+            dash.dependencies.Input("expression_filter_cells_choices", "children"),
         ],
     )
-    def get_expression_plot_violin(pathname, genelist, group, split):
+    def get_expression_plot_violin(pathname, genelist, group, split, choices_json):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
-        return ui.genes.render_plot_violin(data, pathname, genelist, group, split, 'all')
+        return ui.genes.render_plot_violin(data, pathname, genelist, group, split, choices_json)
 
 
 def register_select_gene_dot_plot(app):
@@ -334,25 +335,64 @@ def register_select_gene_dot_plot(app):
             dash.dependencies.Input("expression_select_genes", "value"),
             dash.dependencies.Input("expression_dot_select_group", "value"),
             dash.dependencies.Input("expression_dot_select_split", "value"),
+            dash.dependencies.Input("expression_filter_cells_choices", "children"),
         ],
     )
-    def get_expression_plot_dot(pathname, genelist, group, split):
+    def get_expression_plot_dot(pathname, genelist, group, split, choices_json):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
-        return ui.genes.render_plot_dot(data, pathname, genelist, group, split)
+        return ui.genes.render_plot_dot(data, pathname, genelist, group, split, choices_json)
 
+# here some dynamically generated callbacks for filter cell controls
 
-def register_update_filter_cells_params(app, token):
-
-    @app.callback(
-        dash.dependencies.Output("%s_filter_cells_collapse" % token, "is_open"),
-        [dash.dependencies.Input("%s_filter_cells_button" % token, "n_clicks")],
-        [dash.dependencies.State("%s_filter_cells_collapse" % token, "is_open")]
-    )
+def generate_callback_toggle_filter_cells_collapse(token):
     def toggle_filter_cells_collapse(n, is_open):
         if n:
             return not is_open
         return is_open
+    return toggle_filter_cells_collapse
+
+def register_update_filter_cells_params(app, token):
+    app.callback(
+        dash.dependencies.Output("%s_filter_cells_collapse" % token, "is_open"),
+        [dash.dependencies.Input("%s_filter_cells_button" % token, "n_clicks")],
+        [dash.dependencies.State("%s_filter_cells_collapse" % token, "is_open")]
+    )(generate_callback_toggle_filter_cells_collapse(token))
+
+def generate_callback_show_filter_cells_controls (token, attribute):
+    def show_filter_cells_controls(selected, options):
+        if selected != "None" and attribute==options[int(selected)]['value']:
+            return {"display": "block"}
+        else:
+            return {"display": "none"}
+    return show_filter_cells_controls
+
+def register_update_filter_cells_controls(app, token, n):
+    app.callback(
+        dash.dependencies.Output("%s_filter_cells_%s" % (token, n), "style"),
+        [dash.dependencies.Input("%s_filter_cells_options" % token, "value")],
+        [dash.dependencies.State("%s_filter_cells_options" % token, "options")]
+    )(generate_callback_show_filter_cells_controls(token,n))
+
+def generate_callback_update_filter_cells_choices (token):
+    def update_filter_cells_choices(*input_values): 
+        print("updating filter cells choices for %s with %s" % (token,input_values))
+#        options = json.load(input_values[settings.MAX_NCOLS_DYNAMIC_CALLBACKS])
+        choices = {}
+        for n in range(settings.MAX_NCOLS_DYNAMIC_CALLBACKS):
+            #attribute = options[n]['label']
+            new_choices = input_values[n]
+            choices[attribute] = new_choices
+            print("setting choices[%s] to %s" % (attribute, new_choices))
+        return json.dumps(choices)
+    return update_filter_cells_choices
+
+def register_update_filter_cells_choices(app, token):
+    app.callback(
+        dash.dependencies.Output("%s_filter_cells_choices" % token, "children"),
+        [dash.dependencies.Input("%s_filter_cells_%i" % (token,n), "value") for n in range(settings.MAX_NCOLS_DYNAMIC_CALLBACKS)],
+        [dash.dependencies.State("%s_filter_cells_%s" % (token,n), "options") for n in range(settings.MAX_NCOLS_DYNAMIC_CALLBACKS)],
+    )(generate_callback_update_filter_cells_choices(token))
 
 def register_file_upload(app):
     """Register callbacks for the file upload"""
