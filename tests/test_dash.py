@@ -74,6 +74,19 @@ def test_render_cell_annotation(dash_duo, scelvis_settings):
     # plot = dash_duo.wait_for_element_by_css_selector('#meta_scatter_plot')
     # dash_duo.take_snapshot('meta_scatter')
 
+    item = dash_duo.wait_for_element_by_css_selector("#meta_filter_cells_button")
+    item.click()
+
+    dropdown = dash_duo.wait_for_element_by_css_selector("#meta_filter_cells_attribute")
+    dropdown.click()
+    menu = dropdown.find_element_by_css_selector("div.Select-menu-outer")
+    options = menu.find_elements_by_css_selector("div.VirtualizedSelectOption")
+    options[1].click()
+
+    checklist = dash_duo.wait_for_element_by_css_selector("#meta_filter_cells_choice")
+    options = checklist.find_elements_by_css_selector("*")
+    options[0].click()
+
     item = dash_duo.wait_for_element_by_css_selector("#meta_plot_type *:nth-child(2)")
     item.click()
     # select sth from the dropdown
@@ -81,7 +94,7 @@ def test_render_cell_annotation(dash_duo, scelvis_settings):
     dropdown.click()
     menu = dropdown.find_element_by_css_selector("div.Select-menu-outer")
     options = menu.find_elements_by_css_selector("div.VirtualizedSelectOption")
-    options[3].click()
+    options[1].click()
     # plot = dash_duo.wait_for_element_by_css_selector('#meta_violin_plot')
     # dash_duo.take_snapshot('meta_violin')
 
@@ -128,6 +141,12 @@ def test_render_gene_annotation(dash_duo, scelvis_settings):
     options[1].click()
     # plot = dash_duo.wait_for_element_by_css_selector('#expression_scatter_plot')
     # dash_duo.take_snapshot('expression_scatter')
+
+    item = dash_duo.wait_for_element_by_css_selector("#expression_filter_cells_button")
+    item.click()
+
+    button = dash_duo.wait_for_element_by_css_selector("#expression_filter_cells_reset")
+    button.click()
 
     item = dash_duo.wait_for_element_by_css_selector("#expression_plot_type *:nth-child(2)")
     item.click()

@@ -10,11 +10,11 @@ import uuid
 
 import dash
 import dash_html_components as html
+import json
 from logzero import logger
 from werkzeug.utils import secure_filename
 
 from . import ui, settings, store
-from .ui import cells, common, genes
 
 
 def get_route(pathname):
@@ -117,21 +117,18 @@ def register_select_cell_plot_type(app):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
         plots = {
-            "scatter": cells.render_controls_scatter,
-            "violin": cells.render_controls_violin,
-            "bar": cells.render_controls_bars,
+            "scatter": ui.cells.render_controls_scatter,
+            "violin": ui.cells.render_controls_violin,
+            "bar": ui.cells.render_controls_bars,
         }
         return plots[plot_type](data)
 
     @app.callback(
-        [
-            dash.dependencies.Output("meta_plot", "children"),
-            dash.dependencies.Output("meta_select_cell_sample", "disabled"),
-        ],
+        dash.dependencies.Output("meta_plot", "children"),
         [dash.dependencies.Input("meta_plot_type", "value")],
     )
     def update_meta_plots(plot_type):
-        return common.render_plot("meta", plot_type)
+        return ui.common.render_plot("meta", plot_type)
 
 
 def register_update_cell_scatter_plot_params(app):
@@ -148,13 +145,13 @@ def register_update_cell_scatter_plot_params(app):
             dash.dependencies.Input("meta_scatter_select_x", "value"),
             dash.dependencies.Input("meta_scatter_select_y", "value"),
             dash.dependencies.Input("meta_scatter_select_color", "value"),
-            dash.dependencies.Input("meta_select_cell_sample", "value"),
+            dash.dependencies.Input("filter_cells_choices", "children"),
         ],
     )
-    def get_meta_plot_scatter(pathname, xc, yc, col, sample_size):
+    def get_meta_plot_scatter(pathname, xc, yc, col, choices_json):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
-        return cells.render_plot_scatter(data, xc, yc, col, sample_size)
+        return ui.cells.render_plot_scatter(data, xc, yc, col, choices_json)
 
 
 def register_update_cell_violin_plot_params(app):
@@ -171,13 +168,13 @@ def register_update_cell_violin_plot_params(app):
             dash.dependencies.Input("meta_violin_select_vars", "value"),
             dash.dependencies.Input("meta_violin_select_group", "value"),
             dash.dependencies.Input("meta_violin_select_split", "value"),
-            dash.dependencies.Input("meta_select_cell_sample", "value"),
+            dash.dependencies.Input("filter_cells_choices", "children"),
         ],
     )
-    def get_meta_plot_violin(pathname, variables, group, split, sample_size):
+    def get_meta_plot_violin(pathname, variables, group, split, choices_json):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
-        return cells.render_plot_violin(data, variables, group, split, sample_size)
+        return ui.cells.render_plot_violin(data, variables, group, split, choices_json)
 
 
 def register_update_cell_bar_chart_params(app):
@@ -207,12 +204,13 @@ def register_update_cell_bar_chart_params(app):
             dash.dependencies.Input("meta_bar_select_group", "value"),
             dash.dependencies.Input("meta_bar_select_split", "value"),
             dash.dependencies.Input("meta_bar_options", "value"),
+            dash.dependencies.Input("filter_cells_choices", "children"),
         ],
     )
-    def get_meta_plot_bars(pathname, group, split, options):
+    def get_meta_plot_bars(pathname, group, split, options, choices_json):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
-        return cells.render_plot_bars(data, group, split, options)
+        return ui.cells.render_plot_bars(data, group, split, options, choices_json)
 
 
 def register_select_gene_plot_type(app):
@@ -229,21 +227,18 @@ def register_select_gene_plot_type(app):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
         plots = {
-            "scatter": genes.render_controls_scatter,
-            "violin": genes.render_controls_violin,
-            "dot": genes.render_controls_dot,
+            "scatter": ui.genes.render_controls_scatter,
+            "violin": ui.genes.render_controls_violin,
+            "dot": ui.genes.render_controls_dot,
         }
         return [plots[plot_type](data)]
 
     @app.callback(
-        [
-            dash.dependencies.Output("expression_plot", "children"),
-            dash.dependencies.Output("expression_select_cell_sample", "disabled"),
-        ],
+        dash.dependencies.Output("expression_plot", "children"),
         [dash.dependencies.Input("expression_plot_type", "value")],
     )
-    def update_meta_plots(plot_type):
-        return common.render_plot("expression", plot_type)
+    def update_expression_plots(plot_type):
+        return ui.common.render_plot("expression", plot_type)
 
 
 def register_select_gene_marker_list(app):
@@ -295,13 +290,13 @@ def register_select_gene_scatter_plot(app):
             dash.dependencies.Input("expression_scatter_select_x", "value"),
             dash.dependencies.Input("expression_scatter_select_y", "value"),
             dash.dependencies.Input("expression_select_genes", "value"),
-            dash.dependencies.Input("expression_select_cell_sample", "value"),
+            dash.dependencies.Input("filter_cells_choices", "children"),
         ],
     )
-    def get_expression_plot_scatter(pathname, xc, yc, genelist, sample_size):
+    def get_expression_plot_scatter(pathname, xc, yc, genelist, choices_json):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
-        return ui.genes.render_plot_scatter(data, xc, yc, genelist, sample_size)
+        return ui.genes.render_plot_scatter(data, xc, yc, genelist, choices_json)
 
 
 def register_select_gene_violin_plot(app):
@@ -316,15 +311,15 @@ def register_select_gene_violin_plot(app):
         [
             dash.dependencies.Input("url", "pathname"),
             dash.dependencies.Input("expression_select_genes", "value"),
-            dash.dependencies.Input("expression_select_cell_sample", "value"),
             dash.dependencies.Input("expression_violin_select_group", "value"),
             dash.dependencies.Input("expression_violin_select_split", "value"),
+            dash.dependencies.Input("filter_cells_choices", "children"),
         ],
     )
-    def get_expression_plot_violin(pathname, genelist, sample_size, group, split):
+    def get_expression_plot_violin(pathname, genelist, group, split, choices_json):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
-        return ui.genes.render_plot_violin(data, pathname, genelist, sample_size, group, split)
+        return ui.genes.render_plot_violin(data, pathname, genelist, group, split, choices_json)
 
 
 def register_select_gene_dot_plot(app):
@@ -341,12 +336,140 @@ def register_select_gene_dot_plot(app):
             dash.dependencies.Input("expression_select_genes", "value"),
             dash.dependencies.Input("expression_dot_select_group", "value"),
             dash.dependencies.Input("expression_dot_select_split", "value"),
+            dash.dependencies.Input("filter_cells_choices", "children"),
         ],
     )
-    def get_expression_plot_dot(pathname, genelist, group, split):
+    def get_expression_plot_dot(pathname, genelist, group, split, choices_json):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
-        return ui.genes.render_plot_dot(data, pathname, genelist, group, split)
+        return ui.genes.render_plot_dot(data, pathname, genelist, group, split, choices_json)
+
+
+def register_toggle_filter_cells_controls(app, token):
+    @app.callback(
+        dash.dependencies.Output("%s_filter_cells_collapse" % token, "is_open"),
+        [dash.dependencies.Input("%s_filter_cells_button" % token, "n_clicks")],
+        [dash.dependencies.State("%s_filter_cells_collapse" % token, "is_open")],
+    )
+    def toggle_filter_cells_controls(n, is_open):
+        if n:
+            return not is_open
+        return is_open
+
+
+def register_update_filter_cells_controls(app, token):
+    @app.callback(
+        [
+            dash.dependencies.Output("%s_filter_cells_choice_div" % token, "style"),
+            dash.dependencies.Output("%s_filter_cells_choice" % token, "options"),
+            dash.dependencies.Output("%s_filter_cells_choice" % token, "value"),
+            dash.dependencies.Output("%s_filter_cells_range_div" % token, "style"),
+            dash.dependencies.Output("%s_filter_cells_range" % token, "marks"),
+            dash.dependencies.Output("%s_filter_cells_range" % token, "min"),
+            dash.dependencies.Output("%s_filter_cells_range" % token, "max"),
+            dash.dependencies.Output("%s_filter_cells_range" % token, "value"),
+            dash.dependencies.Output("%s_filter_cells_range" % token, "step"),
+        ],
+        [dash.dependencies.Input("%s_filter_cells_attribute" % token, "value")],
+        [dash.dependencies.State("filter_cells_choices", "children")],
+    )
+    def update_filter_cells_controls(attribute_string, choices_json):
+        if attribute_string == "None":
+            return (
+                {"display": "none"},
+                [],
+                None,
+                {"display": "none"},
+                {0: "0", 1: "1"},
+                0,
+                1,
+                [0, 1],
+                0,
+            )
+        attribute_type, attribute = attribute_string.split()
+        choices = json.loads(choices_json)
+        if attribute_type == "cat":
+            return (
+                {"display": "block"},
+                [{"label": c, "value": c} for c in choices["." + attribute]],
+                choices[attribute],
+                {"display": "none"},
+                {0: "0", 1: "1"},
+                0,
+                1,
+                [0, 1],
+                0,
+            )
+        else:
+            range_min = float(choices["." + attribute][0])
+            range_max = float(choices["." + attribute][1])
+            val_min = float(choices[attribute][0])
+            val_max = float(choices[attribute][1])
+            return (
+                {"display": "none"},
+                [],
+                None,
+                {"display": "block"},
+                dict(
+                    (int(t) if float(t) % 1 == 0 else float(t), t)
+                    for t in choices["." + attribute + "_ticks"]
+                ),
+                range_min,
+                range_max,
+                [val_min, val_max],
+                (range_max - range_min) / 1000,
+            )
+
+
+def register_update_filter_cells_choices(app):
+    @app.callback(
+        dash.dependencies.Output("filter_cells_choices", "children"),
+        [
+            dash.dependencies.Input("meta_filter_cells_choice", "value"),
+            dash.dependencies.Input("meta_filter_cells_range", "value"),
+            dash.dependencies.Input("meta_filter_cells_reset", "n_clicks"),
+            dash.dependencies.Input("expression_filter_cells_choice", "value"),
+            dash.dependencies.Input("expression_filter_cells_range", "value"),
+            dash.dependencies.Input("expression_filter_cells_reset", "n_clicks"),
+        ],
+        [
+            dash.dependencies.State("meta_filter_cells_attribute", "value"),
+            dash.dependencies.State("expression_filter_cells_attribute", "value"),
+            dash.dependencies.State("filter_cells_choices", "children"),
+        ],
+    )
+    def update_filter_cells_choices(
+        meta_cat_value,
+        meta_range_value,
+        meta_reset_n,
+        expression_cat_value,
+        expression_range_value,
+        expression_reset_n,
+        meta_attribute_string,
+        expression_attribute_string,
+        choices_json,
+    ):
+        ctx = dash.callback_context
+
+        choices = json.loads(choices_json)
+        # if reset button was hit, check all boxes using stored values in choices_json
+        if ctx.triggered and "reset" in ctx.triggered[0]["prop_id"]:
+            attributes = [k for k in choices.keys() if not k.startswith(".")]
+            for attribute in attributes:
+                choices[attribute] = choices["." + attribute]
+            return json.dumps(choices)
+        for cat_value, range_value, attribute_string in [
+            (meta_cat_value, meta_range_value, meta_attribute_string),
+            (expression_cat_value, expression_range_value, expression_attribute_string),
+        ]:
+            if attribute_string != "None":
+                attribute_type, attribute = attribute_string.split()
+                if attribute_type == "cat":
+                    choices[attribute] = cat_value
+                else:
+                    choices[attribute] = ["{0:g}".format(v) for v in range_value]
+
+        return json.dumps(choices)
 
 
 def register_file_upload(app):

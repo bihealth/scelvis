@@ -6,10 +6,11 @@ import dash_bootstrap_components as dbc
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_table
-import numpy as np
 import pandas as pd
 import plotly.graph_objs as go
 import plotly.subplots as subplots
+
+import numpy as np
 
 from .. import settings
 from . import colors, common
@@ -23,14 +24,14 @@ def render_controls_scatter(data):
                 html.Label("select x axis"),
                 dcc.Dropdown(
                     id="expression_scatter_select_x",
-                    options=[{"label": c, "value": c} for c in data.numerical_meta],
-                    value=data.numerical_meta[0],
+                    options=[{"label": c, "value": c} for c in data.coords + data.numerical_meta],
+                    value=data.coords[0],
                 ),
                 html.Label("select y axis"),
                 dcc.Dropdown(
                     id="expression_scatter_select_y",
-                    options=[{"label": c, "value": c} for c in data.numerical_meta],
-                    value=data.numerical_meta[1],
+                    options=[{"label": c, "value": c} for c in data.coords + data.numerical_meta],
+                    value=data.coords[1],
                 ),
             ],
             title="""select x- and y-coordinates of embedding (e.g., TSNE or UMAP)""",
@@ -149,8 +150,8 @@ def render_controls(data):
             ),
         ),
         html.Hr(),
-        # Control for sub-sampling of cells.
-        common.render_subsampling_dropdown(data, "expression"),
+        # Control for filtering of cells.
+        common.render_filter_cells_collapse(data, "expression"),
     ]
 
 
@@ -212,17 +213,14 @@ def render_marker_list(data, values):
         return [dbc.Row([dbc.Col(html.P())]), html.P()]
 
 
-def render_plot_scatter(data, xc, yc, genelist, sample_size):
+def render_plot_scatter(data, xc, yc, genelist, choices_json):
 
     gl = [g for g in genelist if g in data.ad.var_names]
 
     if gl is None or len(gl) == 0 or xc is None or yc is None:
         return {}, "", True
 
-    if sample_size != "all":
-        ad_here = data.ad[np.random.choice(data.ad.obs_names, sample_size, replace=False), :]
-    else:
-        ad_here = data.ad
+    ad_here = common.apply_select_cells_choices(data, choices_json)
 
     ngenes = len(gl)
     if ngenes > 1:
@@ -255,7 +253,7 @@ def render_plot_scatter(data, xc, yc, genelist, sample_size):
             mode="markers",
             marker={
                 "size": 3,
-                "color": maxval * ad_here[:, gene].X / max(1, ad_here[:, gene].X.max()),
+                "color": maxval * ad_here.obs_vector(gene) / max(1, ad_here.obs_vector(gene).max()),
                 "colorscale": "Viridis",
                 "colorbar": {"title": "expression", "titleside": "right"},
                 "showscale": (ng == 0),
@@ -270,13 +268,6 @@ def render_plot_scatter(data, xc, yc, genelist, sample_size):
         if nr == nrow:
             fig["layout"]["xaxis" + (str(ng + 1) if ng > 0 else "")].update(title=xc)
 
-    # fix axes labels and scales
-    # for k in dir(fig["layout"]):
-    #    if k.startswith("yaxis"):
-    #        fig["layout"][k].update(title=yc)
-    #    elif k.startswith("xaxis"):
-    #        fig["layout"][k].update(title=xc)
-
     fig["layout"].update(
         margin={"l": 40, "b": 40, "t": 40, "r": 40},
         plot_bgcolor="rgb(255,255,255)",
@@ -285,23 +276,20 @@ def render_plot_scatter(data, xc, yc, genelist, sample_size):
         height=settings.PLOT_HEIGHT,
     )
 
-    plot_data = data.ad[:, gl].to_df().to_csv(index=True, header=True, encoding="utf-8")
+    plot_data = ad_here[:, gl].to_df().to_csv(index=True, header=True, encoding="utf-8")
     csv_string = "data:text/csv;charset=utf-8," + urllib.parse.quote(plot_data)
 
     return fig, csv_string, False
 
 
-def render_plot_violin(data, pathname, genelist, sample_size, group, split):
+def render_plot_violin(data, pathname, genelist, group, split, choices_json):
 
     gl = [g for g in genelist if g in data.ad.var_names]
 
     if gl is None or len(gl) == 0 or group is None:
         return {}, "", True
 
-    if sample_size != "all":
-        ad_here = data.ad[np.random.choice(data.ad.obs_names, sample_size, replace=False), :]
-    else:
-        ad_here = data.ad
+    ad_here = common.apply_select_cells_choices(data, choices_json)
 
     # select color palette
     if split is None:
@@ -321,7 +309,7 @@ def render_plot_violin(data, pathname, genelist, sample_size, group, split):
 
         if split is None:
             for n, cv in enumerate(groupvals):
-                y = ad_here[ad_here.obs[group] == cv, :][:, gene].X
+                y = ad_here[ad_here.obs[group] == cv, :].obs_vector(gene)
                 tr = go.Violin(
                     y=y,
                     name=cv,
@@ -335,10 +323,10 @@ def render_plot_violin(data, pathname, genelist, sample_size, group, split):
                 )
                 fig.append_trace(tr, ngenes - ng, 1)
                 sg += 1
-            plot_data = data.ad[:, gl].to_df().join(data.ad.obs[group])
+            plot_data = ad_here[:, gl].to_df().join(ad_here.obs[group])
         else:
             for n, sv in enumerate(splitvals):
-                y = ad_here[ad_here.obs[split] == sv, :][:, gene].X
+                y = ad_here[ad_here.obs[split] == sv, :].obs_vector(gene)
                 tr = go.Violin(
                     x=ad_here[ad_here.obs[split] == sv].obs[group],
                     y=y,
@@ -354,7 +342,7 @@ def render_plot_violin(data, pathname, genelist, sample_size, group, split):
                 )
                 fig.append_trace(tr, ngenes - ng, 1)
                 sg += 1
-            plot_data = data.ad[:, gl].to_df().join(data.ad.obs[[group, split]])
+            plot_data = ad_here[:, gl].to_df().join(ad_here.obs[[group, split]])
 
     for ng, gene in enumerate(gl):
         if ngenes - ng == 1:
@@ -383,14 +371,16 @@ def render_plot_violin(data, pathname, genelist, sample_size, group, split):
     return fig, csv_string, False
 
 
-def render_plot_dot(data, pathname, genelist, group, split):
+def render_plot_dot(data, pathname, genelist, group, split, choices_json):
 
     gl = [g for g in genelist if g in data.ad.var_names]
 
     if gl is None or len(gl) == 0 or group is None:
         return {}, "", True
 
-    groupvals = data.ad.obs[group].cat.categories
+    ad_here = common.apply_select_cells_choices(data, choices_json)
+
+    groupvals = ad_here.obs[group].cat.categories
     ngroup = len(groupvals)
     ngenes = len(gl)
 
@@ -399,9 +389,9 @@ def render_plot_dot(data, pathname, genelist, group, split):
 
     if split is None:
         plot_data = (
-            data.ad[:, gl]
+            ad_here[:, gl]
             .to_df()
-            .join(data.ad.obs[group])
+            .join(ad_here.obs[group])
             .groupby(group)
             .apply(my_agg)
             .unstack(level=1)
@@ -471,7 +461,7 @@ def render_plot_dot(data, pathname, genelist, group, split):
         )
 
     else:
-        splitvals = data.ad.obs[split].cat.categories
+        splitvals = ad_here.obs[split].cat.categories
         nsplit = len(splitvals)
         traces = []
         # fix bug in pandas groupby when having more than one grouping variable
@@ -479,9 +469,9 @@ def render_plot_dot(data, pathname, genelist, group, split):
             pd.core.reshape.util.cartesian_product([groupvals, splitvals])
         )
         plot_data = (
-            data.ad[:, gl]
+            ad_here[:, gl]
             .to_df()
-            .join(data.ad.obs[[group, split]])
+            .join(ad_here.obs[[group, split]])
             .groupby([group, split])
             .apply(my_agg)
             .unstack(level=2)

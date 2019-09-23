@@ -20,19 +20,22 @@ def render_controls_scatter(data):
                 html.Label("select x axis"),
                 dcc.Dropdown(
                     id="meta_scatter_select_x",
-                    options=[{"label": c, "value": c} for c in data.numerical_meta],
-                    value=data.numerical_meta[0],
+                    options=[{"label": c, "value": c} for c in data.coords + data.numerical_meta],
+                    value=data.coords[0],
                 ),
                 html.Label("select y axis"),
                 dcc.Dropdown(
                     id="meta_scatter_select_y",
-                    options=[{"label": c, "value": c} for c in data.numerical_meta],
-                    value=data.numerical_meta[1],
+                    options=[{"label": c, "value": c} for c in data.coords + data.numerical_meta],
+                    value=data.coords[1],
                 ),
                 html.Label("select coloring"),
                 dcc.Dropdown(
                     id="meta_scatter_select_color",
-                    options=[{"label": c, "value": c} for c in data.ad.obs.columns],
+                    options=[
+                        {"label": c, "value": c}
+                        for c in data.categorical_meta + data.numerical_meta
+                    ],
                     value=data.categorical_meta[0],
                 ),
             ],
@@ -141,8 +144,8 @@ def render_controls(data):
         # Placeholder for the plot-specific controls.
         dcc.Loading(id="meta_plot_controls", type="circle"),
         html.Hr(),
-        # Control for sub-sampling of cells.
-        common.render_subsampling_dropdown(data, "meta"),
+        # Control for filtering of cells.
+        common.render_filter_cells_collapse(data, "meta"),
     ]
 
 
@@ -157,20 +160,17 @@ def render(data):
     )
 
 
-def render_plot_scatter(data, xc, yc, col, sample_size):
+def render_plot_scatter(data, xc, yc, col, choices_json):
     """Render the scatter plot figure."""
 
     if xc is None or yc is None or col is None:
         return {}, "", True
 
-    if sample_size != "all":
-        meta_here = data.ad.obs.sample(n=sample_size)
-    else:
-        meta_here = data.ad.obs
+    ad_here = common.apply_select_cells_choices(data, choices_json)
 
     if col in data.categorical_meta:
         # select color palette
-        colvals = meta_here[col].unique()
+        colvals = ad_here.obs[col].unique()
         cm = colors.get_cm(colvals)
 
         # plot scatter for each category separately
@@ -178,9 +178,9 @@ def render_plot_scatter(data, xc, yc, col, sample_size):
         for n, cv in enumerate(colvals):
             traces.append(
                 go.Scattergl(
-                    x=meta_here[meta_here[col] == cv][xc],
-                    y=meta_here[meta_here[col] == cv][yc],
-                    text=meta_here[meta_here[col] == cv].index,
+                    x=ad_here.obs[ad_here.obs[col] == cv][xc],
+                    y=ad_here.obs[ad_here.obs[col] == cv][yc],
+                    text=ad_here.obs[ad_here.obs[col] == cv].index,
                     mode="markers",
                     opacity=0.7,
                     marker={
@@ -196,14 +196,14 @@ def render_plot_scatter(data, xc, yc, col, sample_size):
         # for numerical data, plot scatter all at once
         traces = [
             go.Scattergl(
-                x=meta_here[xc],
-                y=meta_here[yc],
-                text=meta_here.index,
+                x=ad_here.obs[xc],
+                y=ad_here.obs[yc],
+                text=ad_here.obs.index,
                 mode="markers",
                 opacity=0.7,
                 marker={
                     "size": 5,
-                    "color": meta_here[col],
+                    "color": ad_here.obs[col],
                     "colorscale": "Viridis",
                     "colorbar": {"title": col, "titleside": "right"},
                     "showscale": True,
@@ -212,7 +212,7 @@ def render_plot_scatter(data, xc, yc, col, sample_size):
             )
         ]
 
-    plot_data = data.ad.obs[[xc, yc, col]]
+    plot_data = ad_here.obs[[xc, yc, col]]
     csv_string = "data:text/csv;charset=utf-8," + urllib.parse.quote(
         plot_data.to_csv(index=True, header=True, encoding="utf-8")
     )
@@ -232,23 +232,20 @@ def render_plot_scatter(data, xc, yc, col, sample_size):
     return fig, csv_string, False
 
 
-def render_plot_violin(data, variables, group, split, sample_size):
+def render_plot_violin(data, variables, group, split, choices_json):
     """Render the violin plot figure."""
 
     if variables is None or len(variables) == 0 or group is None:
         return {}, "", True
 
-    if sample_size != "all":
-        meta_here = data.ad.obssample(n=sample_size)
-    else:
-        meta_here = data.ad.obs
+    ad_here = common.apply_select_cells_choices(data, choices_json)
 
     # select color palette
     if split is None:
-        groupvals = meta_here[group].unique()
+        groupvals = ad_here.obs[group].unique()
         cm = colors.get_cm(groupvals)
     else:
-        splitvals = meta_here[split].unique()
+        splitvals = ad_here.obs[split].unique()
         cm = colors.get_cm(splitvals)
 
     nvar = len(variables)
@@ -265,7 +262,7 @@ def render_plot_violin(data, variables, group, split, sample_size):
     for nv, var in enumerate(variables):
         if split is None:
             for n, cv in enumerate(groupvals):
-                y = meta_here[meta_here[group] == cv][var]
+                y = ad_here.obs[ad_here.obs[group] == cv][var]
                 tr = go.Violin(
                     y=y,
                     name=cv,
@@ -279,12 +276,12 @@ def render_plot_violin(data, variables, group, split, sample_size):
                 )
                 fig.append_trace(tr, nvar - nv, 1)
                 sg += 1
-            plot_data = data.ad.obs[variables + [group]]
+            plot_data = ad_here.obs[variables + [group]]
         else:
             for n, sv in enumerate(splitvals):
-                y = meta_here[meta_here[split] == sv][var]
+                y = ad_here.obs[ad_here.obs[split] == sv][var]
                 tr = go.Violin(
-                    x=meta_here[meta_here[split] == sv][group],
+                    x=ad_here.obs[ad_here.obs[split] == sv][group],
                     y=y,
                     name=sv,
                     offsetgroup=n,
@@ -298,7 +295,7 @@ def render_plot_violin(data, variables, group, split, sample_size):
                 )
                 fig.append_trace(tr, nvar - nv, 1)
                 sg += 1
-            plot_data = data.ad.obs[variables + [group, split]]
+            plot_data = ad_here.obs[variables + [group, split]]
 
     for nv, var in enumerate(variables):
         if len(variables) - nv == 1:
@@ -325,7 +322,7 @@ def render_plot_violin(data, variables, group, split, sample_size):
     return fig, csv_string, False
 
 
-def render_plot_bars(data, group, split, options):
+def render_plot_bars(data, group, split, options, choices_json):
     """render the bar chart plot."""
 
     if group is None:
@@ -334,10 +331,12 @@ def render_plot_bars(data, group, split, options):
     if options is None:
         options = []
 
+    ad_here = common.apply_select_cells_choices(data, choices_json)
+
     if split is None:
-        groupvals = data.ad.obs[group].unique()
+        groupvals = ad_here.obs[group].unique()
         cm = colors.get_cm(groupvals)
-        tally = data.ad.obs.groupby(group).size()
+        tally = ad_here.obs.groupby(group).size()
         if "normalized" in options:
             tally = tally.divide(tally.sum())
         traces = []
@@ -351,10 +350,10 @@ def render_plot_bars(data, group, split, options):
             traces.append(tr)
 
     else:
-        splitvals = data.ad.obs[split].cat.categories
+        splitvals = ad_here.obs[split].cat.categories
         cm = colors.get_cm(splitvals)
 
-        tally = data.ad.obs.groupby([group, split]).size()
+        tally = ad_here.obs.groupby([group, split]).size()
         if "normalized" in options:
             tally = tally.divide(tally.sum(level=0).astype(float), level=0)
         traces = []

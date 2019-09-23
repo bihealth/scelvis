@@ -149,6 +149,8 @@ class Data:
     cells: pd.Index
     #: The markers data
     markers: pd.DataFrame
+    #: coordinates
+    coords: object
     #: Numerical data
     numerical_meta: object
     #: Categorical data
@@ -252,16 +254,6 @@ def load_data(data_source, identifier):
             short_title=ad.uns["about_short_title"],
             readme=ad.uns["about_readme"],
         )
-        # Extract the payload data
-        coords = {}
-        for k in ad.obsm.keys():
-            coords[k] = pd.DataFrame(
-                ad.obsm[k],
-                index=ad.obs.index,
-                columns=[k[2:].upper() + str(n + 1) for n in range(min(ad.obsm[k].shape[1], 3))],
-            )
-        if len(coords) > 0:
-            ad.obs = pd.concat(coords.values(), axis=1).join(ad.obs)
         # Separate numerical and categorical columns for later.
         numerical_meta = []
         categorical_meta = []
@@ -270,6 +262,18 @@ def load_data(data_source, identifier):
                 numerical_meta.append(col)
             else:
                 categorical_meta.append(col)
+        # add coordinates to obs
+        coords = {}
+        for k in ad.obsm.keys():
+            ndim = min(ad.obsm[k].shape[1], 3)
+            coords[k[2:].upper()] = pd.DataFrame(
+                ad.obsm[k][:, :ndim],
+                index=ad.obs.index,
+                columns=[k[2:].upper() + str(n + 1) for n in range(ndim)],
+            )
+        if len(coords) > 0:
+            coords = pd.concat(coords.values(), axis=1)
+            ad.obs = coords.join(ad.obs)
         genes = ad.var_names
         cells = ad.obs_names
         markers = {}
@@ -291,6 +295,7 @@ def load_data(data_source, identifier):
         genes=genes,
         cells=cells,
         markers=markers,
+        coords=list(coords.columns) if len(coords) > 0 else [],
         numerical_meta=numerical_meta,
         categorical_meta=categorical_meta,
     )
@@ -321,7 +326,8 @@ def fake_data(seed=42):
         index=cells,
     )
     ad = anndata.AnnData(dge, obs=meta, var=pd.DataFrame([], index=genes))
-    numerical_meta = ["TSNE_1", "TSNE_2", "n_genes", "n_counts"]
+    coords = ["TSNE_1", "TSNE_2"]
+    numerical_meta = ["n_genes", "n_counts"]
     categorical_meta = ["cluster", "sample"]
     markers = pd.DataFrame(
         {
@@ -339,6 +345,7 @@ def fake_data(seed=42):
         genes=genes,
         cells=cells,
         markers=markers,
+        coords=coords,
         numerical_meta=numerical_meta,
         categorical_meta=categorical_meta,
     )
