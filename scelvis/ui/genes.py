@@ -6,12 +6,11 @@ import dash_bootstrap_components as dbc
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_table
-import numpy as np
-import json
 import pandas as pd
 import plotly.graph_objs as go
 import plotly.subplots as subplots
 
+import numpy as np
 
 from .. import settings
 from . import colors, common
@@ -25,14 +24,14 @@ def render_controls_scatter(data):
                 html.Label("select x axis"),
                 dcc.Dropdown(
                     id="expression_scatter_select_x",
-                    options=[{"label": c, "value": c} for c in data.numerical_meta],
-                    value=data.numerical_meta[0],
+                    options=[{"label": c, "value": c} for c in data.coords + data.numerical_meta],
+                    value=data.coords[0],
                 ),
                 html.Label("select y axis"),
                 dcc.Dropdown(
                     id="expression_scatter_select_y",
-                    options=[{"label": c, "value": c} for c in data.numerical_meta],
-                    value=data.numerical_meta[1],
+                    options=[{"label": c, "value": c} for c in data.coords + data.numerical_meta],
+                    value=data.coords[1],
                 ),
             ],
             title="""select x- and y-coordinates of embedding (e.g., TSNE or UMAP)""",
@@ -221,10 +220,7 @@ def render_plot_scatter(data, xc, yc, genelist, choices_json):
     if gl is None or len(gl) == 0 or xc is None or yc is None:
         return {}, "", True
 
-    take = np.zeros(data.ad.obs.shape[0],dtype=bool)
-    for col,selected in json.loads(choices_json).items():
-        take = take | data.ad.obs[col].isin(selected).values
-    ad_here=data.ad[take,:]
+    ad_here = common.apply_select_cells_choices(data, choices_json)
 
     ngenes = len(gl)
     if ngenes > 1:
@@ -293,10 +289,7 @@ def render_plot_violin(data, pathname, genelist, group, split, choices_json):
     if gl is None or len(gl) == 0 or group is None:
         return {}, "", True
 
-    take = np.zeros(data.ad.obs.shape[0],dtype=bool)
-    for col,selected in json.loads(choices_json).items():
-        take = take | data.ad.obs[col].isin(selected).values
-    ad_here=data.ad[take,:]
+    ad_here = common.apply_select_cells_choices(data, choices_json)
 
     # select color palette
     if split is None:
@@ -385,10 +378,7 @@ def render_plot_dot(data, pathname, genelist, group, split, choices_json):
     if gl is None or len(gl) == 0 or group is None:
         return {}, "", True
 
-    take = np.zeros(data.ad.obs.shape[0],dtype=bool)
-    for col,selected in json.loads(choices_json).items():
-        take = take | data.ad.obs[col].isin(selected).values
-    ad_here=data.ad[take,:]
+    ad_here = common.apply_select_cells_choices(data, choices_json)
 
     groupvals = ad_here.obs[group].cat.categories
     ngroup = len(groupvals)
