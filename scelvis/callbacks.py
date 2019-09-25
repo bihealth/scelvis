@@ -10,6 +10,7 @@ import uuid
 
 import dash
 import dash_html_components as html
+from dash.dependencies import Input, Output, State
 import json
 from logzero import logger
 from werkzeug.utils import secure_filename
@@ -65,8 +66,8 @@ def register_page_content(app):
     """Register the display of the page content with the app."""
 
     @app.callback(
-        dash.dependencies.Output("page-content", "children"),
-        [dash.dependencies.Input("url", "pathname")],
+        Output("page-content", "children"),
+        [Input("url", "pathname")],
     )
     def render_page_content(pathname):
         view, kwargs = get_route(pathname)
@@ -84,8 +85,8 @@ def register_page_brand(app):
     """Register the display of the page brand with the app."""
 
     @app.callback(
-        dash.dependencies.Output("page-brand", "children"),
-        [dash.dependencies.Input("url", "pathname")],
+        Output("page-brand", "children"),
+        [Input("url", "pathname")],
     )
     def render_page_brand(pathname):
         view, kwargs = get_route(pathname)
@@ -107,13 +108,16 @@ def register_select_cell_plot_type(app):
     """Register callback for changing the controls on updating "CellAnnotation" plot type."""
 
     @app.callback(
-        [dash.dependencies.Output("meta_plot_controls", "children")],
+        [Output("meta_plot_controls", "children")],
         [
-            dash.dependencies.Input("url", "pathname"),
-            dash.dependencies.Input("meta_plot_type", "value"),
+            Input("url", "pathname"),
+            Input("meta_plot_type", "value"),
+            Input("page-content", "is_loading")
         ],
     )
-    def update_meta_plot_controls(pathname, plot_type):
+    def update_meta_plot_controls(pathname, plot_type, is_loading):
+        if is_loading:
+            return []
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
         plots = {
@@ -124,8 +128,8 @@ def register_select_cell_plot_type(app):
         return plots[plot_type](data)
 
     @app.callback(
-        dash.dependencies.Output("meta_plot", "children"),
-        [dash.dependencies.Input("meta_plot_type", "value")],
+        Output("meta_plot", "children"),
+        [Input("meta_plot_type", "value")],
     )
     def update_meta_plots(plot_type):
         return ui.common.render_plot("meta", plot_type)
@@ -136,16 +140,16 @@ def register_update_cell_scatter_plot_params(app):
 
     @app.callback(
         [
-            dash.dependencies.Output("meta_scatter_plot", "figure"),
-            dash.dependencies.Output("meta_scatter_download", "href"),
-            dash.dependencies.Output("meta_scatter_download", "hidden"),
+            Output("meta_scatter_plot", "figure"),
+            Output("meta_scatter_download", "href"),
+            Output("meta_scatter_download", "hidden"),
         ],
         [
-            dash.dependencies.Input("url", "pathname"),
-            dash.dependencies.Input("meta_scatter_select_x", "value"),
-            dash.dependencies.Input("meta_scatter_select_y", "value"),
-            dash.dependencies.Input("meta_scatter_select_color", "value"),
-            dash.dependencies.Input("filter_cells_choices", "children"),
+            Input("url", "pathname"),
+            Input("meta_scatter_select_x", "value"),
+            Input("meta_scatter_select_y", "value"),
+            Input("meta_scatter_select_color", "value"),
+            Input("filter_cells_choices", "children"),
         ],
     )
     def get_meta_plot_scatter(pathname, xc, yc, col, choices_json):
@@ -154,21 +158,113 @@ def register_update_cell_scatter_plot_params(app):
         return ui.cells.render_plot_scatter(data, xc, yc, col, choices_json)
 
 
+def register_toggle_select_cells_controls(app):
+    @app.callback(
+        Output("select_cells_collapse", "is_open"),
+        [Input("select_cells_button", "n_clicks")],
+        [State("select_cells_collapse", "is_open")],
+    )
+    def toggle_select_cells_controls(n, is_open):
+        if n:
+            return not is_open
+        return is_open
+
+def register_update_select_cells_choices(app):
+    @app.callback(
+        Output("select_cells_choices", "children"),
+        [
+            Input("meta_scatter_plot", "selectedData"),
+            Input("select_cells_group_A", "n_clicks"),
+            Input("select_cells_group_B", "n_clicks"),
+            Input("select_cells_reset", "n_clicks"),
+        ],
+        [State("select_cells_choices", "children")]
+    )
+    def update_select_cells_choices(selectedData,
+                                    n_clicks_A,
+                                    n_clicks_B,
+                                    n_clicks_reset,
+                                    choices_json):
+        ctx = dash.callback_context
+        if choices_json is not None:
+            choices = json.loads(choices_json)
+        else:
+            choices = {}
+        if ctx.triggered and 'group_A' in ctx.triggered[0]["prop_id"] and selectedData is not None:
+            choices['group_A'] = [p['text'] for p in selectedData['points']]
+        elif ctx.triggered and 'group_B' in ctx.triggered[0]["prop_id"] and selectedData is not None:
+            choices['group_B'] = [p['text'] for p in selectedData['points']]
+        elif ctx.triggered and 'reset' in ctx.triggered[0]["prop_id"]:
+            choices = {}
+        return json.dumps(choices)
+
+    
+def register_activate_select_cells_buttons(app):
+    @app.callback(
+        [
+            Output("select_cells_group_A", "disabled"),
+            Output("select_cells_group_B", "disabled"),
+            Output("select_cells_reset", "disabled"),
+            Output("select_cells_run", "disabled")
+        ],
+        [
+            Input("meta_scatter_plot", "selectedData"),
+            Input("select_cells_choices", "children")
+        ]
+    )
+    def activate_select_cells_buttons(selectedData, choices_json):
+        if choices_json is not None:
+            choices = json.loads(choices_json)
+        else:
+            choices = {}
+        disabled_A = (selectedData is None) | ("group_A" in choices)
+        disabled_B = (selectedData is None) | ("group_B" in choices)
+        disabled_reset = ("group_A" not in choices) & ("group_B" not in choices)
+        disabled_run = ("group_A" not in choices) | ("group_B" not in choices)
+
+        return (disabled_A, disabled_B, disabled_reset, disabled_run)
+        
+
+def register_run_differential_expression(app):
+    @app.callback(
+        [
+            Output("select_cells_results", "children"),
+            Output("select_cells_download", "href"),
+            Output("select_cells_download", "hidden"),
+        ],
+        [
+            Input("url", "pathname"),
+            Input("select_cells_run", "n_clicks"),
+            Input("select_cells_choices", "children"),
+            Input("filter_cells_choices", "children")
+        ]
+    )
+    def run_differential_expression(pathname, n_clicks, select_json, filter_json):
+        ctx = dash.callback_context
+        if ctx.triggered and 'run' in ctx.triggered[0]['prop_id'] and n_clicks:
+            print("running differential expression")
+            _, kwargs = get_route(pathname)
+            data = store.load_data(kwargs.get("dataset"))
+            res = ui.cells.run_differential_expression(data, select_json, filter_json)
+            return res
+        else:
+            return "", "", True
+        
 def register_update_cell_violin_plot_params(app):
     """Register handlers on violin plot."""
 
     @app.callback(
         [
-            dash.dependencies.Output("meta_violin_plot", "figure"),
-            dash.dependencies.Output("meta_violin_download", "href"),
-            dash.dependencies.Output("meta_violin_download", "hidden"),
+            Output("meta_violin_plot", "figure"),
+            Output("meta_violin_download", "href"),
+            Output("meta_violin_download", "hidden"),
         ],
         [
-            dash.dependencies.Input("url", "pathname"),
-            dash.dependencies.Input("meta_violin_select_vars", "value"),
-            dash.dependencies.Input("meta_violin_select_group", "value"),
-            dash.dependencies.Input("meta_violin_select_split", "value"),
-            dash.dependencies.Input("filter_cells_choices", "children"),
+            Input("url", "pathname"),
+            Input("meta_violin_select_vars", "value"),
+            Input("meta_violin_select_group", "value"),
+            Input("meta_violin_select_split", "value"),
+            Input("filter_cells_choices", "children"),
         ],
     )
     def get_meta_plot_violin(pathname, variables, group, split, choices_json):
@@ -181,8 +277,8 @@ def register_update_cell_bar_chart_params(app):
     """Register handlers on bar chart and its controls."""
 
     @app.callback(
-        dash.dependencies.Output("meta_bar_options", "options"),
-        [dash.dependencies.Input("meta_bar_select_split", "value")],
+        Output("meta_bar_options", "options"),
+        [Input("meta_bar_select_split", "value")],
     )
     def toggle_meta_bar_options(split):
         if split is None:
@@ -195,16 +291,16 @@ def register_update_cell_bar_chart_params(app):
 
     @app.callback(
         [
-            dash.dependencies.Output("meta_bar_plot", "figure"),
-            dash.dependencies.Output("meta_bar_download", "href"),
-            dash.dependencies.Output("meta_bar_download", "hidden"),
+            Output("meta_bar_plot", "figure"),
+            Output("meta_bar_download", "href"),
+            Output("meta_bar_download", "hidden"),
         ],
         [
-            dash.dependencies.Input("url", "pathname"),
-            dash.dependencies.Input("meta_bar_select_group", "value"),
-            dash.dependencies.Input("meta_bar_select_split", "value"),
-            dash.dependencies.Input("meta_bar_options", "value"),
-            dash.dependencies.Input("filter_cells_choices", "children"),
+            Input("url", "pathname"),
+            Input("meta_bar_select_group", "value"),
+            Input("meta_bar_select_split", "value"),
+            Input("meta_bar_options", "value"),
+            Input("filter_cells_choices", "children"),
         ],
     )
     def get_meta_plot_bars(pathname, group, split, options, choices_json):
@@ -217,13 +313,16 @@ def register_select_gene_plot_type(app):
     """Register callback for changing the controls on updating "Gene Expression" plot type."""
 
     @app.callback(
-        [dash.dependencies.Output("expression_plot_controls", "children")],
+        [Output("expression_plot_controls", "children")],
         [
-            dash.dependencies.Input("url", "pathname"),
-            dash.dependencies.Input("expression_plot_type", "value"),
+            Input("url", "pathname"),
+            Input("expression_plot_type", "value"),
+            Input("page-content", "is_loading")
         ],
     )
-    def update_expression_plot_controls(pathname, plot_type):
+    def update_expression_plot_controls(pathname, plot_type, is_loading):
+        if is_loading:
+            return []
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
         plots = {
@@ -234,8 +333,8 @@ def register_select_gene_plot_type(app):
         return [plots[plot_type](data)]
 
     @app.callback(
-        dash.dependencies.Output("expression_plot", "children"),
-        [dash.dependencies.Input("expression_plot_type", "value")],
+        Output("expression_plot", "children"),
+        [Input("expression_plot_type", "value")],
     )
     def update_expression_plots(plot_type):
         return ui.common.render_plot("expression", plot_type)
@@ -245,10 +344,10 @@ def register_select_gene_marker_list(app):
     """Register callbacks related to changing marker setting."""
 
     @app.callback(
-        dash.dependencies.Output("expression_marker_list", "children"),
+        Output("expression_marker_list", "children"),
         [
-            dash.dependencies.Input("url", "pathname"),
-            dash.dependencies.Input("expression_toggle_marker_list", "value"),
+            Input("url", "pathname"),
+            Input("expression_toggle_marker_list", "value"),
         ],
     )
     def toggle_marker_list(pathname, values):
@@ -257,14 +356,14 @@ def register_select_gene_marker_list(app):
         return ui.genes.render_marker_list(data, values)
 
     @app.callback(
-        dash.dependencies.Output("expression_select_genes", "value"),
+        Output("expression_select_genes", "value"),
         [
-            dash.dependencies.Input("url", "pathname"),
-            dash.dependencies.Input("marker_selection", "n_clicks"),
+            Input("url", "pathname"),
+            Input("marker_selection", "n_clicks"),
         ],
         [
-            dash.dependencies.State("marker_list", "selected_rows"),
-            dash.dependencies.State("expression_toggle_marker_list", "value"),
+            State("marker_list", "selected_rows"),
+            State("expression_toggle_marker_list", "value"),
         ],
     )
     def update_gene_selection(pathname, n_clicks, rows, values):
@@ -281,16 +380,16 @@ def register_select_gene_scatter_plot(app):
 
     @app.callback(
         [
-            dash.dependencies.Output("expression_scatter_plot", "figure"),
-            dash.dependencies.Output("expression_scatter_download", "href"),
-            dash.dependencies.Output("expression_scatter_download", "hidden"),
+            Output("expression_scatter_plot", "figure"),
+            Output("expression_scatter_download", "href"),
+            Output("expression_scatter_download", "hidden"),
         ],
         [
-            dash.dependencies.Input("url", "pathname"),
-            dash.dependencies.Input("expression_scatter_select_x", "value"),
-            dash.dependencies.Input("expression_scatter_select_y", "value"),
-            dash.dependencies.Input("expression_select_genes", "value"),
-            dash.dependencies.Input("filter_cells_choices", "children"),
+            Input("url", "pathname"),
+            Input("expression_scatter_select_x", "value"),
+            Input("expression_scatter_select_y", "value"),
+            Input("expression_select_genes", "value"),
+            Input("filter_cells_choices", "children"),
         ],
     )
     def get_expression_plot_scatter(pathname, xc, yc, genelist, choices_json):
@@ -304,16 +403,16 @@ def register_select_gene_violin_plot(app):
 
     @app.callback(
         [
-            dash.dependencies.Output("expression_violin_plot", "figure"),
-            dash.dependencies.Output("expression_violin_download", "href"),
-            dash.dependencies.Output("expression_violin_download", "hidden"),
+            Output("expression_violin_plot", "figure"),
+            Output("expression_violin_download", "href"),
+            Output("expression_violin_download", "hidden"),
         ],
         [
-            dash.dependencies.Input("url", "pathname"),
-            dash.dependencies.Input("expression_select_genes", "value"),
-            dash.dependencies.Input("expression_violin_select_group", "value"),
-            dash.dependencies.Input("expression_violin_select_split", "value"),
-            dash.dependencies.Input("filter_cells_choices", "children"),
+            Input("url", "pathname"),
+            Input("expression_select_genes", "value"),
+            Input("expression_violin_select_group", "value"),
+            Input("expression_violin_select_split", "value"),
+            Input("filter_cells_choices", "children"),
         ],
     )
     def get_expression_plot_violin(pathname, genelist, group, split, choices_json):
@@ -327,16 +426,16 @@ def register_select_gene_dot_plot(app):
 
     @app.callback(
         [
-            dash.dependencies.Output("expression_dot_plot", "figure"),
-            dash.dependencies.Output("expression_dot_download", "href"),
-            dash.dependencies.Output("expression_dot_download", "hidden"),
+            Output("expression_dot_plot", "figure"),
+            Output("expression_dot_download", "href"),
+            Output("expression_dot_download", "hidden"),
         ],
         [
-            dash.dependencies.Input("url", "pathname"),
-            dash.dependencies.Input("expression_select_genes", "value"),
-            dash.dependencies.Input("expression_dot_select_group", "value"),
-            dash.dependencies.Input("expression_dot_select_split", "value"),
-            dash.dependencies.Input("filter_cells_choices", "children"),
+            Input("url", "pathname"),
+            Input("expression_select_genes", "value"),
+            Input("expression_dot_select_group", "value"),
+            Input("expression_dot_select_split", "value"),
+            Input("filter_cells_choices", "children"),
         ],
     )
     def get_expression_plot_dot(pathname, genelist, group, split, choices_json):
@@ -347,9 +446,9 @@ def register_select_gene_dot_plot(app):
 
 def register_toggle_filter_cells_controls(app, token):
     @app.callback(
-        dash.dependencies.Output("%s_filter_cells_collapse" % token, "is_open"),
-        [dash.dependencies.Input("%s_filter_cells_button" % token, "n_clicks")],
-        [dash.dependencies.State("%s_filter_cells_collapse" % token, "is_open")],
+        Output("%s_filter_cells_collapse" % token, "is_open"),
+        [Input("%s_filter_cells_button" % token, "n_clicks")],
+        [State("%s_filter_cells_collapse" % token, "is_open")],
     )
     def toggle_filter_cells_controls(n, is_open):
         if n:
@@ -360,18 +459,18 @@ def register_toggle_filter_cells_controls(app, token):
 def register_update_filter_cells_controls(app, token):
     @app.callback(
         [
-            dash.dependencies.Output("%s_filter_cells_choice_div" % token, "style"),
-            dash.dependencies.Output("%s_filter_cells_choice" % token, "options"),
-            dash.dependencies.Output("%s_filter_cells_choice" % token, "value"),
-            dash.dependencies.Output("%s_filter_cells_range_div" % token, "style"),
-            dash.dependencies.Output("%s_filter_cells_range" % token, "marks"),
-            dash.dependencies.Output("%s_filter_cells_range" % token, "min"),
-            dash.dependencies.Output("%s_filter_cells_range" % token, "max"),
-            dash.dependencies.Output("%s_filter_cells_range" % token, "value"),
-            dash.dependencies.Output("%s_filter_cells_range" % token, "step"),
+            Output("%s_filter_cells_choice_div" % token, "style"),
+            Output("%s_filter_cells_choice" % token, "options"),
+            Output("%s_filter_cells_choice" % token, "value"),
+            Output("%s_filter_cells_range_div" % token, "style"),
+            Output("%s_filter_cells_range" % token, "marks"),
+            Output("%s_filter_cells_range" % token, "min"),
+            Output("%s_filter_cells_range" % token, "max"),
+            Output("%s_filter_cells_range" % token, "value"),
+            Output("%s_filter_cells_range" % token, "step"),
         ],
-        [dash.dependencies.Input("%s_filter_cells_attribute" % token, "value")],
-        [dash.dependencies.State("filter_cells_choices", "children")],
+        [Input("%s_filter_cells_attribute" % token, "value")],
+        [State("filter_cells_choices", "children")],
     )
     def update_filter_cells_controls(attribute_string, choices_json):
         if attribute_string == "None":
@@ -423,19 +522,23 @@ def register_update_filter_cells_controls(app, token):
 
 def register_update_filter_cells_choices(app):
     @app.callback(
-        dash.dependencies.Output("filter_cells_choices", "children"),
         [
-            dash.dependencies.Input("meta_filter_cells_choice", "value"),
-            dash.dependencies.Input("meta_filter_cells_range", "value"),
-            dash.dependencies.Input("meta_filter_cells_reset", "n_clicks"),
-            dash.dependencies.Input("expression_filter_cells_choice", "value"),
-            dash.dependencies.Input("expression_filter_cells_range", "value"),
-            dash.dependencies.Input("expression_filter_cells_reset", "n_clicks"),
+            Output("filter_cells_choices", "children"),
+            Output("meta_filter_cells_div", "title"),
+            Output("expression_filter_cells_div", "title"),
         ],
         [
-            dash.dependencies.State("meta_filter_cells_attribute", "value"),
-            dash.dependencies.State("expression_filter_cells_attribute", "value"),
-            dash.dependencies.State("filter_cells_choices", "children"),
+            Input("meta_filter_cells_choice", "value"),
+            Input("meta_filter_cells_range", "value"),
+            Input("meta_filter_cells_reset", "n_clicks"),
+            Input("expression_filter_cells_choice", "value"),
+            Input("expression_filter_cells_range", "value"),
+            Input("expression_filter_cells_reset", "n_clicks"),
+        ],
+        [
+            State("meta_filter_cells_attribute", "value"),
+            State("expression_filter_cells_attribute", "value"),
+            State("filter_cells_choices", "children"),
         ],
     )
     def update_filter_cells_choices(
@@ -452,12 +555,14 @@ def register_update_filter_cells_choices(app):
         ctx = dash.callback_context
 
         choices = json.loads(choices_json)
+        status = "active filters: "
         # if reset button was hit, check all boxes using stored values in choices_json
+        attributes = [k for k in choices.keys() if not k.startswith(".")]
         if ctx.triggered and "reset" in ctx.triggered[0]["prop_id"]:
-            attributes = [k for k in choices.keys() if not k.startswith(".")]
             for attribute in attributes:
                 choices[attribute] = choices["." + attribute]
-            return json.dumps(choices)
+            return (json.dumps(choices), status, status)
+
         for cat_value, range_value, attribute_string in [
             (meta_cat_value, meta_range_value, meta_attribute_string),
             (expression_cat_value, expression_range_value, expression_attribute_string),
@@ -465,11 +570,39 @@ def register_update_filter_cells_choices(app):
             if attribute_string != "None":
                 attribute_type, attribute = attribute_string.split()
                 if attribute_type == "cat":
-                    choices[attribute] = cat_value
+                    choices[attribute] = sorted(cat_value)
                 else:
                     choices[attribute] = ["{0:g}".format(v) for v in range_value]
 
-        return json.dumps(choices)
+        filters = []
+        for attribute in attributes:
+            if choices[attribute] != choices["." + attribute]:
+                filters.append(attribute)
+        status += ', '.join(filters)
+        return (json.dumps(choices), status, status)
+
+def register_activate_filter_cells_reset(app):
+    @app.callback(
+        [
+            Output("meta_filter_cells_reset", "disabled"),
+            Output("expression_filter_cells_reset", "disabled"),
+        ],
+        [
+            Input("filter_cells_choices", "children"),
+        ]
+    )
+    def activate_filter_cells_reset(choices_json):
+        if choices_json is not None:
+            choices = json.loads(choices_json)
+        else:
+            choices = {}
+        disabled = True
+        attributes = [k for k in choices.keys() if not k.startswith(".")]
+        for attribute in attributes:
+            if choices[attribute] != choices["." + attribute]:
+                disabled = False
+
+        return (disabled, disabled)
 
 
 def register_file_upload(app):
@@ -479,9 +612,9 @@ def register_file_upload(app):
 
     # TODO: move main handler into "upload" module?
     @app.callback(
-        dash.dependencies.Output("url", "pathname"),
-        [dash.dependencies.Input("file-upload", "contents")],
-        [dash.dependencies.State("file-upload", "filename")],
+        Output("url", "pathname"),
+        [Input("file-upload", "contents")],
+        [State("file-upload", "filename")],
     )
     def file_uploaded(contents, filename):
         logger.info("Handling upload of %s", filename)

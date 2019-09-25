@@ -52,6 +52,3 @@ UPLOAD_DIR = None
 
 #: Whether or not to enable file upload for conversion, default is ``True``.
 CONVERSION_ENABLED = False
-
-#: max number of columns to use for dynamic callbacks
-MAX_NCOLS_DYNAMIC_CALLBACKS = 2

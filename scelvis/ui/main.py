@@ -156,6 +156,7 @@ def render_main_content():
             dbc.Row(
                 dbc.Col(
                     # content will be rendered in this element
+                    #dcc.Loading(id="page-content",type="circle")
                     html.Div(id="page-content")
                 )
             )

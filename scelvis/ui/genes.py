@@ -220,7 +220,7 @@ def render_plot_scatter(data, xc, yc, genelist, choices_json):
     if gl is None or len(gl) == 0 or xc is None or yc is None:
         return {}, "", True
 
-    ad_here = common.apply_select_cells_choices(data, choices_json)
+    ad_here = common.apply_filter_cells_choices(data, choices_json)
 
     ngenes = len(gl)
     if ngenes > 1:
@@ -289,7 +289,7 @@ def render_plot_violin(data, pathname, genelist, group, split, choices_json):
     if gl is None or len(gl) == 0 or group is None:
         return {}, "", True
 
-    ad_here = common.apply_select_cells_choices(data, choices_json)
+    ad_here = common.apply_filter_cells_choices(data, choices_json)
 
     # select color palette
     if split is None:
@@ -378,7 +378,7 @@ def render_plot_dot(data, pathname, genelist, group, split, choices_json):
     if gl is None or len(gl) == 0 or group is None:
         return {}, "", True
 
-    ad_here = common.apply_select_cells_choices(data, choices_json)
+    ad_here = common.apply_filter_cells_choices(data, choices_json)
 
     groupvals = ad_here.obs[group].cat.categories
     ngroup = len(groupvals)
