@@ -7,11 +7,12 @@ any component building itself.  Instead, this is done in the module ``.ui``.
 import base64
 import os.path
 import uuid
+import json
 
 import dash
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
-import json
+import pandas as pd
 from logzero import logger
 from werkzeug.utils import secure_filename
 
@@ -67,7 +68,9 @@ def register_page_content(app):
 
     @app.callback(
         Output("page-content", "children"),
-        [Input("url", "pathname")],
+        [
+            Input("url", "pathname")
+        ]
     )
     def render_page_content(pathname):
         view, kwargs = get_route(pathname)
@@ -84,10 +87,7 @@ def register_page_content(app):
 def register_page_brand(app):
     """Register the display of the page brand with the app."""
 
-    @app.callback(
-        Output("page-brand", "children"),
-        [Input("url", "pathname")],
-    )
+    @app.callback(Output("page-brand", "children"), [Input("url", "pathname")])
     def render_page_brand(pathname):
         view, kwargs = get_route(pathname)
         if view == "home":
@@ -112,12 +112,12 @@ def register_select_cell_plot_type(app):
         [
             Input("url", "pathname"),
             Input("meta_plot_type", "value"),
-            Input("page-content", "is_loading")
+            Input("page-content", "is_loading"),
         ],
     )
     def update_meta_plot_controls(pathname, plot_type, is_loading):
-        if is_loading:
-            return []
+        # while is_loading:
+        #    time.sleep(1)
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
         plots = {
@@ -127,10 +127,7 @@ def register_select_cell_plot_type(app):
         }
         return plots[plot_type](data)
 
-    @app.callback(
-        Output("meta_plot", "children"),
-        [Input("meta_plot_type", "value")],
-    )
+    @app.callback(Output("meta_plot", "children"), [Input("meta_plot_type", "value")])
     def update_meta_plots(plot_type):
         return ui.common.render_plot("meta", plot_type)
 
@@ -150,12 +147,13 @@ def register_update_cell_scatter_plot_params(app):
             Input("meta_scatter_select_y", "value"),
             Input("meta_scatter_select_color", "value"),
             Input("filter_cells_choices", "children"),
+            Input("select_cells_choices", "children"),
         ],
     )
-    def get_meta_plot_scatter(pathname, xc, yc, col, choices_json):
+    def get_meta_plot_scatter(pathname, xc, yc, col, choices_json, select_json):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
-        return ui.cells.render_plot_scatter(data, xc, yc, col, choices_json)
+        return ui.cells.render_plot_scatter(data, xc, yc, col, choices_json, select_json)
 
 
 def register_toggle_select_cells_controls(app):
@@ -169,6 +167,7 @@ def register_toggle_select_cells_controls(app):
             return not is_open
         return is_open
 
+
 def register_update_select_cells_choices(app):
     @app.callback(
         Output("select_cells_choices", "children"),
@@ -178,39 +177,36 @@ def register_update_select_cells_choices(app):
             Input("select_cells_group_B", "n_clicks"),
             Input("select_cells_reset", "n_clicks"),
         ],
-        [State("select_cells_choices", "children")]
+        [State("select_cells_choices", "children")],
     )
-    def update_select_cells_choices(selectedData,
-                                    n_clicks_A,
-                                    n_clicks_B,
-                                    n_clicks_reset,
-                                    choices_json):
+    def update_select_cells_choices(
+        selectedData, n_clicks_A, n_clicks_B, n_clicks_reset, choices_json
+    ):
         ctx = dash.callback_context
         if choices_json is not None:
             choices = json.loads(choices_json)
         else:
             choices = {}
-        if ctx.triggered and 'group_A' in ctx.triggered[0]["prop_id"] and selectedData is not None:
-            choices['group_A'] = [p['text'] for p in selectedData['points']]
-        elif ctx.triggered and 'group_B' in ctx.triggered[0]["prop_id"] and selectedData is not None:
-            choices['group_B'] = [p['text'] for p in selectedData['points']]
-        elif ctx.triggered and 'reset' in ctx.triggered[0]["prop_id"]:
+        if ctx.triggered and "group_A" in ctx.triggered[0]["prop_id"] and selectedData is not None:
+            choices["group_A"] = [p["text"] for p in selectedData["points"]]
+        elif (
+            ctx.triggered and "group_B" in ctx.triggered[0]["prop_id"] and selectedData is not None
+        ):
+            choices["group_B"] = [p["text"] for p in selectedData["points"]]
+        elif ctx.triggered and "reset" in ctx.triggered[0]["prop_id"]:
             choices = {}
         return json.dumps(choices)
 
-    
+
 def register_activate_select_cells_buttons(app):
     @app.callback(
         [
             Output("select_cells_group_A", "disabled"),
             Output("select_cells_group_B", "disabled"),
             Output("select_cells_reset", "disabled"),
-            Output("select_cells_run", "disabled")
+            Output("select_cells_run", "disabled"),
         ],
-        [
-            Input("meta_scatter_plot", "selectedData"),
-            Input("select_cells_choices", "children")
-        ]
+        [Input("meta_scatter_plot", "selectedData"), Input("select_cells_choices", "children")],
     )
     def activate_select_cells_buttons(selectedData, choices_json):
         if choices_json is not None:
@@ -223,7 +219,7 @@ def register_activate_select_cells_buttons(app):
         disabled_run = ("group_A" not in choices) | ("group_B" not in choices)
 
         return (disabled_A, disabled_B, disabled_reset, disabled_run)
-        
+
 
 def register_run_differential_expression(app):
     @app.callback(
@@ -236,12 +232,12 @@ def register_run_differential_expression(app):
             Input("url", "pathname"),
             Input("select_cells_run", "n_clicks"),
             Input("select_cells_choices", "children"),
-            Input("filter_cells_choices", "children")
-        ]
+            Input("filter_cells_choices", "children"),
+        ],
     )
     def run_differential_expression(pathname, n_clicks, select_json, filter_json):
         ctx = dash.callback_context
-        if ctx.triggered and 'run' in ctx.triggered[0]['prop_id'] and n_clicks:
+        if ctx.triggered and "run" in ctx.triggered[0]["prop_id"] and n_clicks:
             print("running differential expression")
             _, kwargs = get_route(pathname)
             data = store.load_data(kwargs.get("dataset"))
@@ -249,7 +245,8 @@ def register_run_differential_expression(app):
             return res
         else:
             return "", "", True
-        
+
+
 def register_update_cell_violin_plot_params(app):
     """Register handlers on violin plot."""
 
@@ -276,10 +273,7 @@ def register_update_cell_violin_plot_params(app):
 def register_update_cell_bar_chart_params(app):
     """Register handlers on bar chart and its controls."""
 
-    @app.callback(
-        Output("meta_bar_options", "options"),
-        [Input("meta_bar_select_split", "value")],
-    )
+    @app.callback(Output("meta_bar_options", "options"), [Input("meta_bar_select_split", "value")])
     def toggle_meta_bar_options(split):
         if split is None:
             return [{"label": "normalized", "value": "normalized"}]
@@ -317,12 +311,12 @@ def register_select_gene_plot_type(app):
         [
             Input("url", "pathname"),
             Input("expression_plot_type", "value"),
-            Input("page-content", "is_loading")
+            Input("page-content", "is_loading"),
         ],
     )
     def update_expression_plot_controls(pathname, plot_type, is_loading):
-        if is_loading:
-            return []
+        # while is_loading:
+        #    time.sleep(1)
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
         plots = {
@@ -332,47 +326,78 @@ def register_select_gene_plot_type(app):
         }
         return [plots[plot_type](data)]
 
-    @app.callback(
-        Output("expression_plot", "children"),
-        [Input("expression_plot_type", "value")],
-    )
+    @app.callback(Output("expression_plot", "children"), [Input("expression_plot_type", "value")])
     def update_expression_plots(plot_type):
         return ui.common.render_plot("expression", plot_type)
 
 
-def register_select_gene_marker_list(app):
-    """Register callbacks related to changing marker setting."""
+def register_select_gene_list(app):
+    """Register callbacks related to changing gene list settings."""
 
     @app.callback(
         Output("expression_marker_list", "children"),
-        [
-            Input("url", "pathname"),
-            Input("expression_toggle_marker_list", "value"),
-        ],
+        [Input("url", "pathname"), Input("expression_toggle_gene_list", "value")],
     )
-    def toggle_marker_list(pathname, values):
+    def toggle_marker_list(pathname, value):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
-        return ui.genes.render_marker_list(data, values)
+        return ui.genes.render_marker_list(data, value)
+
+    @app.callback(
+        Output("expression_toggle_gene_list", "options"),
+        [Input("select_cells_results", "children")],
+        [State("expression_toggle_gene_list", "options")],
+    )
+    def activate_toggle_gene_list(diffexp_json, options):
+        options[1]["disabled"] = diffexp_json is None or len(diffexp_json) == 0
+        return options
+
+    @app.callback(
+        Output("expression_diffexp_list", "children"),
+        [Input("expression_toggle_gene_list", "value")],
+        [State("select_cells_results", "children")],
+    )
+    def toggle_gene_list(value, diffexp_json):
+        return ui.genes.render_diffexp_list(value, diffexp_json)
 
     @app.callback(
         Output("expression_select_genes", "value"),
         [
             Input("url", "pathname"),
             Input("marker_selection", "n_clicks"),
+            Input("diffexp_selection", "n_clicks"),
         ],
         [
             State("marker_list", "selected_rows"),
-            State("expression_toggle_marker_list", "value"),
+            State("diffexp_list", "selected_rows"),
+            State("expression_toggle_gene_list", "value"),
+            State("expression_select_genes", "value"),
+            State("select_cells_results", "children"),
         ],
     )
-    def update_gene_selection(pathname, n_clicks, rows, values):
-        _, kwargs = get_route(pathname)
-        data = store.load_data(kwargs.get("dataset"))
-        if "markers" in values:
-            return list(data.markers.iloc[rows]["gene"])
-        else:
-            return []
+    def update_gene_selection(
+        pathname,
+        n_clicks_markers,
+        n_clicks_diffexp,
+        rows_markers,
+        rows_diffexp,
+        selected_tables,
+        selected_genes,
+        diffexp_json,
+    ):
+        genelist = selected_genes
+        print("currently selected: " + ",".join(genelist))
+        if "markers" in selected_tables:
+            _, kwargs = get_route(pathname)
+            data = store.load_data(kwargs.get("dataset"))
+            print("adding from markers")
+            genelist += list(data.markers.iloc[rows_markers]["gene"])
+        if "diffexp" in selected_tables and diffexp_json is not None:
+            diffexp = pd.read_json(diffexp_json)
+            print("adding from diffexp")
+            genelist += list(diffexp.iloc[rows_diffexp]["gene"])
+        print("now selected: " + ",".join(genelist))
+        return list(set(genelist))
 
 
 def register_select_gene_scatter_plot(app):
@@ -578,8 +603,9 @@ def register_update_filter_cells_choices(app):
         for attribute in attributes:
             if choices[attribute] != choices["." + attribute]:
                 filters.append(attribute)
-        status += ', '.join(filters)
+        status += ", ".join(filters)
         return (json.dumps(choices), status, status)
+
 
 def register_activate_filter_cells_reset(app):
     @app.callback(
@@ -587,9 +613,7 @@ def register_activate_filter_cells_reset(app):
             Output("meta_filter_cells_reset", "disabled"),
             Output("expression_filter_cells_reset", "disabled"),
         ],
-        [
-            Input("filter_cells_choices", "children"),
-        ]
+        [Input("filter_cells_choices", "children")],
     )
     def activate_filter_cells_reset(choices_json):
         if choices_json is not None:

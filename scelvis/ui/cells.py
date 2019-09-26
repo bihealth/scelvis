@@ -8,6 +8,12 @@ import dash_html_components as html
 import plotly.graph_objs as go
 import plotly.subplots as subplots
 
+import numpy as np
+import pandas as pd
+import scanpy as sc
+import json
+
+
 from .. import settings
 from . import colors, common
 
@@ -21,13 +27,13 @@ def render_controls_scatter(data):
                 dcc.Dropdown(
                     id="meta_scatter_select_x",
                     options=[{"label": c, "value": c} for c in data.coords + data.numerical_meta],
-                    value=data.coords[0],
+                    value=data.coords[0] if len(data.coords) > 1 else data.numerical_meta[0],
                 ),
                 html.Label("select y axis"),
                 dcc.Dropdown(
                     id="meta_scatter_select_y",
                     options=[{"label": c, "value": c} for c in data.coords + data.numerical_meta],
-                    value=data.coords[1],
+                    value=data.coords[1] if len(data.coords) > 1 else data.numerical_meta[1],
                 ),
                 html.Label("select coloring"),
                 dcc.Dropdown(
@@ -38,7 +44,7 @@ def render_controls_scatter(data):
                     ],
                     value=data.categorical_meta[0],
                 ),
-                render_select_cells (data),
+                render_select_cells(data),
             ],
             title="Select x- and y-coordinates for embedding (TSNE or UMAP); "
             "color points according to cell annotation (e.g., cluster identity or n_genes); "
@@ -116,26 +122,28 @@ def render_controls_bars(data):
         )
     ]
 
+
 def render_select_cells(data):
     """Render the collapse for selecting cells for differential expression"""
     return html.Div(
         [
             html.P(),
             dbc.Button(
-                'differential expression',
-                id='select_cells_button',
-                className='text-left',
-                color='primary',
+                "differential expression",
+                id="select_cells_button",
+                className="text-left",
+                color="primary",
                 outline=True,
-                size='md',
+                size="md",
             ),
             dbc.Collapse(
                 dbc.Card(dbc.CardBody(render_select_cells_controls(data))),
-                id='select_cells_collapse',
+                id="select_cells_collapse",
             ),
         ],
         title='define two groups of cells in the plot with "Box select" or "Lasso select" and hit "Run" to perform differential expression',
     )
+
 
 def render_select_cells_controls(data):
     """render the controls for selecting cells for differential expression"""
@@ -144,18 +152,18 @@ def render_select_cells_controls(data):
             dbc.Row(
                 [
                     dbc.Button(
-                        'group A',
-                        id='select_cells_group_A',
-                        className='mr-1',
-                        color='secondary',
-                        size='sm',
+                        "group A",
+                        id="select_cells_group_A",
+                        className="mr-1",
+                        color="secondary",
+                        size="sm",
                     ),
                     dbc.Button(
-                        'group B',
-                        id='select_cells_group_B',
-                        className='mr-1',
-                        color='secondary',
-                        size='sm',
+                        "group B",
+                        id="select_cells_group_B",
+                        className="mr-1",
+                        color="secondary",
+                        size="sm",
                     ),
                     dbc.Button(
                         "reset",
@@ -165,36 +173,24 @@ def render_select_cells_controls(data):
                         size="sm",
                     ),
                     dbc.Button(
-                        "run",
-                        id="select_cells_run",
-                        color="secondary",
-                        className="mr-1",
-                        size="sm",
+                        "run", id="select_cells_run", color="primary", className="mr-1", size="sm"
                     ),
                 ]
             ),
             html.P(),
             html.A(
-                children=[
-                    html.I(className="fas fa-cloud-download-alt pr-1"),
-                    "download results",
-                ],
+                children=[html.I(className="fas fa-cloud-download-alt pr-1"), "download results"],
                 id="select_cells_download",
                 download="results.csv",
                 href="",
                 hidden=True,
                 target="_blank",
             ),
-            html.Div(
-                id='select_cells_choices',
-                style={'display': 'none'},
-            ),
-            html.Div(
-                id='select_cells_results',
-                style={'display': 'none'},
-            ),
+            html.Div(id="select_cells_choices", style={"display": "none"}),
+            html.Div(id="select_cells_results", style={"display": "none"}),
         ]
     )
+
 
 def render_controls(data):
     """Render the (left) controls column for the given ``data``."""
@@ -222,12 +218,11 @@ def render_controls(data):
             ),
         ),
         html.Hr(),
-        # Placeholder for the plot-specific controls.
-        dcc.Loading(id="meta_plot_controls", type="circle"),
-        html.Hr(),
         # Control for filtering of cells.
         common.render_filter_cells_collapse(data, "meta"),
         html.Hr(),
+        # Placeholder for the plot-specific controls.
+        html.Div(id="meta_plot_controls"),
     ]
 
 
@@ -242,7 +237,7 @@ def render(data):
     )
 
 
-def render_plot_scatter(data, xc, yc, col, choices_json):
+def render_plot_scatter(data, xc, yc, col, choices_json, select_json):
     """Render the scatter plot figure."""
 
     if xc is None or yc is None or col is None:
@@ -311,6 +306,32 @@ def render_plot_scatter(data, xc, yc, col, choices_json):
             height=settings.PLOT_HEIGHT,
         ),
     }
+
+    if select_json is not None:
+        selected = json.loads(select_json)
+        shapes = []
+        for group in selected.keys():
+            inds = np.intersect1d(selected[group], data.ad.obs_names)
+            xvals = data.ad[inds,:].obs[xc]
+            yvals = data.ad[inds,:].obs[yc]
+            shapes.append(
+                go.layout.Shape(
+                    type="circle",
+                    xref="x",
+                    yref="y",
+                    x0=xvals.min(),
+                    y0=yvals.min(),
+                    x1=xvals.max(),
+                    y1=yvals.max(),
+                    opacity=.2,
+                    fillcolor='gray',
+                    line_color='gray',
+                    name=group,
+                )
+            )
+    
+        fig['layout'].update(shapes=shapes)
+        
     return fig, csv_string, False
 
 
@@ -470,36 +491,35 @@ def render_plot_bars(data, group, split, options, choices_json):
     return fig, csv_string, False
 
 
-def run_differential_expression (data, select_json, filter_json):
-
-    import numpy as np
-    import pandas as pd
-    import scanpy as sc
-    import json
+def run_differential_expression(data, select_json, filter_json):
 
     ad_here = common.apply_filter_cells_choices(data, filter_json)
 
     selected = json.loads(select_json)
 
-    ad_here.obs['group'] = np.nan
-    ad_here.obs.loc[selected['group_A'],'group'] = 'A'
-    ad_here.obs.loc[selected['group_B'],'group'] = 'B'
+    ad_here.obs["group"] = np.nan
+    ad_here.obs.loc[selected["group_A"], "group"] = "A"
+    ad_here.obs.loc[selected["group_B"], "group"] = "B"
 
-    ad_here = ad_here[~ad_here.obs['group'].isnull(),:]
+    ad_here = ad_here[~ad_here.obs["group"].isnull(), :]
 
-    res = sc.tl.rank_genes_groups(ad_here, 'group', copy=True).uns['rank_genes_groups']
+    res = sc.tl.rank_genes_groups(ad_here, "group", copy=True).uns["rank_genes_groups"]
 
-    res_df = pd.DataFrame({'gene': pd.DataFrame(res['names']).stack(),
-                           'logFC': pd.DataFrame(res['logfoldchanges']).stack(),
-                           'pval': pd.DataFrame(res['pvals']).stack(),
-                           'adjp': pd.DataFrame(res['pvals_adj']).stack()})
+    res_df = pd.DataFrame(
+        {
+            "gene": pd.DataFrame(res["names"]).stack(),
+            "logFC": pd.DataFrame(res["logfoldchanges"]).stack(),
+            "pval": pd.DataFrame(res["pvals"]).stack(),
+            "adjp": pd.DataFrame(res["pvals_adj"]).stack(),
+        }
+    )
 
-    res_df.index = res_df.index.set_names(['n','group'])
-    res_df = res_df.reset_index().drop('n',axis=1)
+    res_df.index = res_df.index.set_names(["n", "group"])
+    res_df = res_df.reset_index().drop("n", axis=1)
+    res_df = res_df[res_df["adjp"] < 0.05]
 
     csv_string = "data:text/csv;charset=utf-8," + urllib.parse.quote(
         res_df.to_csv(index=True, header=True, encoding="utf-8")
     )
 
     return res_df.to_json(), csv_string, False
-    

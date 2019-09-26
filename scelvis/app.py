@@ -85,7 +85,7 @@ callbacks.register_update_filter_cells_controls(app, "meta")
 
 # Cellbacks for the "genes" tab pane.
 callbacks.register_select_gene_plot_type(app)
-callbacks.register_select_gene_marker_list(app)
+callbacks.register_select_gene_list(app)
 callbacks.register_select_gene_scatter_plot(app)
 callbacks.register_select_gene_violin_plot(app)
 callbacks.register_select_gene_dot_plot(app)

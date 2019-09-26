@@ -51,7 +51,7 @@ def render_filter_cells_collapse(data, token):
             ),
         ],
         id="%s_filter_cells_div" % token,
-        title="active filters: "
+        title="active filters: ",
     )
 
 
@@ -81,7 +81,7 @@ def render_filter_cells_controls(data, token):
                     ),
                     value="None",
                 )
-            ],
+            ]
         ),
         # use CheckList for categorical choices and RangeSlider for numerical ones
         # and show the ones that's appropriate
@@ -113,19 +113,21 @@ def render_filter_cells_controls(data, token):
             ],
             style={"display": "none"},
         ),
-        dbc.Button("reset filters",
-                   id="%s_filter_cells_reset" % token,
-                   color="link",
-                   className="text-left",
-                   size="sm"),
+        dbc.Button(
+            "reset filters",
+            id="%s_filter_cells_reset" % token,
+            color="link",
+            className="text-left",
+            size="sm",
+        ),
     ]
 
     if token == "meta":
-        output.append(html.Div(
-            id="filter_cells_choices",
-            style={"display": "none"},
-            children=json.dumps(choices)
-        ))
+        output.append(
+            html.Div(
+                id="filter_cells_choices", style={"display": "none"}, children=json.dumps(choices)
+            )
+        )
 
     return output
 
