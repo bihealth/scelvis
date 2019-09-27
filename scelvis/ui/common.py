@@ -40,7 +40,7 @@ def render_filter_cells_collapse(data, token):
             dbc.Button(
                 "filter cells",
                 id="%s_filter_cells_button" % token,
-                className="mr-1",
+                className="text-left",
                 color="primary",
                 outline=True,
                 size="md",
@@ -49,7 +49,9 @@ def render_filter_cells_collapse(data, token):
                 dbc.Card(dbc.CardBody(render_filter_cells_controls(data, token))),
                 id="%s_filter_cells_collapse" % token,
             ),
-        ]
+        ],
+        id="%s_filter_cells_div" % token,
+        title="active filters: ",
     )
 
 
@@ -79,8 +81,7 @@ def render_filter_cells_controls(data, token):
                     ),
                     value="None",
                 )
-            ],
-            title=("choose attribute by which to filter cells"),
+            ]
         ),
         # use CheckList for categorical choices and RangeSlider for numerical ones
         # and show the ones that's appropriate
@@ -112,7 +113,13 @@ def render_filter_cells_controls(data, token):
             ],
             style={"display": "none"},
         ),
-        dbc.Button("reset filters", id="%s_filter_cells_reset" % token, color="link", size="sm"),
+        dbc.Button(
+            "reset filters",
+            id="%s_filter_cells_reset" % token,
+            color="link",
+            className="text-left",
+            size="sm",
+        ),
     ]
 
     if token == "meta":
@@ -125,7 +132,7 @@ def render_filter_cells_controls(data, token):
     return output
 
 
-def apply_select_cells_choices(data, choices_json):
+def apply_filter_cells_choices(data, choices_json):
 
     take = np.ones(data.ad.obs.shape[0], dtype=bool)
     for col, selected in json.loads(choices_json).items():

@@ -7,10 +7,10 @@ import dash_core_components as dcc
 import dash_html_components as html
 import dash_table
 import pandas as pd
+import numpy as np
 import plotly.graph_objs as go
 import plotly.subplots as subplots
 
-import numpy as np
 
 from .. import settings
 from . import colors, common
@@ -25,13 +25,13 @@ def render_controls_scatter(data):
                 dcc.Dropdown(
                     id="expression_scatter_select_x",
                     options=[{"label": c, "value": c} for c in data.coords + data.numerical_meta],
-                    value=data.coords[0],
+                    value=data.coords[0] if len(data.coords) > 1 else data.numerical_meta[0],
                 ),
                 html.Label("select y axis"),
                 dcc.Dropdown(
                     id="expression_scatter_select_y",
                     options=[{"label": c, "value": c} for c in data.coords + data.numerical_meta],
-                    value=data.coords[1],
+                    value=data.coords[1] if len(data.coords) > 1 else data.numerical_meta[1],
                 ),
             ],
             title="""select x- and y-coordinates of embedding (e.g., TSNE or UMAP)""",
@@ -117,8 +117,11 @@ def render_controls(data):
             ),
         ),
         html.Hr(),
+        # Control for filtering of cells.
+        common.render_filter_cells_collapse(data, "expression"),
+        html.Hr(),
         # Placeholder for the plot-specific controls.
-        dcc.Loading(id="expression_plot_controls", type="circle"),
+        html.Div(id="expression_plot_controls"),
         html.Hr(),
         # Selection of genes and markers.
         html.Div(
@@ -131,13 +134,14 @@ def render_controls(data):
                     multi=True,
                 ),
                 dcc.Checklist(
-                    id="expression_toggle_marker_list",
+                    id="expression_toggle_gene_list",
                     options=[
                         {
-                            "label": "use marker table for selection",
+                            "label": "show marker table",
                             "value": "markers",
                             "disabled": (data.markers is None),
-                        }
+                        },
+                        {"label": "show diffexp results", "value": "diffexp", "disabled": False},
                     ],
                     value=[],
                     className="mt-2",
@@ -146,12 +150,9 @@ def render_controls(data):
             ],
             title=(
                 "Select one or more genes (remove from list by clicking on x) "
-                "or select from marker gene list by checking the box"
+                "or select from gene lists by checking the boxes"
             ),
         ),
-        html.Hr(),
-        # Control for filtering of cells.
-        common.render_filter_cells_collapse(data, "expression"),
     ]
 
 
@@ -171,46 +172,97 @@ def render(data):
             ),
             dbc.Row(
                 children=[
-                    dbc.Col(children=[dcc.Loading(id="expression_marker_list", type="circle")])
+                    dbc.Col(
+                        children=[
+                            html.Div(id="expression_marker_list"),
+                            html.Div(id="expression_diffexp_list"),
+                        ]
+                    )
                 ]
             ),
         ]
     )
 
 
-def render_marker_list(data, values):
-    if values is not None and "markers" in values:
-        return [
-            dbc.Row([dbc.Col(html.Hr())]),
-            dbc.Row(
-                [
-                    dbc.Col(
-                        [dbc.Button("use selected genes", color="primary", id="marker_selection")],
-                        className="col-3",
-                    ),
-                    dbc.Col(
-                        [
-                            dash_table.DataTable(
-                                id="marker_list",
-                                columns=[{"name": i, "id": i} for i in data.markers.columns],
-                                data=data.markers.round(3).to_dict("rows"),
-                                fixed_rows={"headers": True},
-                                style_as_list_view=True,
-                                sort_action="native",
-                                sort_mode="single",
-                                row_selectable="multi",
-                                selected_rows=[],
-                                style_table={"maxHeight": 200, "overflowY": "scroll"},
-                            )
-                        ],
-                        className="col-9",
-                    ),
-                ]
-            ),
-        ]
-
+def render_marker_list(data, value):
+    show = value is not None and "markers" in value
+    if show:
+        columns = [{"name": i, "id": i} for i in data.markers.columns]
+        table_data = data.markers.round(3).to_dict("rows")
     else:
-        return [dbc.Row([dbc.Col(html.P())]), html.P()]
+        columns = []
+        table_data = []
+    return [
+        dbc.Row([dbc.Col(html.Hr())], style={"display": "block" if show else "none"}),
+        dbc.Row(
+            [
+                dbc.Col(
+                    [dbc.Button("use selected genes", color="primary", id="marker_selection")],
+                    className="col-3",
+                    style={"display": "block" if show else "none"},
+                ),
+                dbc.Col(
+                    [
+                        dash_table.DataTable(
+                            id="marker_list",
+                            columns=columns,
+                            data=table_data,
+                            fixed_rows={"headers": True},
+                            style_as_list_view=True,
+                            sort_action="native",
+                            sort_mode="single",
+                            row_selectable="multi",
+                            selected_rows=[],
+                            style_table={"maxHeight": 200, "overflowY": "scroll"},
+                        )
+                    ],
+                    className="col-9",
+                    style={"display": "block" if show else "none"},
+                ),
+            ]
+        ),
+    ]
+
+
+def render_diffexp_list(value, diffexp_json):
+    show = value is not None and "diffexp" in value
+    if show:
+        diffexp = pd.read_json(diffexp_json)
+        columns = [{"name": i, "id": i} for i in diffexp.columns]
+        table_data = diffexp.round(3).to_dict("rows")
+    else:
+        columns = []
+        table_data = []
+    return [
+        dbc.Row([dbc.Col(html.Hr())], style={"display": "block" if show else "none"}),
+        dbc.Row(
+            [
+                dbc.Col(
+                    [dbc.Button("use selected genes", color="primary", id="diffexp_selection")],
+                    className="col-3",
+                    style={"display": "block" if show else "none"},
+                ),
+                dbc.Col(
+                    [
+                        dash_table.DataTable(
+                            id="diffexp_list",
+                            columns=columns,
+                            data=table_data,
+                            fixed_rows={"headers": True},
+                            style_as_list_view=True,
+                            sort_action="native",
+                            sort_mode="single",
+                            row_selectable="multi",
+                            selected_rows=[],
+                            style_table={"maxHeight": 200, "overflowY": "scroll"},
+                        )
+                    ],
+                    className="col-9",
+                    style={"display": "block" if show else "none"},
+                ),
+            ]
+        ),
+    ]
 
 
 def render_plot_scatter(data, xc, yc, genelist, choices_json):
@@ -220,7 +272,7 @@ def render_plot_scatter(data, xc, yc, genelist, choices_json):
     if gl is None or len(gl) == 0 or xc is None or yc is None:
         return {}, "", True
 
-    ad_here = common.apply_select_cells_choices(data, choices_json)
+    ad_here = common.apply_filter_cells_choices(data, choices_json)
 
     ngenes = len(gl)
     if ngenes > 1:
@@ -289,7 +341,7 @@ def render_plot_violin(data, pathname, genelist, group, split, choices_json):
     if gl is None or len(gl) == 0 or group is None:
         return {}, "", True
 
-    ad_here = common.apply_select_cells_choices(data, choices_json)
+    ad_here = common.apply_filter_cells_choices(data, choices_json)
 
     # select color palette
     if split is None:
@@ -378,7 +430,7 @@ def render_plot_dot(data, pathname, genelist, group, split, choices_json):
     if gl is None or len(gl) == 0 or group is None:
         return {}, "", True
 
-    ad_here = common.apply_select_cells_choices(data, choices_json)
+    ad_here = common.apply_filter_cells_choices(data, choices_json)
 
     groupvals = ad_here.obs[group].cat.categories
     ngroup = len(groupvals)

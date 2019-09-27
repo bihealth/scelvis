@@ -74,6 +74,9 @@ callbacks.register_page_brand(app)
 # Callbacks for the "cells" tab pane.
 callbacks.register_select_cell_plot_type(app)
 callbacks.register_update_cell_scatter_plot_params(app)
+callbacks.register_toggle_select_cells_controls(app)
+callbacks.register_update_select_cells_choices(app)
+callbacks.register_activate_select_cells_buttons(app)
 callbacks.register_update_cell_violin_plot_params(app)
 callbacks.register_update_cell_bar_chart_params(app)
 callbacks.register_toggle_filter_cells_controls(app, "meta")
@@ -82,7 +85,7 @@ callbacks.register_update_filter_cells_controls(app, "meta")
 
 # Cellbacks for the "genes" tab pane.
 callbacks.register_select_gene_plot_type(app)
-callbacks.register_select_gene_marker_list(app)
+callbacks.register_select_gene_list(app)
 callbacks.register_select_gene_scatter_plot(app)
 callbacks.register_select_gene_violin_plot(app)
 callbacks.register_select_gene_dot_plot(app)
@@ -91,6 +94,8 @@ callbacks.register_update_filter_cells_controls(app, "expression")
 
 # callbacks for the filter cells div (on "cells" tab pane, but required for both)
 callbacks.register_update_filter_cells_choices(app)
+callbacks.register_activate_filter_cells_reset(app)
+callbacks.register_run_differential_expression(app)
 
 # Callbacks for the file upload.
 callbacks.register_file_upload(app)

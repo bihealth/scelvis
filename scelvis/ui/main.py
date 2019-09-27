@@ -156,6 +156,7 @@ def render_main_content():
             dbc.Row(
                 dbc.Col(
                     # content will be rendered in this element
+                    # dcc.Loading(id="page-content",type="circle")
                     html.Div(id="page-content")
                 )
             )
@@ -213,6 +214,8 @@ def render_footer():
 def render_dataset_page(data):
     """Render the page main content for dataset visualization."""
     return dbc.Tabs(
+        id="main-tabs",
+        active_tab="tab-cells",
         children=[
             dbc.Tab(
                 html.Div(
@@ -232,7 +235,6 @@ def render_dataset_page(data):
                 tab_id="tab-genes",
             ),
         ],
-        active_tab="tab-cells",
     )
 
 
