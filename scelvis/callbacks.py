@@ -66,12 +66,7 @@ def get_route(pathname):
 def register_page_content(app):
     """Register the display of the page content with the app."""
 
-    @app.callback(
-        Output("page-content", "children"),
-        [
-            Input("url", "pathname")
-        ]
-    )
+    @app.callback(Output("page-content", "children"), [Input("url", "pathname")])
     def render_page_content(pathname):
         view, kwargs = get_route(pathname)
         if view == "home":
@@ -109,15 +104,9 @@ def register_select_cell_plot_type(app):
 
     @app.callback(
         [Output("meta_plot_controls", "children")],
-        [
-            Input("url", "pathname"),
-            Input("meta_plot_type", "value"),
-            Input("page-content", "is_loading"),
-        ],
+        [Input("url", "pathname"), Input("meta_plot_type", "value")],
     )
-    def update_meta_plot_controls(pathname, plot_type, is_loading):
-        # while is_loading:
-        #    time.sleep(1)
+    def update_meta_plot_controls(pathname, plot_type):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
         plots = {
@@ -147,13 +136,12 @@ def register_update_cell_scatter_plot_params(app):
             Input("meta_scatter_select_y", "value"),
             Input("meta_scatter_select_color", "value"),
             Input("filter_cells_choices", "children"),
-            Input("select_cells_choices", "children"),
         ],
     )
-    def get_meta_plot_scatter(pathname, xc, yc, col, choices_json, select_json):
+    def get_meta_plot_scatter(pathname, xc, yc, col, choices_json):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
-        return ui.cells.render_plot_scatter(data, xc, yc, col, choices_json, select_json)
+        return ui.cells.render_plot_scatter(data, xc, yc, col, choices_json)
 
 
 def register_toggle_select_cells_controls(app):
@@ -225,26 +213,41 @@ def register_run_differential_expression(app):
     @app.callback(
         [
             Output("select_cells_results", "children"),
-            Output("select_cells_download", "href"),
-            Output("select_cells_download", "hidden"),
+            Output("select_cells_results_download", "href"),
+            Output("select_cells_parameters_download", "href"),
+            Output("select_cells_get_results", "style"),
         ],
         [
             Input("url", "pathname"),
             Input("select_cells_run", "n_clicks"),
             Input("select_cells_choices", "children"),
-            Input("filter_cells_choices", "children"),
         ],
     )
-    def run_differential_expression(pathname, n_clicks, select_json, filter_json):
+    def run_differential_expression(pathname, n_clicks, select_json):
         ctx = dash.callback_context
         if ctx.triggered and "run" in ctx.triggered[0]["prop_id"] and n_clicks:
-            print("running differential expression")
             _, kwargs = get_route(pathname)
             data = store.load_data(kwargs.get("dataset"))
-            res = ui.cells.run_differential_expression(data, select_json, filter_json)
+            res = ui.cells.run_differential_expression(data, select_json)
             return res
         else:
-            return "", "", True
+            return "", "", "", {"display": "none"}
+
+    @app.callback(
+        [Output("main-tabs", "active_tab"), Output("expression_toggle_gene_list", "value")],
+        [Input("select_cells_view", "n_clicks"), Input("select_cells_reset", "n_clicks")],
+        [State("expression_toggle_gene_list", "value"), State("main-tabs", "active_tab")],
+    )
+    def switch_view(n1, n2, selected, at):
+        ctx = dash.callback_context
+        if ctx.triggered and "view" in ctx.triggered[0]["prop_id"]:
+            if "diffexp" not in selected:
+                selected.append("diffexp")
+            return "tab-genes", selected
+        elif ctx.triggered and "reset" in ctx.triggered[0]["prop_id"]:
+            if "diffexp" in selected:
+                selected.remove("diffexp")
+            return at, selected
 
 
 def register_update_cell_violin_plot_params(app):
@@ -308,15 +311,9 @@ def register_select_gene_plot_type(app):
 
     @app.callback(
         [Output("expression_plot_controls", "children")],
-        [
-            Input("url", "pathname"),
-            Input("expression_plot_type", "value"),
-            Input("page-content", "is_loading"),
-        ],
+        [Input("url", "pathname"), Input("expression_plot_type", "value")],
     )
-    def update_expression_plot_controls(pathname, plot_type, is_loading):
-        # while is_loading:
-        #    time.sleep(1)
+    def update_expression_plot_controls(pathname, plot_type):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
         plots = {
@@ -386,17 +383,13 @@ def register_select_gene_list(app):
         diffexp_json,
     ):
         genelist = selected_genes
-        print("currently selected: " + ",".join(genelist))
         if "markers" in selected_tables:
             _, kwargs = get_route(pathname)
             data = store.load_data(kwargs.get("dataset"))
-            print("adding from markers")
             genelist += list(data.markers.iloc[rows_markers]["gene"])
         if "diffexp" in selected_tables and diffexp_json is not None:
             diffexp = pd.read_json(diffexp_json)
-            print("adding from diffexp")
             genelist += list(diffexp.iloc[rows_diffexp]["gene"])
-        print("now selected: " + ",".join(genelist))
         return list(set(genelist))
 
 

@@ -87,6 +87,9 @@ def test_render_cell_annotation(dash_duo, scelvis_settings):
     options = checklist.find_elements_by_css_selector("*")
     options[0].click()
 
+    button = dash_duo.wait_for_element_by_css_selector("#meta_filter_cells_reset")
+    button.click()
+
     item = dash_duo.wait_for_element_by_css_selector("#meta_plot_type *:nth-child(2)")
     item.click()
     # select sth from the dropdown
@@ -105,7 +108,7 @@ def test_render_cell_annotation(dash_duo, scelvis_settings):
 
 
 def test_render_gene_annotation(dash_duo, scelvis_settings):
-    """Click through the cell annotation"""
+    """Click through the gene annotation"""
 
     app = dash.testing.application_runners.import_app("scelvis.app")
     dash_duo.start_server(app)
@@ -141,12 +144,6 @@ def test_render_gene_annotation(dash_duo, scelvis_settings):
     options[1].click()
     # plot = dash_duo.wait_for_element_by_css_selector('#expression_scatter_plot')
     # dash_duo.take_snapshot('expression_scatter')
-
-    item = dash_duo.wait_for_element_by_css_selector("#expression_filter_cells_button")
-    item.click()
-
-    button = dash_duo.wait_for_element_by_css_selector("#expression_filter_cells_reset")
-    button.click()
 
     item = dash_duo.wait_for_element_by_css_selector("#expression_plot_type *:nth-child(2)")
     item.click()

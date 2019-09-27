@@ -178,13 +178,38 @@ def render_select_cells_controls(data):
                 ]
             ),
             html.P(),
-            html.A(
-                children=[html.I(className="fas fa-cloud-download-alt pr-1"), "download results"],
-                id="select_cells_download",
-                download="results.csv",
-                href="",
-                hidden=True,
-                target="_blank",
+            dbc.Row(
+                [
+                    dbc.Button(
+                        "view table",
+                        id="select_cells_view",
+                        color="link",
+                        style={
+                            "padding-left": 0,
+                            "padding-right": 0,
+                            "padding-top": 0,
+                            "padding-bottom": 2,
+                        },
+                    ),
+                    " or get ",
+                    html.A(
+                        children=[html.I(className="fas fa-cloud-download-alt pr-1"), "results"],
+                        download="results.csv",
+                        id="select_cells_results_download",
+                        href="",
+                        target="_blank",
+                    ),
+                    " or ",
+                    html.A(
+                        children=[html.I(className="fas fa-cloud-download-alt pr-1"), "parameters"],
+                        download="parameters.csv",
+                        id="select_cells_parameters_download",
+                        href="",
+                        target="_blank",
+                    ),
+                ],
+                id="select_cells_get_results",
+                style={"display": "none"},
             ),
             html.Div(id="select_cells_choices", style={"display": "none"}),
             html.Div(id="select_cells_results", style={"display": "none"}),
@@ -237,7 +262,7 @@ def render(data):
     )
 
 
-def render_plot_scatter(data, xc, yc, col, choices_json, select_json):
+def render_plot_scatter(data, xc, yc, col, choices_json):
     """Render the scatter plot figure."""
 
     if xc is None or yc is None or col is None:
@@ -307,31 +332,6 @@ def render_plot_scatter(data, xc, yc, col, choices_json, select_json):
         ),
     }
 
-    if select_json is not None:
-        selected = json.loads(select_json)
-        shapes = []
-        for group in selected.keys():
-            inds = np.intersect1d(selected[group], data.ad.obs_names)
-            xvals = data.ad[inds,:].obs[xc]
-            yvals = data.ad[inds,:].obs[yc]
-            shapes.append(
-                go.layout.Shape(
-                    type="circle",
-                    xref="x",
-                    yref="y",
-                    x0=xvals.min(),
-                    y0=yvals.min(),
-                    x1=xvals.max(),
-                    y1=yvals.max(),
-                    opacity=.2,
-                    fillcolor='gray',
-                    line_color='gray',
-                    name=group,
-                )
-            )
-    
-        fig['layout'].update(shapes=shapes)
-        
     return fig, csv_string, False
 
 
@@ -491,9 +491,9 @@ def render_plot_bars(data, group, split, options, choices_json):
     return fig, csv_string, False
 
 
-def run_differential_expression(data, select_json, filter_json):
+def run_differential_expression(data, select_json):
 
-    ad_here = common.apply_filter_cells_choices(data, filter_json)
+    ad_here = data.ad
 
     selected = json.loads(select_json)
 
@@ -518,8 +518,16 @@ def run_differential_expression(data, select_json, filter_json):
     res_df = res_df.reset_index().drop("n", axis=1)
     res_df = res_df[res_df["adjp"] < 0.05]
 
-    csv_string = "data:text/csv;charset=utf-8," + urllib.parse.quote(
+    results_string = "data:text/csv;charset=utf-8," + urllib.parse.quote(
         res_df.to_csv(index=True, header=True, encoding="utf-8")
     )
 
-    return res_df.to_json(), csv_string, False
+    params = res["params"]
+    params["group_A"] = ",".join(selected["group_A"])
+    params["group_B"] = ",".join(selected["group_B"])
+
+    params_string = "data:text/csv;charset=utf-8," + urllib.parse.quote(
+        pd.Series(params).to_csv(index=True, header=False, encoding="utf-8")
+    )
+
+    return res_df.to_json(), results_string, params_string, {"display": "block"}
