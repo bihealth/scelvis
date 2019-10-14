@@ -524,8 +524,8 @@ def register_update_filter_cells_controls(app, token):
             range_min = values.min()
             range_max = values.max()
             if attribute in filters:
-                val_min = float(filters[attribute][0])
-                val_max = float(filters[attribute][1])
+                val_min = filters[attribute][0]
+                val_max = filters[attribute][1]
             else:
                 val_min = range_min
                 val_max = range_max
@@ -601,7 +601,7 @@ def register_update_filter_cells_filters(app):
                 if not pd.api.types.is_numeric_dtype(values):
                     filters[attribute] = sorted(cat_value)
                 else:
-                    filters[attribute] = ["{0:g}".format(v) for v in range_value]
+                    filters[attribute] = range_value
 
         status += ", ".join(attributes)
         return (json.dumps(filters), status, status)
@@ -632,8 +632,8 @@ def register_activate_filter_cells_reset(app):
             else:
                 range_min = values.min()
                 range_max = values.max()
-                val_min = float(filters[attribute][0])
-                val_max = float(filters[attribute][1])
+                val_min = filters[attribute][0]
+                val_max = filters[attribute][1]
                 if val_min > range_min or val_max < range_max:
                     disabled = False
 
