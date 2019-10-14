@@ -3,6 +3,13 @@ History
 =======
 
 ------
+v0.6.0
+------
+
+- cell filtering
+- differential expression
+
+------
 v0.5.0
 ------
 
