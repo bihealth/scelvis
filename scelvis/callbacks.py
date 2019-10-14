@@ -135,13 +135,13 @@ def register_update_cell_scatter_plot_params(app):
             Input("meta_scatter_select_x", "value"),
             Input("meta_scatter_select_y", "value"),
             Input("meta_scatter_select_color", "value"),
-            Input("filter_cells_choices", "children"),
+            Input("filter_cells_filters", "children"),
         ],
     )
-    def get_meta_plot_scatter(pathname, xc, yc, col, choices_json):
+    def get_meta_plot_scatter(pathname, xc, yc, col, filters_json):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
-        return ui.cells.render_plot_scatter(data, xc, yc, col, choices_json)
+        return ui.cells.render_plot_scatter(data, xc, yc, col, filters_json)
 
 
 def register_toggle_select_cells_controls(app):
@@ -264,7 +264,7 @@ def register_update_cell_violin_plot_params(app):
             Input("meta_violin_select_vars", "value"),
             Input("meta_violin_select_group", "value"),
             Input("meta_violin_select_split", "value"),
-            Input("filter_cells_choices", "children"),
+            Input("filter_cells_filters", "children"),
         ],
     )
     def get_meta_plot_violin(pathname, variables, group, split, choices_json):
@@ -297,7 +297,7 @@ def register_update_cell_bar_chart_params(app):
             Input("meta_bar_select_group", "value"),
             Input("meta_bar_select_split", "value"),
             Input("meta_bar_options", "value"),
-            Input("filter_cells_choices", "children"),
+            Input("filter_cells_filters", "children"),
         ],
     )
     def get_meta_plot_bars(pathname, group, split, options, choices_json):
@@ -407,7 +407,7 @@ def register_select_gene_scatter_plot(app):
             Input("expression_scatter_select_x", "value"),
             Input("expression_scatter_select_y", "value"),
             Input("expression_select_genes", "value"),
-            Input("filter_cells_choices", "children"),
+            Input("filter_cells_filters", "children"),
         ],
     )
     def get_expression_plot_scatter(pathname, xc, yc, genelist, choices_json):
@@ -430,7 +430,7 @@ def register_select_gene_violin_plot(app):
             Input("expression_select_genes", "value"),
             Input("expression_violin_select_group", "value"),
             Input("expression_violin_select_split", "value"),
-            Input("filter_cells_choices", "children"),
+            Input("filter_cells_filters", "children"),
         ],
     )
     def get_expression_plot_violin(pathname, genelist, group, split, choices_json):
@@ -453,7 +453,7 @@ def register_select_gene_dot_plot(app):
             Input("expression_select_genes", "value"),
             Input("expression_dot_select_group", "value"),
             Input("expression_dot_select_split", "value"),
-            Input("filter_cells_choices", "children"),
+            Input("filter_cells_filters", "children"),
         ],
     )
     def get_expression_plot_dot(pathname, genelist, group, split, choices_json):
@@ -487,11 +487,13 @@ def register_update_filter_cells_controls(app, token):
             Output("%s_filter_cells_range" % token, "value"),
             Output("%s_filter_cells_range" % token, "step"),
         ],
-        [Input("%s_filter_cells_attribute" % token, "value")],
-        [State("filter_cells_choices", "children")],
+        [Input("url", "pathname"), Input("%s_filter_cells_attribute" % token, "value")],
+        [State("filter_cells_filters", "children")],
     )
-    def update_filter_cells_controls(attribute_string, choices_json):
-        if attribute_string == "None":
+    def update_filter_cells_controls(pathname, attribute, filters_json):
+        _, kwargs = get_route(pathname)
+        data = store.load_data(kwargs.get("dataset"))
+        if attribute is None or attribute == "None":
             return (
                 {"display": "none"},
                 [],
@@ -503,13 +505,14 @@ def register_update_filter_cells_controls(app, token):
                 [0, 1],
                 0,
             )
-        attribute_type, attribute = attribute_string.split()
-        choices = json.loads(choices_json)
-        if attribute_type == "cat":
+        filters = json.loads(filters_json)
+        values = data.ad.obs_vector(attribute)
+        if not pd.api.types.is_numeric_dtype(values):
+            categories = list(data.ad.obs[attribute].cat.categories)
             return (
                 {"display": "block"},
-                [{"label": c, "value": c} for c in choices["." + attribute]],
-                choices[attribute],
+                [{"label": v, "value": v} for v in categories],
+                filters[attribute] if attribute in filters else categories,
                 {"display": "none"},
                 {0: "0", 1: "1"},
                 0,
@@ -518,18 +521,22 @@ def register_update_filter_cells_controls(app, token):
                 0,
             )
         else:
-            range_min = float(choices["." + attribute][0])
-            range_max = float(choices["." + attribute][1])
-            val_min = float(choices[attribute][0])
-            val_max = float(choices[attribute][1])
+            range_min = values.min()
+            range_max = values.max()
+            if attribute in filters:
+                val_min = float(filters[attribute][0])
+                val_max = float(filters[attribute][1])
+            else:
+                val_min = range_min
+                val_max = range_max
             return (
                 {"display": "none"},
                 [],
                 None,
                 {"display": "block"},
                 dict(
-                    (int(t) if float(t) % 1 == 0 else float(t), t)
-                    for t in choices["." + attribute + "_ticks"]
+                    (int(t) if t % 1 == 0 else t, "{0:g}".format(t))
+                    for t in ui.common.auto_tick([range_min, range_max], max_tick=4, tf_inside=True)
                 ),
                 range_min,
                 range_max,
@@ -538,14 +545,15 @@ def register_update_filter_cells_controls(app, token):
             )
 
 
-def register_update_filter_cells_choices(app):
+def register_update_filter_cells_filters(app):
     @app.callback(
         [
-            Output("filter_cells_choices", "children"),
+            Output("filter_cells_filters", "children"),
             Output("meta_filter_cells_div", "title"),
             Output("expression_filter_cells_div", "title"),
         ],
         [
+            Input("url", "pathname"),
             Input("meta_filter_cells_choice", "value"),
             Input("meta_filter_cells_range", "value"),
             Input("meta_filter_cells_reset", "n_clicks"),
@@ -556,48 +564,47 @@ def register_update_filter_cells_choices(app):
         [
             State("meta_filter_cells_attribute", "value"),
             State("expression_filter_cells_attribute", "value"),
-            State("filter_cells_choices", "children"),
+            State("filter_cells_filters", "children"),
         ],
     )
-    def update_filter_cells_choices(
+    def update_filter_cells_filters(
+        pathname,
         meta_cat_value,
         meta_range_value,
         meta_reset_n,
         expression_cat_value,
         expression_range_value,
         expression_reset_n,
-        meta_attribute_string,
-        expression_attribute_string,
-        choices_json,
+        meta_attribute,
+        expression_attribute,
+        filters_json,
     ):
+        _, kwargs = get_route(pathname)
+        data = store.load_data(kwargs.get("dataset"))
         ctx = dash.callback_context
 
-        choices = json.loads(choices_json)
+        filters = json.loads(filters_json)
         status = "active filters: "
-        # if reset button was hit, check all boxes using stored values in choices_json
-        attributes = [k for k in choices.keys() if not k.startswith(".")]
+        # if reset button was hit, check all boxes using stored values in filters_json
+        attributes = filters.keys()
         if ctx.triggered and "reset" in ctx.triggered[0]["prop_id"]:
-            for attribute in attributes:
-                choices[attribute] = choices["." + attribute]
-            return (json.dumps(choices), status, status)
+            for attribute in list(attributes):
+                del filters[attribute]
+            return (json.dumps(filters), status, status)
 
-        for cat_value, range_value, attribute_string in [
-            (meta_cat_value, meta_range_value, meta_attribute_string),
-            (expression_cat_value, expression_range_value, expression_attribute_string),
+        for cat_value, range_value, attribute in [
+            (meta_cat_value, meta_range_value, meta_attribute),
+            (expression_cat_value, expression_range_value, expression_attribute),
         ]:
-            if attribute_string != "None":
-                attribute_type, attribute = attribute_string.split()
-                if attribute_type == "cat":
-                    choices[attribute] = sorted(cat_value)
+            if attribute is not None and attribute != "None":
+                values = data.ad.obs_vector(attribute)
+                if not pd.api.types.is_numeric_dtype(values):
+                    filters[attribute] = sorted(cat_value)
                 else:
-                    choices[attribute] = ["{0:g}".format(v) for v in range_value]
+                    filters[attribute] = ["{0:g}".format(v) for v in range_value]
 
-        filters = []
-        for attribute in attributes:
-            if choices[attribute] != choices["." + attribute]:
-                filters.append(attribute)
-        status += ", ".join(filters)
-        return (json.dumps(choices), status, status)
+        status += ", ".join(attributes)
+        return (json.dumps(filters), status, status)
 
 
 def register_activate_filter_cells_reset(app):
@@ -606,18 +613,29 @@ def register_activate_filter_cells_reset(app):
             Output("meta_filter_cells_reset", "disabled"),
             Output("expression_filter_cells_reset", "disabled"),
         ],
-        [Input("filter_cells_choices", "children")],
+        [Input("url", "pathname"), Input("filter_cells_filters", "children")],
     )
-    def activate_filter_cells_reset(choices_json):
-        if choices_json is not None:
-            choices = json.loads(choices_json)
+    def activate_filter_cells_reset(pathname, filters_json):
+        _, kwargs = get_route(pathname)
+        data = store.load_data(kwargs.get("dataset"))
+        if filters_json is not None:
+            filters = json.loads(filters_json)
         else:
-            choices = {}
+            filters = {}
         disabled = True
-        attributes = [k for k in choices.keys() if not k.startswith(".")]
+        attributes = filters.keys()
         for attribute in attributes:
-            if choices[attribute] != choices["." + attribute]:
-                disabled = False
+            values = data.ad.obs_vector(attribute)
+            if not pd.api.types.is_numeric_dtype(values):
+                if filters[attribute] != list(data.ad.obs[attribute].cat.categories):
+                    disabled = False
+            else:
+                range_min = values.min()
+                range_max = values.max()
+                val_min = float(filters[attribute][0])
+                val_max = float(filters[attribute][1])
+                if val_min > range_min or val_max < range_max:
+                    disabled = False
 
         return (disabled, disabled)
 

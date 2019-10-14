@@ -265,14 +265,14 @@ def render_diffexp_list(value, diffexp_json):
     ]
 
 
-def render_plot_scatter(data, xc, yc, genelist, choices_json):
+def render_plot_scatter(data, xc, yc, genelist, filters_json):
 
     gl = [g for g in genelist if g in data.ad.var_names]
 
     if gl is None or len(gl) == 0 or xc is None or yc is None:
         return {}, "", True
 
-    ad_here = common.apply_filter_cells_choices(data, choices_json)
+    ad_here = common.apply_filter_cells_filters(data, filters_json)
 
     ngenes = len(gl)
     if ngenes > 1:
@@ -334,14 +334,14 @@ def render_plot_scatter(data, xc, yc, genelist, choices_json):
     return fig, csv_string, False
 
 
-def render_plot_violin(data, pathname, genelist, group, split, choices_json):
+def render_plot_violin(data, pathname, genelist, group, split, filters_json):
 
     gl = [g for g in genelist if g in data.ad.var_names]
 
     if gl is None or len(gl) == 0 or group is None:
         return {}, "", True
 
-    ad_here = common.apply_filter_cells_choices(data, choices_json)
+    ad_here = common.apply_filter_cells_filters(data, filters_json)
 
     # select color palette
     if split is None:
@@ -423,14 +423,14 @@ def render_plot_violin(data, pathname, genelist, group, split, choices_json):
     return fig, csv_string, False
 
 
-def render_plot_dot(data, pathname, genelist, group, split, choices_json):
+def render_plot_dot(data, pathname, genelist, group, split, filters_json):
 
     gl = [g for g in genelist if g in data.ad.var_names]
 
     if gl is None or len(gl) == 0 or group is None:
         return {}, "", True
 
-    ad_here = common.apply_filter_cells_choices(data, choices_json)
+    ad_here = common.apply_filter_cells_filters(data, filters_json)
 
     groupvals = ad_here.obs[group].cat.categories
     ngroup = len(groupvals)

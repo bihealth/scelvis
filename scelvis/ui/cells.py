@@ -262,13 +262,13 @@ def render(data):
     )
 
 
-def render_plot_scatter(data, xc, yc, col, choices_json):
+def render_plot_scatter(data, xc, yc, col, filters_json):
     """Render the scatter plot figure."""
 
     if xc is None or yc is None or col is None:
         return {}, "", True
 
-    ad_here = common.apply_filter_cells_choices(data, choices_json)
+    ad_here = common.apply_filter_cells_filters(data, filters_json)
 
     if col in data.categorical_meta:
         # select color palette
@@ -335,13 +335,13 @@ def render_plot_scatter(data, xc, yc, col, choices_json):
     return fig, csv_string, False
 
 
-def render_plot_violin(data, variables, group, split, choices_json):
+def render_plot_violin(data, variables, group, split, filters_json):
     """Render the violin plot figure."""
 
     if variables is None or len(variables) == 0 or group is None:
         return {}, "", True
 
-    ad_here = common.apply_filter_cells_choices(data, choices_json)
+    ad_here = common.apply_filter_cells_filters(data, filters_json)
 
     # select color palette
     if split is None:
@@ -425,7 +425,7 @@ def render_plot_violin(data, variables, group, split, choices_json):
     return fig, csv_string, False
 
 
-def render_plot_bars(data, group, split, options, choices_json):
+def render_plot_bars(data, group, split, options, filters_json):
     """render the bar chart plot."""
 
     if group is None:
@@ -434,7 +434,7 @@ def render_plot_bars(data, group, split, options, choices_json):
     if options is None:
         options = []
 
-    ad_here = common.apply_filter_cells_choices(data, choices_json)
+    ad_here = common.apply_filter_cells_filters(data, filters_json)
 
     if split is None:
         groupvals = ad_here.obs[group].unique()

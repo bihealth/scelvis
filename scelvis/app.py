@@ -93,7 +93,7 @@ callbacks.register_toggle_filter_cells_controls(app, "expression")
 callbacks.register_update_filter_cells_controls(app, "expression")
 
 # callbacks for the filter cells div (on "cells" tab pane, but required for both)
-callbacks.register_update_filter_cells_choices(app)
+callbacks.register_update_filter_cells_filters(app)
 callbacks.register_activate_filter_cells_reset(app)
 callbacks.register_run_differential_expression(app)
 

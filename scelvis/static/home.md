@@ -16,6 +16,8 @@ Datasets can be explored using either a cell-centric (i.e., cell annotation such
 * violin plots of cell-based statistics (e.g., number of genes per cell)
 * bar plots summarizing cell numbers or proportions
 
+you can further filter displayed cells by a number of criteria and select groups of cells for differential expression by drawing on the plot.
+
 ![cell figure](assets/cells.png)
 
 **In the gene-centric view, you can create**
@@ -24,6 +26,6 @@ Datasets can be explored using either a cell-centric (i.e., cell annotation such
 * violin plots showing gene expression per cluster, possibly sub-grouped ("split") by another factor
 * dot plots summarizing expression of many genes per cluster, possibly sub-grouped
 
-Genes can be selected from / entered into the dropdown menu or taken from a list of marker genes if available
+Genes can be selected from / entered into the dropdown menu or taken from a list of marker genes or differential expression results if available
 
 ![gene figure](assets/genes.png)

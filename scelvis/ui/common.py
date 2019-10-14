@@ -58,32 +58,19 @@ def render_filter_cells_collapse(data, token):
 def render_filter_cells_controls(data, token):
 
     # store list of choices in hidden div
-    choices = {}
-    for attribute in data.categorical_meta:
-        choices[attribute] = list(data.ad.obs[attribute].cat.categories)
-        choices["." + attribute] = list(data.ad.obs[attribute].cat.categories)
-    for attribute in data.numerical_meta:
-        data_min = data.ad.obs[attribute].min()
-        data_max = data.ad.obs[attribute].max()
-        choices[attribute] = ["{0:g}".format(t) for t in [data_min, data_max]]
-        choices["." + attribute] = ["{0:g}".format(t) for t in [data_min, data_max]]
-        choices["." + attribute + "_ticks"] = [
-            "{0:g}".format(t) for t in auto_tick([data_min, data_max], max_tick=4, tf_inside=True)
-        ]
+    filters = {}
+    options = [{"label": c, "value": c} for c in data.categorical_meta] + [
+        {"label": c, "value": c} for c in data.numerical_meta
+    ]
+
+    if token == "expression":
+        options += [{"label": g, "value": g} for g in data.genes]
+
     output = [
         html.Div(
-            [
-                dcc.Dropdown(
-                    id="%s_filter_cells_attribute" % token,
-                    options=(
-                        [{"label": c, "value": "cat %s" % c} for c in data.categorical_meta]
-                        + [{"label": c, "value": "range %s" % c} for c in data.numerical_meta]
-                    ),
-                    value="None",
-                )
-            ]
+            [dcc.Dropdown(id="%s_filter_cells_attribute" % token, options=options, value="None")]
         ),
-        # use CheckList for categorical choices and RangeSlider for numerical ones
+        # use CheckList for categorical filters and RangeSlider for numerical ones
         # and show the ones that's appropriate
         html.Div(
             id="%s_filter_cells_choice_div" % token,
@@ -125,26 +112,24 @@ def render_filter_cells_controls(data, token):
     if token == "meta":
         output.append(
             html.Div(
-                id="filter_cells_choices", style={"display": "none"}, children=json.dumps(choices)
+                id="filter_cells_filters", style={"display": "none"}, children=json.dumps(filters)
             )
         )
 
     return output
 
 
-def apply_filter_cells_choices(data, choices_json):
+def apply_filter_cells_filters(data, filters_json):
 
     take = np.ones(data.ad.obs.shape[0], dtype=bool)
-    for col, selected in json.loads(choices_json).items():
-        if col.startswith("."):
-            continue
+    for col, selected in json.loads(filters_json).items():
         if col in data.categorical_meta:
-            take = take & data.ad.obs[col].isin(selected).values
+            take = take & data.ad.obs_vector(col).isin(selected)
         else:
             take = (
                 take
-                & (data.ad.obs[col] >= float(selected[0]))
-                & (data.ad.obs[col] <= float(selected[1]))
+                & (data.ad.obs_vector(col) >= float(selected[0]))
+                & (data.ad.obs_vector(col) <= float(selected[1]))
             )
     return data.ad[take, :]
 
