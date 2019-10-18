@@ -14,6 +14,7 @@ numpy
 pandas
 anndata
 scanpy
+loompy
 
 # Caching functionality for Flask.
 flask-caching

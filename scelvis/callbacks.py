@@ -477,6 +477,12 @@ def register_toggle_filter_cells_controls(app, token):
 def register_update_filter_cells_controls(app, token):
     @app.callback(
         [
+            Output("%s_filter_cells_ncells_div" % token, "style"),
+            Output("%s_filter_cells_ncells" % token, "marks"),
+            Output("%s_filter_cells_ncells" % token, "min"),
+            Output("%s_filter_cells_ncells" % token, "max"),
+            Output("%s_filter_cells_ncells" % token, "value"),
+            Output("%s_filter_cells_ncells" % token, "step"),
             Output("%s_filter_cells_choice_div" % token, "style"),
             Output("%s_filter_cells_choice" % token, "options"),
             Output("%s_filter_cells_choice" % token, "value"),
@@ -493,56 +499,73 @@ def register_update_filter_cells_controls(app, token):
     def update_filter_cells_controls(pathname, attribute, filters_json):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
+        hidden_slider = ({"display": "none"}, {0: "0", 1: "1"}, 0, 1, 1, 0)
+        hidden_checklist = ({"display": "none"}, [], None)
+        hidden_rangeslider = ({"display": "none"}, {0: "0", 1: "1"}, 0, 1, [0, 1], 0)
+
         if attribute is None or attribute == "None":
-            return (
-                {"display": "none"},
-                [],
-                None,
-                {"display": "none"},
-                {0: "0", 1: "1"},
-                0,
-                1,
-                [0, 1],
-                0,
-            )
+            return hidden_slider + hidden_checklist + hidden_rangeslider
         filters = json.loads(filters_json)
-        values = data.ad.obs_vector(attribute)
-        if not pd.api.types.is_numeric_dtype(values):
-            categories = list(data.ad.obs[attribute].cat.categories)
+        if attribute == "ncells":
+            ncells_tot = data.ad.obs.shape[0]
+            if attribute in filters:
+                ncells_selected = filters[attribute]
+            else:
+                ncells_selected = ncells_tot
             return (
-                {"display": "block"},
-                [{"label": v, "value": v} for v in categories],
-                filters[attribute] if attribute in filters else categories,
-                {"display": "none"},
-                {0: "0", 1: "1"},
-                0,
-                1,
-                [0, 1],
-                0,
+                (
+                    {"display": "block"},
+                    dict(
+                        (int(t) if t % 1 == 0 else t, "{0:g}".format(t))
+                        for t in ui.common.auto_tick([0, ncells_tot], max_tick=4, tf_inside=True)
+                    ),
+                    0,
+                    ncells_tot,
+                    ncells_selected,
+                    ncells_tot / 1000,
+                )
+                + hidden_checklist
+                + hidden_rangeslider
             )
         else:
-            range_min = values.min()
-            range_max = values.max()
-            if attribute in filters:
-                val_min = filters[attribute][0]
-                val_max = filters[attribute][1]
+            values = data.ad.obs_vector(attribute)
+            if not pd.api.types.is_numeric_dtype(values):
+                categories = list(data.ad.obs[attribute].cat.categories)
+                return (
+                    hidden_slider
+                    + (
+                        {"display": "block"},
+                        [{"label": v, "value": v} for v in categories],
+                        filters[attribute] if attribute in filters else categories,
+                    )
+                    + hidden_rangeslider
+                )
             else:
-                val_min = range_min
-                val_max = range_max
-            return (
-                {"display": "none"},
-                [],
-                None,
-                {"display": "block"},
-                dict(
-                    (int(t) if t % 1 == 0 else t, "{0:g}".format(t))
-                    for t in ui.common.auto_tick([range_min, range_max], max_tick=4, tf_inside=True)
-                ),
-                range_min,
-                range_max,
-                [val_min, val_max],
-                (range_max - range_min) / 1000,
-            )
+                range_min = values.min()
+                range_max = values.max()
+                if attribute in filters:
+                    val_min = filters[attribute][0]
+                    val_max = filters[attribute][1]
+                else:
+                    val_min = range_min
+                    val_max = range_max
+                return (
+                    hidden_slider
+                    + hidden_checklist
+                    + (
+                        {"display": "block"},
+                        dict(
+                            (int(t) if t % 1 == 0 else t, "{0:g}".format(t))
+                            for t in ui.common.auto_tick(
+                                [range_min, range_max], max_tick=4, tf_inside=True
+                            )
+                        ),
+                        range_min,
+                        range_max,
+                        [val_min, val_max],
+                        (range_max - range_min) / 1000,
+                    )
+                )
 
 
 def register_update_filter_cells_filters(app):
@@ -554,9 +577,11 @@ def register_update_filter_cells_filters(app):
         ],
         [
             Input("url", "pathname"),
+            Input("meta_filter_cells_ncells", "value"),
             Input("meta_filter_cells_choice", "value"),
             Input("meta_filter_cells_range", "value"),
             Input("meta_filter_cells_reset", "n_clicks"),
+            Input("expression_filter_cells_ncells", "value"),
             Input("expression_filter_cells_choice", "value"),
             Input("expression_filter_cells_range", "value"),
             Input("expression_filter_cells_reset", "n_clicks"),
@@ -569,9 +594,11 @@ def register_update_filter_cells_filters(app):
     )
     def update_filter_cells_filters(
         pathname,
+        meta_ncells_value,
         meta_cat_value,
         meta_range_value,
         meta_reset_n,
+        expression_ncells_value,
         expression_cat_value,
         expression_range_value,
         expression_reset_n,
@@ -584,26 +611,43 @@ def register_update_filter_cells_filters(app):
         ctx = dash.callback_context
 
         filters = json.loads(filters_json)
+        active_filters = set()
+        # if reset button was hit, remove entries in filters_json
+        attributes = list(filters.keys())
         status = "active filters: "
-        # if reset button was hit, check all boxes using stored values in filters_json
-        attributes = filters.keys()
         if ctx.triggered and "reset" in ctx.triggered[0]["prop_id"]:
-            for attribute in list(attributes):
+            for attribute in attributes:
                 del filters[attribute]
             return (json.dumps(filters), status, status)
 
-        for cat_value, range_value, attribute in [
-            (meta_cat_value, meta_range_value, meta_attribute),
-            (expression_cat_value, expression_range_value, expression_attribute),
+        # else update filters_json depending on inputs
+        for ncells_value, cat_value, range_value, attribute in [
+            (meta_ncells_value, meta_cat_value, meta_range_value, meta_attribute),
+            (
+                expression_ncells_value,
+                expression_cat_value,
+                expression_range_value,
+                expression_attribute,
+            ),
         ]:
             if attribute is not None and attribute != "None":
-                values = data.ad.obs_vector(attribute)
-                if not pd.api.types.is_numeric_dtype(values):
-                    filters[attribute] = sorted(cat_value)
+                if attribute == "ncells":
+                    filters[attribute] = ncells_value
+                    ncells_tot = data.ad.obs.shape[0]
+                    if ncells_value < ncells_tot:
+                        active_filters.add(attribute)
                 else:
-                    filters[attribute] = range_value
+                    values = data.ad.obs_vector(attribute)
+                    if not pd.api.types.is_numeric_dtype(values):
+                        filters[attribute] = cat_value
+                        if cat_value is not None and set(cat_value) != set(values):
+                            active_filters.add(attribute)
+                    else:
+                        filters[attribute] = range_value
+                        if range_value[0] > values.min() or range_value[1] < values.max():
+                            active_filters.add(attribute)
 
-        status += ", ".join(attributes)
+        status += ", ".join(active_filters)
         return (json.dumps(filters), status, status)
 
 
@@ -623,19 +667,23 @@ def register_activate_filter_cells_reset(app):
         else:
             filters = {}
         disabled = True
-        attributes = filters.keys()
-        for attribute in attributes:
-            values = data.ad.obs_vector(attribute)
-            if not pd.api.types.is_numeric_dtype(values):
-                if filters[attribute] != list(data.ad.obs[attribute].cat.categories):
+        for attribute, selected in filters.items():
+            if attribute == "ncells":
+                ncells_tot = data.ad.obs.shape[0]
+                if selected < ncells_tot:
                     disabled = False
             else:
-                range_min = values.min()
-                range_max = values.max()
-                val_min = filters[attribute][0]
-                val_max = filters[attribute][1]
-                if val_min > range_min or val_max < range_max:
-                    disabled = False
+                values = data.ad.obs_vector(attribute)
+                if not pd.api.types.is_numeric_dtype(values):
+                    if sorted(selected) != sorted(data.ad.obs[attribute].cat.categories):
+                        disabled = False
+                else:
+                    range_min = values.min()
+                    range_max = values.max()
+                    val_min = selected[0]
+                    val_max = selected[1]
+                    if val_min > range_min or val_max < range_max:
+                        disabled = False
 
         return (disabled, disabled)
 

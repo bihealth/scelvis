@@ -59,19 +59,34 @@ def render_filter_cells_controls(data, token):
 
     # store list of choices in hidden div
     filters = {}
-    options = [{"label": c, "value": c} for c in data.categorical_meta] + [
-        {"label": c, "value": c} for c in data.numerical_meta
-    ]
-
-    if token == "expression":
-        options += [{"label": g, "value": g} for g in data.genes]
+    options = (
+        [{"label": "ncells", "value": "ncells"}]
+        + [{"label": c, "value": c} for c in data.categorical_meta]
+        + [{"label": c, "value": c} for c in data.numerical_meta]
+        + [{"label": g, "value": g} for g in data.genes]
+    )
 
     output = [
         html.Div(
             [dcc.Dropdown(id="%s_filter_cells_attribute" % token, options=options, value="None")]
         ),
-        # use CheckList for categorical filters and RangeSlider for numerical ones
+        # use Slider for ncells, CheckList for categorical filters and RangeSlider for numerical ones
         # and show the ones that's appropriate
+        html.Div(
+            id="%s_filter_cells_ncells_div" % token,
+            children=[
+                html.P(),
+                dcc.Slider(
+                    id=("%s_filter_cells_ncells" % token),
+                    min=0,
+                    max=1,
+                    marks={0: "0", 1: "1"},
+                    value=1,
+                ),
+                html.P(),
+            ],
+            style={"display": "none"},
+        ),
         html.Div(
             id="%s_filter_cells_choice_div" % token,
             children=[
@@ -121,9 +136,13 @@ def render_filter_cells_controls(data, token):
 
 def apply_filter_cells_filters(data, filters_json):
 
-    take = np.ones(data.ad.obs.shape[0], dtype=bool)
-    for col, selected in json.loads(filters_json).items():
-        if col in data.categorical_meta:
+    ncells_tot = data.ad.obs.shape[0]
+    take = np.ones(ncells_tot, dtype=bool)
+    filters = json.loads(filters_json)
+    for col, selected in filters.items():
+        if col == "ncells":
+            take = take & (np.random.random(ncells_tot) < selected / ncells_tot)
+        elif col in data.categorical_meta:
             take = take & data.ad.obs_vector(col).isin(selected)
         else:
             take = (

@@ -3,6 +3,15 @@ History
 =======
 
 ------
+v0.7.0
+------
+
+- added conversion from .loom files
+- cell filtering also supports downsampling
+- added PBMC dataset hosted on figshare
+- added demo movie
+
+------
 v0.6.0
 ------
 

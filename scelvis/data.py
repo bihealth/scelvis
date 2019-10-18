@@ -14,6 +14,7 @@ import ssl
 from urllib.parse import parse_qs, urlunparse
 
 import anndata
+import re
 import attr
 import fs.path
 import fs.tools
@@ -250,9 +251,11 @@ def load_data(data_source, identifier):
         # Extract the meta data
         metadata = MetaData(
             id=identifier,
-            title=ad.uns["about_title"],
-            short_title=ad.uns["about_short_title"],
-            readme=ad.uns["about_readme"],
+            title=ad.uns["about_title"] if "about_title" in ad.uns_keys() else identifier,
+            short_title=ad.uns["about_short_title"]
+            if "about_short_title" in ad.uns_keys()
+            else identifier,
+            readme=ad.uns["about_readme"] if "about_readme" in ad.uns_keys() else None,
         )
         # Separate numerical and categorical columns for later.
         numerical_meta = []
@@ -265,11 +268,12 @@ def load_data(data_source, identifier):
         # add coordinates to obs
         coords = {}
         for k in ad.obsm.keys():
+            kk = re.sub("^X_|_cell_embeddings$", "", k).upper()
             ndim = min(ad.obsm[k].shape[1], 3)
-            coords[k[2:].upper()] = pd.DataFrame(
+            coords[kk] = pd.DataFrame(
                 ad.obsm[k][:, :ndim],
                 index=ad.obs.index,
-                columns=[k[2:].upper() + str(n + 1) for n in range(ndim)],
+                columns=[kk + str(n + 1) for n in range(ndim)],
             )
         if len(coords) > 0:
             coords = pd.concat(coords.values(), axis=1)
@@ -285,6 +289,27 @@ def load_data(data_source, identifier):
         elif len(markers) > 0:
             logger.warn('No "gene" column in h5 file!')
             markers = None
+        elif "rank_genes_groups" in ad.uns_keys():
+            logger.info("using markers from scanpy")
+            markers = pd.DataFrame(
+                dict(
+                    (k, pd.DataFrame(ad.uns["rank_genes_groups"][k]).stack().astype(t))
+                    for k, t in [
+                        ("scores", float),
+                        ("names", str),
+                        ("logfoldchanges", float),
+                        ("pvals_adj", float),
+                    ]
+                )
+            )
+            markers.columns = ["score", "gene", "LFC", "padj"]
+            markers["cluster"] = markers.index.get_level_values(1)
+            markers = (
+                markers[markers["gene"].isin(ad.var_names)]
+                .sort_values(["cluster", "padj"])
+                .groupby("cluster")
+                .head(10)
+            )
         else:
             logger.warn("No markers in h5 file!")
             markers = None

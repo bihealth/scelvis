@@ -282,6 +282,9 @@ class TextConverter:
             return pd.read_csv(annotation_file, header=0, index_col=0, sep="\t")
 
     def _load_markers(self):
+        if self.args.markers:
+            logger.info("Reading markers from %s", self.args.markers)
+            return pd.read_csv(self.args.markers, header=0, sep="\t")
         marker_file = os.path.join(self.args.indir, "markers.tsv")
         if not os.path.isfile(marker_file):
             logger.info("no markers in %s!", self.args.indir)
@@ -315,6 +318,73 @@ class TextConverter:
         ad.write(self.args.out_file)
 
 
+class LoomConverter:
+    """Conversion of loom files to SCelVis HDF5 file."""
+
+    def __init__(self, args):
+        #: Arguments as parsed by ``argparse.ArgumentParser``.`
+        self.args = args
+
+    def run(self):
+        """Perform the conversion."""
+        logger.info("Starting conversion from loom input to SCelVis HDF5")
+        logger.info("Settings: %s", vars(self.args))
+        markers = self._load_markers()
+        ad = self._load_loom(markers)
+        about = self._load_about()
+
+        ad.uns["about_title"] = about.title
+        ad.uns["about_short_title"] = about.short_title
+        ad.uns["about_readme"] = about.readme
+
+        self._write_output(ad)
+        logger.info("All done. Have a nice day!")
+
+    def _load_about(self):
+        """Load the about.md file (if any)."""
+        if self.args.about_md:
+            return load_about_md(self.args.about_md)
+        elif os.path.exists(os.path.join(self.args.indir, "about.md")):
+            return load_about_md(os.path.join(self.args.indir, "about.md"))
+        else:
+            filename = os.path.basename(self.args.indir)
+            return About(title=filename, short_title=filename, readme=None)
+
+    def _load_markers(self):
+        if self.args.markers:
+            logger.info("Reading markers from %s", self.args.markers)
+            return pd.read_csv(self.args.markers, header=0, sep="\t")
+        marker_file = os.path.join(self.args.indir, "markers.tsv")
+        if not os.path.isfile(marker_file):
+            logger.info("no markers in %s!", self.args.indir)
+            return pd.DataFrame()
+        else:
+            logger.info("Reading markers from %s", marker_file)
+            return pd.read_csv(marker_file, header=0, sep="\t")
+
+    def _load_loom(self, markers):
+        if self.args.indir.endswith(".loom"):
+            loom_file = self.args.indir
+        else:
+            loom_file = os.path.join(self.args.indir, "data.loom")
+        if not os.path.isfile(loom_file):
+            raise ScelVisException("cannot find loom file at %s" % loom_file)
+        logger.info("Reading data from %s", loom_file)
+        ad = sc.read_loom(loom_file, X_name="spliced" if self.args.use_raw else "norm_data")
+        for layer in list(ad.layers.keys()):
+            logger.info("Removing unused layer %s" % layer)
+            del ad.layers[layer]
+        for col in markers.columns:
+            ad.uns["marker_" + col] = markers[col]
+
+        return ad
+
+    def _write_output(self, ad):
+        logger.info("Saving anndata object to %s", self.args.out_file)
+        # TODO: explicitely set column types to get rid of warning?
+        ad.write(self.args.out_file)
+
+
 @attr.s(auto_attribs=True)
 class Config:
     """Configuration for the converter."""
@@ -335,6 +405,8 @@ class Config:
     format: str = "auto"
     #: Use raw signal.
     use_raw: bool = False
+    #: path to markers.tsv file
+    markers: typing.Optional[str] = None
 
 
 def run(args, _parser=None):
@@ -346,10 +418,12 @@ def run(args, _parser=None):
             format_ = "text"
         elif os.path.exists(os.path.join(args.indir, "analysis")):
             format_ = "cell-ranger"
+        elif os.path.exists(os.path.join(args.indir, "data.loom")):
+            format_ = "loom"
         else:
             raise ScelVisException("Could not auto detect the input format")
 
-    converters = {"text": TextConverter, "cell-ranger": CellRangerConverter}
+    converters = {"text": TextConverter, "cell-ranger": CellRangerConverter, "loom": LoomConverter}
     return converters[format_](args).run()
 
 
@@ -366,12 +440,15 @@ def setup_argparse(parser):
         "-a", "--about-md", help="Path to about.md file to embed in the resulting .h5ad file"
     )
     parser.add_argument(
+        "-m", "--markers", help="Path to markers.tsv file to embed in the resulting .h5ad file"
+    )
+    parser.add_argument(
         "-o", "--output", required=True, dest="out_file", help="Path to the .h5ad file to write to"
     )
     parser.add_argument(
         "-f",
         "--format",
-        choices=("auto", "text", "cell-ranger"),
+        choices=("auto", "text", "cell-ranger", "loom"),
         default="auto",
         dest="format",
         help="input format",
@@ -381,7 +458,7 @@ def setup_argparse(parser):
         dest="use_raw",
         default=False,
         action="store_true",
-        help="Do not normalize DGE (use raw counts)",
+        help="Do not normalize expression values (use raw counts)",
     )
     parser.add_argument(
         "--split-species",

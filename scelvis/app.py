@@ -145,10 +145,16 @@ def convert_route():
             logger.info("Looking for %s file", cellranger_needle)
             needle_path = find(cellranger_needle, tmpdir)
             if needle_path is None:
-                raw_needle = "coords.tsv"
-                logger.info("Looking for %s file", raw_needle)
-                needle_path = find(raw_needle, tmpdir)
-                format_ = "text"
+                text_needle = "coords.tsv"
+                logger.info("Looking for %s file", text_needle)
+                needle_path = find(text_needle, tmpdir)
+                if needle_path is None:
+                    loom_needle = "data.loom"
+                    logger.info("Looking for %s file", loom_needle)
+                    needle_path = find(loom_needle, tmpdir)
+                    format_ = "loom"
+                else:
+                    format_ = "text"
             else:
                 format_ = "cell-ranger"
             input_dir = os.path.dirname(needle_path)
@@ -183,7 +189,8 @@ def convert_route():
         return """
             <!doctype html>
             <title>Convert File</title>
-            <h1>Upload ZIP or TAR.GZ of CellRanger Output</h1>
+            <h1>Upload ZIP or TAR.GZ of your data</h1>
+            <p>either containing CellRanger output, raw text files or a data.loom file<p>
             <p>
                 The server will return a <tt>.h5a</tt> file that you can upload into the SCelVis visualization.
             </p>

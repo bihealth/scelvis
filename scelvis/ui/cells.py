@@ -44,6 +44,7 @@ def render_controls_scatter(data):
                     ],
                     value=data.categorical_meta[0],
                 ),
+                html.Hr(),
                 render_select_cells(data),
             ],
             title="Select x- and y-coordinates for embedding (TSNE or UMAP); "

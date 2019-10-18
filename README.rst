@@ -23,7 +23,11 @@ SCelVis: Easy Single-Cell Visualization
 .. image:: https://zenodo.org/badge/185944510.svg
     :target: https://zenodo.org/badge/latestdoi/185944510
 
-You can find the URL for the demo linked to on the top right of the Github repository page.
+|
+
+.. image:: scelvis/assets/movie.gif
+    :height: 400px
+    :align: center
 
 ------------
 Installation
@@ -52,12 +56,13 @@ A Docker container is also available via `Quay.io/Biocontainers <https://quay.io
 Tutorial
 --------
 
-explore a simulated dummy dataset or 1000 cells from a 1:1 Mixture of Fresh Frozen Human (HEK293T) and Mouse (NIH3T3) Cells (10X v3 chemistry) 
+explore 1000 cells from a 1:1 Mixture of Fresh Frozen Human (HEK293T) and Mouse (NIH3T3) Cells (10X v3 chemistry) or a published dataset of ~14000 IFN-beta treated and control PBMCs from 8 donors (`GSE96583 <https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE96583>`_; see `Kang et al. <https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE96583>`_)
 
 .. code-block:: shell
 
-    $ scelvis run --data-source /path/to/scelvis/examples/dummy.h5ad
     $ scelvis run --data-source /path/to/scelvis/examples/hgmm_1k.h5ad
+    $ scelvis run --data-source https://files.figshare.com/18037739/pbmc.h5ad
+
 
 and then point your browser to http://0.0.0.0:8050/.
 
@@ -70,12 +75,14 @@ Data sets are provided as HDF5 files (`anndata <https://anndata.readthedocs.io/e
 
 For the input you can either specify one HDF5 file or a directory containing multiple such files.
 
-You can use ``scanpy`` to create this HDF5 file directly or use the ``scelvis convert`` command for converting your single-cell pipeline output.
+You can use `scanpy <http://scanpy.rtfd.io>`_ to create this HDF5 file directly or use the ``scelvis convert`` command for converting your single-cell pipeline output.
 
 HDF5 Input
 ----------
 
-for HDF5 input, you can do your analysis with `scanpy <http://scanpy.rtfd.io>`_ to create an anndata object ``ad``. SCelVis will use embedding coordinates from ``ad.obsm``, cell annotation from ``ad.obs`` and expression data directly from ``ad.X`` (this should contain normalized and log-transformed expression values for all genes). Information about the dataset will be extracted from strings stored in ``ad.uns['about_title']``, ``ad.uns['about_short_title']`` and ``ad.uns['about_readme']`` (assumed to be Markdown). Information about marker genes will be taken from entries starting with ``marker_`` in ``ad.uns``: entries called ``marker_gene`` (required!), ``marker_cluster``, ``marker_padj``, ``marker_LFC`` will create a table with the columns ``gene``, ``cluster``, ``padj``, and ``LFC``.
+for HDF5 input, you can do your analysis with `scanpy <http://scanpy.rtfd.io>`_ to create an anndata object ``ad``. SCelVis will use embedding coordinates from ``ad.obsm``, cell annotation from ``ad.obs`` and expression data directly from ``ad.X`` (this should contain normalized and log-transformed expression values for all genes). If present, information about the dataset will be extracted from strings stored in ``ad.uns['about_title']``, ``ad.uns['about_short_title']`` and ``ad.uns['about_readme']`` (assumed to be Markdown). Information about marker genes will be taken either from the ``rank_genes_groups`` slot in ``ad.uns`` or from entries starting with ``marker_`` in ``ad.uns``: entries called ``marker_gene`` (required!), ``marker_cluster``, ``marker_padj``, ``marker_LFC`` will create a table with the columns ``gene``, ``cluster``, ``padj``, and ``LFC``.
+
+If you prepared your data with ``Seurat`` (v2), you can use ``Convert(from = sobj, to = "anndata", filename = "data.h5ad")`` to get an HDF5 file.
 
 Text Input
 ----------
@@ -122,7 +129,18 @@ For "raw" text input, you need to prepare at least three files in the input dire
 
     $ scelvis convert --input-dir text_input --output data/text_input.h5ad --about-md text_input.md
 
-in ``examples/dummy_raw.zip`` and ``examples/dummy_about.md`` we provide raw data for the dummy dataset.
+in ``examples/dummy_raw.zip`` and ``examples/dummy_about.md`` we provide raw data for a simulated dummy dataset.
+
+Loom Input
+----------
+
+for `loompy <http://loompy.org>`_ or `loomR <https://github.com/mojaveazure/loomR>`_ input, you can convert your data like this:
+
+.. code-block:: shell
+
+    $ scelvis convert --i input.loom -m markers.tsv -a about.md -o loom_input.h5ad 
+
+if you prepared your data with ``Seurat`` (v3), you can use ``as.loom(sobj, filename="output.loom")`` to get a ``.loom`` file and then convert to ``.h5ad`` with the above command.
 
 CellRanger Input
 ----------------
@@ -142,7 +160,7 @@ Alternatively, the output directory of ``CellRanger`` can be used. This is the d
     EOF
     $ scelvis convert --input-dir cellranger-out --output data/cellranger_input.h5ad --about-md cellranger.md
 
-In ``examples/hgmm_1k_raw.zip`` we provide ``CellRanger`` output for the 1k 1:1 human mouse mix. Specifically, from the `outs` folder we selected
+In ``examples/hgmm_1k_raw`` we provide ``CellRanger`` output for the 1k 1:1 human mouse mix. Specifically, from the ``outs`` folder we selected
 
 - ``filtered_feature_bc_matrix.h5``
 - tSNE and PCA projections from ``analysis/tsne`` and ``analysis/pca``
