@@ -71,16 +71,16 @@ and then point your browser to http://0.0.0.0:8050/.
 Preparing Your Data
 -------------------
 
-Data sets are provided as HDF5 files (`anndata <https://anndata.readthedocs.io/en/latest/index.html>`_ objects) that store gene expression (sparse CSR matrix) and meta data with very fast read access.  
+Data sets are provided as HDF5 files (`anndata <https://anndata.readthedocs.io/en/latest/index.html>`__ objects) that store gene expression (sparse CSR matrix) and meta data with very fast read access.  
 
 For the input you can either specify one HDF5 file or a directory containing multiple such files.
 
-You can use `scanpy <http://scanpy.rtfd.io>`_ to create this HDF5 file directly or use the ``scelvis convert`` command for converting your single-cell pipeline output.
+You can use `scanpy <http://scanpy.rtfd.io>`__ to create this HDF5 file directly or use the ``scelvis convert`` command for converting your single-cell pipeline output.
 
 HDF5 Input
 ----------
 
-for HDF5 input, you can do your analysis with `scanpy <http://scanpy.rtfd.io>`_ to create an anndata object ``ad``. SCelVis will use embedding coordinates from ``ad.obsm``, cell annotation from ``ad.obs`` and expression data directly from ``ad.X`` (this should contain normalized and log-transformed expression values for all genes). If present, information about the dataset will be extracted from strings stored in ``ad.uns['about_title']``, ``ad.uns['about_short_title']`` and ``ad.uns['about_readme']`` (assumed to be Markdown). Information about marker genes will be taken either from the ``rank_genes_groups`` slot in ``ad.uns`` or from entries starting with ``marker_`` in ``ad.uns``: entries called ``marker_gene`` (required!), ``marker_cluster``, ``marker_padj``, ``marker_LFC`` will create a table with the columns ``gene``, ``cluster``, ``padj``, and ``LFC``.
+for HDF5 input, you can do your analysis with `scanpy <http://scanpy.rtfd.io>`__ to create an anndata object ``ad``. SCelVis will use embedding coordinates from ``ad.obsm``, cell annotation from ``ad.obs`` and expression data directly from ``ad.X`` (this should contain normalized and log-transformed expression values for all genes). If present, information about the dataset will be extracted from strings stored in ``ad.uns['about_title']``, ``ad.uns['about_short_title']`` and ``ad.uns['about_readme']`` (assumed to be Markdown). Information about marker genes will be taken either from the ``rank_genes_groups`` slot in ``ad.uns`` or from entries starting with ``marker_`` in ``ad.uns``: entries called ``marker_gene`` (required!), ``marker_cluster``, ``marker_padj``, ``marker_LFC`` will create a table with the columns ``gene``, ``cluster``, ``padj``, and ``LFC``.
 
 If you prepared your data with ``Seurat`` (v2), you can use ``Convert(from = sobj, to = "anndata", filename = "data.h5ad")`` to get an HDF5 file.
 
@@ -134,7 +134,7 @@ in ``examples/dummy_raw.zip`` and ``examples/dummy_about.md`` we provide raw dat
 Loom Input
 ----------
 
-for `loompy <http://loompy.org>`_ or `loomR <https://github.com/mojaveazure/loomR>`_ input, you can convert your data like this:
+for `loompy <http://loompy.org>`__ or `loomR <https://github.com/mojaveazure/loomR>`__ input, you can convert your data like this:
 
 .. code-block:: shell
 
@@ -192,7 +192,7 @@ Data sources can be:
 
 - paths, e.g., ``relative/paths`` or ``/absolute/paths`` or ``file://url/paths``
 - SFTP URLs, e.g., ``sftp://user:password@host/path/to/data``
-- FTP URLs, e.g., ``ftp://user:password@host/path/to/data`` (sadly encryption is not supported by the underlying library `PyFilesystem2 <https://github.com/PyFilesystem/pyfilesystem2>`_.
+- FTP URLs, e.g., ``ftp://user:password@host/path/to/data`` (sadly encryption is not supported by the underlying library `PyFilesystem2 <https://github.com/PyFilesystem/pyfilesystem2>`__.
 - iRODS URLS, e.g., ``irods://user:password@host/zoneName/path/to/data``
     - Enable SSL via ``irods+ssl``
     - Switch to PAM authentication with ``irods+pam`` (you can combine this with ``+ssl`` in any order)
@@ -230,7 +230,7 @@ The prerequisites are:
 
 - Python 3, either
     - system-wide installation with ``virtualenv``, or
-    - installed with `Conda <https://docs.conda.io/en/latest/>`_.
+    - installed with `Conda <https://docs.conda.io/en/latest/>`__.
 
 For ``virtualenv``, first create a virtual environment and activate it.
 
@@ -265,7 +265,7 @@ Afterwards, you can run the visualization web server as follows:
 Releasing Packages
 ------------------
 
-For the `PyPi package <https://pypi.org/project/scelvis/>`_:
+For the `PyPi package <https://pypi.org/project/scelvis/>`__:
 
 .. code-block:: shell
 
@@ -273,5 +273,5 @@ For the `PyPi package <https://pypi.org/project/scelvis/>`_:
     $ twine upload --repository-url https://test.pypi.org/legacy/ dist/scelvis-*.tar.gz
     $ twine upload dist/scelvis-*.tar.gz
 
-For the Bioconda package, see `the great documentation <http://bioconda.github.io/updating.html>`_.
+For the Bioconda package, see `the great documentation <http://bioconda.github.io/updating.html>`__.
 The Docker image will automatically be created as a BioContainer when the Bioconda package is built.
