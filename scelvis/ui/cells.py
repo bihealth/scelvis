@@ -20,6 +20,7 @@ from . import colors, common
 
 def render_controls_scatter(data):
     """Render "top left" controls for the scatter plot for the given ``data``."""
+
     return [
         html.Div(
             children=[
@@ -179,20 +180,34 @@ def render_select_cells_controls(data):
                 ]
             ),
             html.P(),
+            html.P(children="", id="select_cells_status", style={"fontSize": 14}),
             dbc.Row(
                 [
+                    "view",
                     dbc.Button(
-                        "view table",
-                        id="select_cells_view",
+                        "groups",
+                        id="select_cells_view_groups",
                         color="link",
                         style={
-                            "padding-left": 0,
-                            "padding-right": 0,
+                            "padding-left": 2,
+                            "padding-right": 2,
                             "padding-top": 0,
-                            "padding-bottom": 2,
+                            "padding-bottom": 3,
                         },
                     ),
-                    " or get ",
+                    "or",
+                    dbc.Button(
+                        "table",
+                        id="select_cells_view_table",
+                        color="link",
+                        style={
+                            "padding-left": 2,
+                            "padding-right": 0,
+                            "padding-top": 0,
+                            "padding-bottom": 3,
+                        },
+                    ),
+                    "; download ",
                     html.A(
                         children=[html.I(className="fas fa-cloud-download-alt pr-1"), "results"],
                         download="results.csv",
@@ -212,7 +227,6 @@ def render_select_cells_controls(data):
                 id="select_cells_get_results",
                 style={"display": "none"},
             ),
-            html.Div(id="select_cells_choices", style={"display": "none"}),
             html.Div(id="select_cells_results", style={"display": "none"}),
         ]
     )
@@ -256,14 +270,17 @@ def render(data):
     """Render the "Cell Annotation" content."""
     return dbc.Row(
         children=[
+            # hidden div to store selection of cells
+            html.Div(id="select_cells_selected", style={"display": "none"}),
             dbc.Col(children=render_controls(data), className="col-3"),
             # Placeholder for the plot.
             dbc.Col(children=[dcc.Loading(id="meta_plot", type="circle")], className="col-9"),
+            # dbc.Col(children=[html.Div(id="meta_plot")], className="col-9"),
         ]
     )
 
 
-def render_plot_scatter(data, xc, yc, col, filters_json):
+def render_plot_scatter(data, xc, yc, col, filters_json, select_json):
     """Render the scatter plot figure."""
 
     if xc is None or yc is None or col is None:
@@ -271,10 +288,38 @@ def render_plot_scatter(data, xc, yc, col, filters_json):
 
     ad_here = common.apply_filter_cells_filters(data, filters_json)
 
-    if col in data.categorical_meta:
-        # select color palette
-        colvals = ad_here.obs[col].unique()
-        cm = colors.get_cm(colvals)
+    if col in data.categorical_meta or col == "DE_group":
+
+        if col == "DE_group":
+
+            if select_json is None:
+                return {}, "", True
+
+            # color by DE groups selected from "differential expression"
+            selected = json.loads(select_json)
+
+            if "group_A" not in selected or "group_B" not in selected:
+                return {}, "", True
+
+            # make sure groups are disjoint
+            group_A = list(set(selected["group_A"]) - set(selected["group_B"]))
+            group_B = list(set(selected["group_B"]) - set(selected["group_A"]))
+
+            if len(group_A) == 0 or len(group_B) == 0:
+                return {}, "", True
+
+            ad_here.obs["DE_group"] = "none"
+            ad_here.obs.loc[group_A, "DE_group"] = "A"
+            ad_here.obs.loc[group_B, "DE_group"] = "B"
+
+            colvals = ["A", "B", "none"]
+            cm = ["#1f77b4", "#ff7f0e", "#cccccc"]
+
+        else:
+
+            # select color palette
+            colvals = ad_here.obs[col].unique()
+            cm = colors.get_cm(colvals)
 
         # plot scatter for each category separately
         traces = []
@@ -498,13 +543,24 @@ def run_differential_expression(data, select_json):
 
     selected = json.loads(select_json)
 
-    ad_here.obs["group"] = np.nan
-    ad_here.obs.loc[selected["group_A"], "group"] = "A"
-    ad_here.obs.loc[selected["group_B"], "group"] = "B"
+    # make sure these groups are disjoint
+    group_A = list(set(selected["group_A"]) - set(selected["group_B"]))
+    group_B = list(set(selected["group_B"]) - set(selected["group_A"]))
 
-    ad_here = ad_here[~ad_here.obs["group"].isnull(), :]
+    options = [{"label": c, "value": c} for c in data.categorical_meta + data.numerical_meta]
 
-    res = sc.tl.rank_genes_groups(ad_here, "group", copy=True).uns["rank_genes_groups"]
+    if len(group_A) == 0 or len(group_B) == 0:
+        return "{}", "", "", "no valid groups selected!", {"display": "none"}, options
+
+    options += [{"label": "DE_group", "value": "DE_group"}]
+
+    ad_here.obs["DE_group"] = np.nan
+    ad_here.obs.loc[group_A, "DE_group"] = "A"
+    ad_here.obs.loc[group_B, "DE_group"] = "B"
+
+    ad_here = ad_here[~ad_here.obs["DE_group"].isnull(), :]
+
+    res = sc.tl.rank_genes_groups(ad_here, "DE_group", copy=True).uns["rank_genes_groups"]
 
     res_df = pd.DataFrame(
         {
@@ -519,6 +575,8 @@ def run_differential_expression(data, select_json):
     res_df = res_df.reset_index().drop("n", axis=1)
     res_df = res_df[res_df["adjp"] < 0.05]
 
+    status_string = "%d DE genes at 5%% FDR" % res_df.shape[0]
+
     results_string = "data:text/csv;charset=utf-8," + urllib.parse.quote(
         res_df.to_csv(index=True, header=True, encoding="utf-8")
     )
@@ -531,4 +589,11 @@ def run_differential_expression(data, select_json):
         pd.Series(params).to_csv(index=True, header=False, encoding="utf-8")
     )
 
-    return res_df.to_json(), results_string, params_string, {"display": "block"}
+    return (
+        res_df.to_json(),
+        results_string,
+        params_string,
+        status_string,
+        {"display": "block"},
+        options,
+    )

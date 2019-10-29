@@ -172,8 +172,6 @@ class CellRangerConverter:
             ad = sc.read_10x_h5(expression_file)
         ad.var_names_make_unique()
         logger.info("Combining meta data")
-        # TODO: do we need to make variable names unique here or can we suppress the warning
-        # TODO: with ``with_log_level(anndata.utils.logger, logging.WARN)``?
         ad.obs["cluster"] = clustering
         ad.obs["n_counts"] = ad.X.sum(1).A1
         ad.obs["n_genes"] = (ad.X > 0).sum(1).A1
@@ -216,8 +214,6 @@ class CellRangerConverter:
 
     def _normalize_filter_dge(ad):
         logger.info("Normalizing and filtering DGE")
-        # TODO: do we need to make variable names unique here or can we suppress the warning
-        # TODO: with ``with_log_level(anndata.utils.logger, logging.WARN)``?
         sc.pp.filter_cells(ad, min_genes=100)
         sc.pp.filter_genes(ad, min_cells=5)
         sc.pp.normalize_per_cell(ad, counts_per_cell_after=1.0e4)
@@ -226,7 +222,6 @@ class CellRangerConverter:
 
     def _write_output(self, ad):
         logger.info("Saving anndata object to %s", self.args.out_file)
-        # TODO: explicitely set column types to get rid of warning?
         ad.write(self.args.out_file)
 
 
@@ -305,8 +300,6 @@ class TextConverter:
             obs=pd.concat([coords.loc[DGE.columns], annotation.loc[DGE.columns]], axis=1),
             var=pd.DataFrame([], index=DGE.index),
         )
-        # TODO: do we need to make variable names unique here or can we suppress the warning
-        # TODO: with ``with_log_level(anndata.utils.logger, logging.WARN)``?
         for col in markers.columns:
             ad.uns["marker_" + col] = markers[col]
 
@@ -314,7 +307,6 @@ class TextConverter:
 
     def _write_output(self, ad):
         logger.info("Saving anndata object to %s", self.args.out_file)
-        # TODO: explicitely set column types to get rid of warning?
         ad.write(self.args.out_file)
 
 
@@ -381,7 +373,6 @@ class LoomConverter:
 
     def _write_output(self, ad):
         logger.info("Saving anndata object to %s", self.args.out_file)
-        # TODO: explicitely set column types to get rid of warning?
         ad.write(self.args.out_file)
 
 
@@ -411,7 +402,6 @@ class Config:
 
 def run(args, _parser=None):
     """Main entry point after argument parsing."""
-    # TODO: detect pipeline output
     format_ = args.format
     if format_ == "auto":
         if os.path.exists(os.path.join(args.indir, "coords.tsv")):

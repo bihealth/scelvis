@@ -51,6 +51,14 @@ app = dash.Dash(
 # Setup the cache.
 cache.setup_cache(app)
 
+# preload data if required
+if settings.CACHE_PRELOAD_DATA:
+    from . import store
+
+    logger.info("preloading data ...")
+    store.load_all_metadata()
+    logger.info("preloading done.")
+
 # Set app title
 app.title = "SCelVis v%s" % __version__
 
@@ -58,8 +66,6 @@ app.title = "SCelVis v%s" % __version__
 app.css.config.serve_locally = True
 app.scripts.config.serve_locally = True
 
-# TODO: Better use the approach from this URL:
-# - https://community.plot.ly/t/dynamic-controls-and-dynamic-output-components/5519
 app.config.suppress_callback_exceptions = True
 
 # Setup the application's main layout.
@@ -75,13 +81,12 @@ callbacks.register_page_brand(app)
 callbacks.register_select_cell_plot_type(app)
 callbacks.register_update_cell_scatter_plot_params(app)
 callbacks.register_toggle_select_cells_controls(app)
-callbacks.register_update_select_cells_choices(app)
+callbacks.register_update_select_cells_selected(app)
 callbacks.register_activate_select_cells_buttons(app)
 callbacks.register_update_cell_violin_plot_params(app)
 callbacks.register_update_cell_bar_chart_params(app)
 callbacks.register_toggle_filter_cells_controls(app, "meta")
-callbacks.register_update_filter_cells_controls(app, "meta")
-
+callbacks.register_update_filter_cells_controls(app)
 
 # Cellbacks for the "genes" tab pane.
 callbacks.register_select_gene_plot_type(app)
@@ -90,7 +95,6 @@ callbacks.register_select_gene_scatter_plot(app)
 callbacks.register_select_gene_violin_plot(app)
 callbacks.register_select_gene_dot_plot(app)
 callbacks.register_toggle_filter_cells_controls(app, "expression")
-callbacks.register_update_filter_cells_controls(app, "expression")
 
 # callbacks for the filter cells div (on "cells" tab pane, but required for both)
 callbacks.register_update_filter_cells_filters(app)
@@ -116,9 +120,6 @@ def convert_route():
             if name in files:
                 return os.path.join(root, name)
 
-    # TODO: error handling, error handling, error handling
-    # TODO: prettify the form
-    # TODO: protect against "zip bomb"
     if request.method == "POST":
         if "file" not in request.files or not request.files["file"].filename:
             flash("No file uploaded!")
@@ -185,7 +186,6 @@ def convert_route():
                     out_file, mimetype="application/binary", as_attachment=True
                 )
     else:
-        # TODO: prettify HTML form
         return """
             <!doctype html>
             <title>Convert File</title>

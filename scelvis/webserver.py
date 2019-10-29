@@ -91,6 +91,7 @@ def run(args, parser):
         settings.CACHE_REDIS_URL = args.cache_redis_url
     elif args.cache_dir:
         settings.CACHE_DIR = args.cache_dir
+    settings.CACHE_PRELOAD_DATA = args.cache_preload_data
     settings.UPLOAD_ENABLED = not args.upload_disabled
     settings.UPLOAD_DIR = args.upload_dir
     settings.CONVERSION_ENABLED = not args.conversion_disabled
@@ -131,10 +132,15 @@ def setup_argparse(parser):
     )
     parser.add_argument(
         "--cache-default-timeout",
-        default=os.environ.get("SCELVIS_CACHE_DEFAULT_TIMEOUT", 600),
+        default=os.environ.get("SCELVIS_CACHE_DEFAULT_TIMEOUT", 7 * 24 * 60 * 60),
         help="Default timeout for cache",
     )
-
+    parser.add_argument(
+        "--cache-preload-data",
+        default=os.environ.get("SCELVIS_CACHE_PRELOAD_DATA", "0") not in ("", "0", "N", "n"),
+        action="store_true",
+        help="whether to preload data at startup",
+    )
     parser.add_argument(
         "--upload-dir",
         default=os.environ.get("SCELVIS_UPLOAD_DIR"),

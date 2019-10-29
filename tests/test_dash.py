@@ -48,7 +48,6 @@ def test_render_upload(dash_duo, scelvis_settings):
     item_upload.click()
     # Make sure that the site navigates to the "upload data" page.
     dash_duo.wait_for_text_to_equal("#page-brand", "Upload Data")
-    # TODO: actually test the upload page
 
 
 def test_render_cell_annotation(dash_duo, scelvis_settings):
@@ -86,6 +85,9 @@ def test_render_cell_annotation(dash_duo, scelvis_settings):
     checklist = dash_duo.wait_for_element_by_css_selector("#meta_filter_cells_choice")
     options = checklist.find_elements_by_css_selector("*")
     options[0].click()
+
+    item = dash_duo.wait_for_element_by_css_selector("#meta_filter_cells_update")
+    item.click()
 
     button = dash_duo.wait_for_element_by_css_selector("#meta_filter_cells_reset")
     button.click()

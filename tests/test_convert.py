@@ -65,11 +65,9 @@ def test_run_converter_directly_with_about_md(config_with_about_md):
     config = config_with_about_md
     convert.CellRangerConverter(config).run()
     assert os.path.exists(config.out_file)
-    # TODO: test title/short title/readme is set
 
 
 def test_run_main_with_about_md(config_with_about_md):
     config = config_with_about_md
     assert convert.run(config) is None
     assert os.path.exists(config.out_file)
-    # TODO: test title/short title/readme is set

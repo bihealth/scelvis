@@ -3,6 +3,13 @@ History
 =======
 
 ------
+v0.7.1
+------
+
+- improved cache handling
+- improved user feedback for filtering & differential expression
+
+------
 v0.7.0
 ------
 

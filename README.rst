@@ -25,7 +25,7 @@ SCelVis: Easy Single-Cell Visualization
 
 |
 
-.. image:: scelvis/assets/movie.gif
+.. image:: tutorial/scelvis_movie.gif
     :height: 400px
     :align: center
 
@@ -216,6 +216,7 @@ You can use the following environment variables to configure the server.
 - ``SCELVIS_CACHE_DIR`` -- directory to use for the cache (default is to create a temporary directory)
 - ``SCELVIS_CACHE_REDIS_URL`` -- enable caching with REDIS and provide connection URL
 - ``SCELVIS_CACHE_DEFAULT_TIMEOUT`` -- cache lifetime coverage
+- ``SCELVIS_CACHE_PRELOAD_DATA`` -- will preload all data at startup
 - ``SCELVIS_UPLOAD_DIR`` -- the directory to store uploaded data sets in (default is to create a temporary directory)
 - ``SCELVIS_UPLOAD_DISABLED`` -- set to "0" to disable upload feature
 - ``SCELVIS_CONVERSION_DISABLED`` -- set to "0" to disable the conversion feature

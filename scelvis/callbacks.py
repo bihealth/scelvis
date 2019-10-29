@@ -135,13 +135,14 @@ def register_update_cell_scatter_plot_params(app):
             Input("meta_scatter_select_x", "value"),
             Input("meta_scatter_select_y", "value"),
             Input("meta_scatter_select_color", "value"),
-            Input("filter_cells_filters", "children"),
+            Input("meta_filter_cells_update", "n_clicks"),
         ],
+        [State("filter_cells_filters", "children"), State("select_cells_selected", "children")],
     )
-    def get_meta_plot_scatter(pathname, xc, yc, col, filters_json):
+    def get_meta_plot_scatter(pathname, xc, yc, col, n_clicks, filters_json, select_json):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
-        return ui.cells.render_plot_scatter(data, xc, yc, col, filters_json)
+        return ui.cells.render_plot_scatter(data, xc, yc, col, filters_json, select_json)
 
 
 def register_toggle_select_cells_controls(app):
@@ -156,34 +157,34 @@ def register_toggle_select_cells_controls(app):
         return is_open
 
 
-def register_update_select_cells_choices(app):
+def register_update_select_cells_selected(app):
     @app.callback(
-        Output("select_cells_choices", "children"),
+        Output("select_cells_selected", "children"),
         [
             Input("meta_scatter_plot", "selectedData"),
             Input("select_cells_group_A", "n_clicks"),
             Input("select_cells_group_B", "n_clicks"),
             Input("select_cells_reset", "n_clicks"),
         ],
-        [State("select_cells_choices", "children")],
+        [State("select_cells_selected", "children")],
     )
-    def update_select_cells_choices(
-        selectedData, n_clicks_A, n_clicks_B, n_clicks_reset, choices_json
+    def update_select_cells_selected(
+        selectedData, n_clicks_A, n_clicks_B, n_clicks_reset, selected_json
     ):
         ctx = dash.callback_context
-        if choices_json is not None:
-            choices = json.loads(choices_json)
+        if selected_json is not None:
+            selected = json.loads(selected_json)
         else:
-            choices = {}
+            selected = {}
         if ctx.triggered and "group_A" in ctx.triggered[0]["prop_id"] and selectedData is not None:
-            choices["group_A"] = [p["text"] for p in selectedData["points"]]
+            selected["group_A"] = [p["text"] for p in selectedData["points"]]
         elif (
             ctx.triggered and "group_B" in ctx.triggered[0]["prop_id"] and selectedData is not None
         ):
-            choices["group_B"] = [p["text"] for p in selectedData["points"]]
+            selected["group_B"] = [p["text"] for p in selectedData["points"]]
         elif ctx.triggered and "reset" in ctx.triggered[0]["prop_id"]:
-            choices = {}
-        return json.dumps(choices)
+            selected = {}
+        return json.dumps(selected)
 
 
 def register_activate_select_cells_buttons(app):
@@ -194,17 +195,17 @@ def register_activate_select_cells_buttons(app):
             Output("select_cells_reset", "disabled"),
             Output("select_cells_run", "disabled"),
         ],
-        [Input("meta_scatter_plot", "selectedData"), Input("select_cells_choices", "children")],
+        [Input("meta_scatter_plot", "selectedData"), Input("select_cells_selected", "children")],
     )
-    def activate_select_cells_buttons(selectedData, choices_json):
-        if choices_json is not None:
-            choices = json.loads(choices_json)
+    def activate_select_cells_buttons(selectedData, selected_json):
+        if selected_json is not None:
+            selected = json.loads(selected_json)
         else:
-            choices = {}
-        disabled_A = (selectedData is None) | ("group_A" in choices)
-        disabled_B = (selectedData is None) | ("group_B" in choices)
-        disabled_reset = ("group_A" not in choices) & ("group_B" not in choices)
-        disabled_run = ("group_A" not in choices) | ("group_B" not in choices)
+            selected = {}
+        disabled_A = (selectedData is None) | ("group_A" in selected)
+        disabled_B = (selectedData is None) | ("group_B" in selected)
+        disabled_reset = ("group_A" not in selected) & ("group_B" not in selected)
+        disabled_run = ("group_A" not in selected) | ("group_B" not in selected)
 
         return (disabled_A, disabled_B, disabled_reset, disabled_run)
 
@@ -215,15 +216,18 @@ def register_run_differential_expression(app):
             Output("select_cells_results", "children"),
             Output("select_cells_results_download", "href"),
             Output("select_cells_parameters_download", "href"),
+            Output("select_cells_status", "children"),
             Output("select_cells_get_results", "style"),
+            Output("meta_scatter_select_color", "options"),
         ],
         [
             Input("url", "pathname"),
             Input("select_cells_run", "n_clicks"),
-            Input("select_cells_choices", "children"),
+            Input("select_cells_selected", "children"),
         ],
+        [State("meta_scatter_select_color", "options")],
     )
-    def run_differential_expression(pathname, n_clicks, select_json):
+    def run_differential_expression(pathname, n_clicks, select_json, options):
         ctx = dash.callback_context
         if ctx.triggered and "run" in ctx.triggered[0]["prop_id"] and n_clicks:
             _, kwargs = get_route(pathname)
@@ -231,11 +235,11 @@ def register_run_differential_expression(app):
             res = ui.cells.run_differential_expression(data, select_json)
             return res
         else:
-            return "", "", "", {"display": "none"}
+            return "", "", "", "", {"display": "none"}, options
 
     @app.callback(
         [Output("main-tabs", "active_tab"), Output("expression_toggle_gene_list", "value")],
-        [Input("select_cells_view", "n_clicks"), Input("select_cells_reset", "n_clicks")],
+        [Input("select_cells_view_table", "n_clicks"), Input("select_cells_reset", "n_clicks")],
         [State("expression_toggle_gene_list", "value"), State("main-tabs", "active_tab")],
     )
     def switch_view(n1, n2, selected, at):
@@ -248,6 +252,13 @@ def register_run_differential_expression(app):
             if "diffexp" in selected:
                 selected.remove("diffexp")
             return at, selected
+
+    @app.callback(
+        Output("meta_scatter_select_color", "value"),
+        [Input("select_cells_view_groups", "n_clicks")],
+    )
+    def switch_color(n):
+        return "DE_group"
 
 
 def register_update_cell_violin_plot_params(app):
@@ -264,13 +275,14 @@ def register_update_cell_violin_plot_params(app):
             Input("meta_violin_select_vars", "value"),
             Input("meta_violin_select_group", "value"),
             Input("meta_violin_select_split", "value"),
-            Input("filter_cells_filters", "children"),
+            Input("meta_filter_cells_update", "n_clicks"),
         ],
+        [State("filter_cells_filters", "children")],
     )
-    def get_meta_plot_violin(pathname, variables, group, split, choices_json):
+    def get_meta_plot_violin(pathname, variables, group, split, n, filters_json):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
-        return ui.cells.render_plot_violin(data, variables, group, split, choices_json)
+        return ui.cells.render_plot_violin(data, variables, group, split, filters_json)
 
 
 def register_update_cell_bar_chart_params(app):
@@ -297,13 +309,14 @@ def register_update_cell_bar_chart_params(app):
             Input("meta_bar_select_group", "value"),
             Input("meta_bar_select_split", "value"),
             Input("meta_bar_options", "value"),
-            Input("filter_cells_filters", "children"),
+            Input("meta_filter_cells_update", "n_clicks"),
         ],
+        [State("filter_cells_filters", "children")],
     )
-    def get_meta_plot_bars(pathname, group, split, options, choices_json):
+    def get_meta_plot_bars(pathname, group, split, options, n, filters_json):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
-        return ui.cells.render_plot_bars(data, group, split, options, choices_json)
+        return ui.cells.render_plot_bars(data, group, split, options, filters_json)
 
 
 def register_select_gene_plot_type(app):
@@ -407,13 +420,14 @@ def register_select_gene_scatter_plot(app):
             Input("expression_scatter_select_x", "value"),
             Input("expression_scatter_select_y", "value"),
             Input("expression_select_genes", "value"),
-            Input("filter_cells_filters", "children"),
+            Input("expression_filter_cells_update", "n_clicks"),
         ],
+        [State("filter_cells_filters", "children")],
     )
-    def get_expression_plot_scatter(pathname, xc, yc, genelist, choices_json):
+    def get_expression_plot_scatter(pathname, xc, yc, genelist, n, filters_json):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
-        return ui.genes.render_plot_scatter(data, xc, yc, genelist, choices_json)
+        return ui.genes.render_plot_scatter(data, xc, yc, genelist, filters_json)
 
 
 def register_select_gene_violin_plot(app):
@@ -430,13 +444,14 @@ def register_select_gene_violin_plot(app):
             Input("expression_select_genes", "value"),
             Input("expression_violin_select_group", "value"),
             Input("expression_violin_select_split", "value"),
-            Input("filter_cells_filters", "children"),
+            Input("expression_filter_cells_update", "n_clicks"),
         ],
+        [State("filter_cells_filters", "children")],
     )
-    def get_expression_plot_violin(pathname, genelist, group, split, choices_json):
+    def get_expression_plot_violin(pathname, genelist, group, split, n, filters_json):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
-        return ui.genes.render_plot_violin(data, pathname, genelist, group, split, choices_json)
+        return ui.genes.render_plot_violin(data, pathname, genelist, group, split, filters_json)
 
 
 def register_select_gene_dot_plot(app):
@@ -453,13 +468,14 @@ def register_select_gene_dot_plot(app):
             Input("expression_select_genes", "value"),
             Input("expression_dot_select_group", "value"),
             Input("expression_dot_select_split", "value"),
-            Input("filter_cells_filters", "children"),
+            Input("expression_filter_cells_update", "n_clicks"),
         ],
+        [State("filter_cells_filters", "children")],
     )
-    def get_expression_plot_dot(pathname, genelist, group, split, choices_json):
+    def get_expression_plot_dot(pathname, genelist, group, split, n, filters_json):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
-        return ui.genes.render_plot_dot(data, pathname, genelist, group, split, choices_json)
+        return ui.genes.render_plot_dot(data, pathname, genelist, group, split, filters_json)
 
 
 def register_toggle_filter_cells_controls(app, token):
@@ -474,37 +490,86 @@ def register_toggle_filter_cells_controls(app, token):
         return is_open
 
 
-def register_update_filter_cells_controls(app, token):
+def register_update_filter_cells_controls(app):
     @app.callback(
         [
-            Output("%s_filter_cells_ncells_div" % token, "style"),
-            Output("%s_filter_cells_ncells" % token, "marks"),
-            Output("%s_filter_cells_ncells" % token, "min"),
-            Output("%s_filter_cells_ncells" % token, "max"),
-            Output("%s_filter_cells_ncells" % token, "value"),
-            Output("%s_filter_cells_ncells" % token, "step"),
-            Output("%s_filter_cells_choice_div" % token, "style"),
-            Output("%s_filter_cells_choice" % token, "options"),
-            Output("%s_filter_cells_choice" % token, "value"),
-            Output("%s_filter_cells_range_div" % token, "style"),
-            Output("%s_filter_cells_range" % token, "marks"),
-            Output("%s_filter_cells_range" % token, "min"),
-            Output("%s_filter_cells_range" % token, "max"),
-            Output("%s_filter_cells_range" % token, "value"),
-            Output("%s_filter_cells_range" % token, "step"),
+            Output("meta_filter_cells_ncells_div", "style"),
+            Output("meta_filter_cells_ncells", "marks"),
+            Output("meta_filter_cells_ncells", "min"),
+            Output("meta_filter_cells_ncells", "max"),
+            Output("meta_filter_cells_ncells", "value"),
+            Output("meta_filter_cells_ncells", "step"),
+            Output("meta_filter_cells_choice_div", "style"),
+            Output("meta_filter_cells_choice", "options"),
+            Output("meta_filter_cells_choice", "value"),
+            Output("meta_filter_cells_range_div", "style"),
+            Output("meta_filter_cells_range", "marks"),
+            Output("meta_filter_cells_range", "min"),
+            Output("meta_filter_cells_range", "max"),
+            Output("meta_filter_cells_range", "value"),
+            Output("meta_filter_cells_range", "step"),
+            Output("expression_filter_cells_ncells_div", "style"),
+            Output("expression_filter_cells_ncells", "marks"),
+            Output("expression_filter_cells_ncells", "min"),
+            Output("expression_filter_cells_ncells", "max"),
+            Output("expression_filter_cells_ncells", "value"),
+            Output("expression_filter_cells_ncells", "step"),
+            Output("expression_filter_cells_choice_div", "style"),
+            Output("expression_filter_cells_choice", "options"),
+            Output("expression_filter_cells_choice", "value"),
+            Output("expression_filter_cells_range_div", "style"),
+            Output("expression_filter_cells_range", "marks"),
+            Output("expression_filter_cells_range", "min"),
+            Output("expression_filter_cells_range", "max"),
+            Output("expression_filter_cells_range", "value"),
+            Output("expression_filter_cells_range", "step"),
         ],
-        [Input("url", "pathname"), Input("%s_filter_cells_attribute" % token, "value")],
+        [
+            Input("url", "pathname"),
+            Input("meta_filter_cells_attribute", "value"),
+            Input("meta_filter_cells_reset", "n_clicks"),
+            Input("expression_filter_cells_attribute", "value"),
+            Input("expression_filter_cells_reset", "n_clicks"),
+        ],
         [State("filter_cells_filters", "children")],
     )
-    def update_filter_cells_controls(pathname, attribute, filters_json):
+    def update_filter_cells_controls(
+        pathname, meta_attribute, reset_meta, expression_attribute, reset_expression, filters_json
+    ):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
-        hidden_slider = ({"display": "none"}, {0: "0", 1: "1"}, 0, 1, 1, 0)
+        hidden_slider = ({"display": "none"}, {}, None, None, None, None)
         hidden_checklist = ({"display": "none"}, [], None)
-        hidden_rangeslider = ({"display": "none"}, {0: "0", 1: "1"}, 0, 1, [0, 1], 0)
+        hidden_rangeslider = ({"display": "none"}, {}, None, None, None, None)
+        ctx = dash.callback_context
+
+        if ctx.triggered and "reset" in ctx.triggered[0]["prop_id"]:
+            return (
+                hidden_slider
+                + hidden_checklist
+                + hidden_rangeslider
+                + hidden_slider
+                + hidden_checklist
+                + hidden_rangeslider
+            )
+
+        if ctx.triggered and "meta" in ctx.triggered[0]["prop_id"]:
+            token = "meta"
+            attribute = meta_attribute
+        elif ctx.triggered and "expression" in ctx.triggered[0]["prop_id"]:
+            token = "expression"
+            attribute = expression_attribute
 
         if attribute is None or attribute == "None":
-            return hidden_slider + hidden_checklist + hidden_rangeslider
+            return (
+                hidden_slider
+                + hidden_checklist
+                + hidden_rangeslider
+                + hidden_slider
+                + hidden_checklist
+                + hidden_rangeslider
+            )
+
         filters = json.loads(filters_json)
         if attribute == "ncells":
             ncells_tot = data.ad.obs.shape[0]
@@ -512,7 +577,7 @@ def register_update_filter_cells_controls(app, token):
                 ncells_selected = filters[attribute]
             else:
                 ncells_selected = ncells_tot
-            return (
+            ret = (
                 (
                     {"display": "block"},
                     dict(
@@ -531,12 +596,14 @@ def register_update_filter_cells_controls(app, token):
             values = data.ad.obs_vector(attribute)
             if not pd.api.types.is_numeric_dtype(values):
                 categories = list(data.ad.obs[attribute].cat.categories)
-                return (
+                ret = (
                     hidden_slider
                     + (
                         {"display": "block"},
                         [{"label": v, "value": v} for v in categories],
-                        filters[attribute] if attribute in filters else categories,
+                        filters[attribute]
+                        if attribute in filters and filters[attribute] is not None
+                        else categories,
                     )
                     + hidden_rangeslider
                 )
@@ -549,7 +616,7 @@ def register_update_filter_cells_controls(app, token):
                 else:
                     val_min = range_min
                     val_max = range_max
-                return (
+                ret = (
                     hidden_slider
                     + hidden_checklist
                     + (
@@ -566,14 +633,18 @@ def register_update_filter_cells_controls(app, token):
                         (range_max - range_min) / 1000,
                     )
                 )
+        if token == "meta":
+            return ret + hidden_slider + hidden_checklist + hidden_rangeslider
+        else:
+            return hidden_slider + hidden_checklist + hidden_rangeslider + ret
 
 
 def register_update_filter_cells_filters(app):
     @app.callback(
         [
             Output("filter_cells_filters", "children"),
-            Output("meta_filter_cells_div", "title"),
-            Output("expression_filter_cells_div", "title"),
+            Output("meta_filter_cells_status", "children"),
+            Output("expression_filter_cells_status", "children"),
         ],
         [
             Input("url", "pathname"),
@@ -611,14 +682,12 @@ def register_update_filter_cells_filters(app):
         ctx = dash.callback_context
 
         filters = json.loads(filters_json)
-        active_filters = set()
         # if reset button was hit, remove entries in filters_json
         attributes = list(filters.keys())
-        status = "active filters: "
         if ctx.triggered and "reset" in ctx.triggered[0]["prop_id"]:
             for attribute in attributes:
                 del filters[attribute]
-            return (json.dumps(filters), status, status)
+            return (json.dumps(filters), "", "")
 
         # else update filters_json depending on inputs
         for ncells_value, cat_value, range_value, attribute in [
@@ -631,23 +700,36 @@ def register_update_filter_cells_filters(app):
             ),
         ]:
             if attribute is not None and attribute != "None":
-                if attribute == "ncells":
+                if attribute == "ncells" and ncells_value is not None:
                     filters[attribute] = ncells_value
-                    ncells_tot = data.ad.obs.shape[0]
-                    if ncells_value < ncells_tot:
-                        active_filters.add(attribute)
                 else:
                     values = data.ad.obs_vector(attribute)
-                    if not pd.api.types.is_numeric_dtype(values):
+                    if not pd.api.types.is_numeric_dtype(values) and cat_value is not None:
                         filters[attribute] = cat_value
-                        if cat_value is not None and set(cat_value) != set(values):
-                            active_filters.add(attribute)
-                    else:
+                    elif range_value is not None:
                         filters[attribute] = range_value
-                        if range_value[0] > values.min() or range_value[1] < values.max():
-                            active_filters.add(attribute)
 
-        status += ", ".join(active_filters)
+        active_filters = set()
+        for attribute, filter_values in filters.items():
+            if filter_values is None:
+                continue
+            if attribute == "ncells":
+                ncells_tot = data.ad.obs.shape[0]
+                if filter_values < ncells_tot:
+                    active_filters.add(attribute)
+            else:
+                values = data.ad.obs_vector(attribute)
+                if not pd.api.types.is_numeric_dtype(values):
+                    if set(filter_values) != set(values):
+                        active_filters.add(attribute)
+                else:
+                    if filter_values[0] > values.min() or filter_values[1] < values.max():
+                        active_filters.add(attribute)
+
+        if len(active_filters) > 0:
+            status = "active filters: " + ", ".join(active_filters)
+        else:
+            status = ""
         return (json.dumps(filters), status, status)
 
 
@@ -668,6 +750,8 @@ def register_activate_filter_cells_reset(app):
             filters = {}
         disabled = True
         for attribute, selected in filters.items():
+            if selected is None:
+                continue
             if attribute == "ncells":
                 ncells_tot = data.ad.obs.shape[0]
                 if selected < ncells_tot:
@@ -691,9 +775,6 @@ def register_activate_filter_cells_reset(app):
 def register_file_upload(app):
     """Register callbacks for the file upload"""
 
-    logger.info("-> file_upload")
-
-    # TODO: move main handler into "upload" module?
     @app.callback(
         Output("url", "pathname"),
         [Input("file-upload", "contents")],

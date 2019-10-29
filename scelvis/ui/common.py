@@ -51,7 +51,6 @@ def render_filter_cells_collapse(data, token):
             ),
         ],
         id="%s_filter_cells_div" % token,
-        title="active filters: ",
     )
 
 
@@ -115,12 +114,24 @@ def render_filter_cells_controls(data, token):
             ],
             style={"display": "none"},
         ),
-        dbc.Button(
-            "reset filters",
-            id="%s_filter_cells_reset" % token,
-            color="link",
-            className="text-left",
-            size="sm",
+        html.P(children="", id="%s_filter_cells_status" % token, style={"fontSize": 14}),
+        dbc.Row(
+            [
+                dbc.Button(
+                    "update plot",
+                    id="%s_filter_cells_update" % token,
+                    color="primary",
+                    className="mr-1",
+                    size="sm",
+                ),
+                dbc.Button(
+                    "reset filters",
+                    id="%s_filter_cells_reset" % token,
+                    className="mr-1",
+                    color="secondary",
+                    size="sm",
+                ),
+            ]
         ),
     ]
 
@@ -140,6 +151,8 @@ def apply_filter_cells_filters(data, filters_json):
     take = np.ones(ncells_tot, dtype=bool)
     filters = json.loads(filters_json)
     for col, selected in filters.items():
+        if selected is None:
+            continue
         if col == "ncells":
             take = take & (np.random.random(ncells_tot) < selected / ncells_tot)
         elif col in data.categorical_meta:

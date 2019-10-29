@@ -5,5 +5,5 @@ SCelVis is a web app for the visualization and interactive exploration of single
 **Start by selecting the dataset you want to work with from the `Go To` menu on the top right**:
 choose an existing dataset, or upload a new one.
 
-![movie](assets/movie.gif)
+![go to https://github.com/bihealth/scelvis for a tutorial](https://github.com/bihealth/scelvis/tutorial/scelvis_movie.gif)
 
