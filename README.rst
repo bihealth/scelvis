@@ -50,7 +50,13 @@ A Docker container is also available via `Quay.io/Biocontainers <https://quay.io
     $ docker run quay.io/biocontainers/scelvis:TAG scelvis --help
     $ docker run -p 8050:8050 -v data:/data quay.io/biocontainers/scelvis:TAG scelvis run --data-source /data
 
-- Lookup the latest ``TAG`` to use at `here <https://quay.io/repository/biocontainers/scelvis?tab=tags>`_.
+look up the latest ``TAG`` to use at `here <https://quay.io/repository/biocontainers/scelvis?tab=tags>`_, e.g.,
+
+.. code-block:: shell
+
+    $ docker run quay.io/biocontainers/scelvis:0.7.0--py_0 scelvis --help
+    $ docker run -p 8050:8050 -v data:/data quay.io/biocontainers/scelvis:0.7.0--py_0 scelvis run --data-source /data
+
 
 --------
 Tutorial
@@ -64,7 +70,7 @@ explore 1000 cells from a 1:1 Mixture of Fresh Frozen Human (HEK293T) and Mouse 
     $ scelvis run --data-source https://files.figshare.com/18037739/pbmc.h5ad
 
 
-and then point your browser to http://0.0.0.0:8050/.
+and then point your browser to http://0.0.0.0:8050/ or http://localhost:8050/
 
 
 -------------------
@@ -261,6 +267,8 @@ Afterwards, you can run the visualization web server as follows:
 .. code-block:: shell
 
     $ scelvis run --data-source path/to/data/dir
+
+To explore the datasets provided in the git repository, use ``git lfs fetch`` to download
 
 Releasing Packages
 ------------------
