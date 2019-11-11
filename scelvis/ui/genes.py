@@ -166,7 +166,6 @@ def render(data):
                     # Placeholder for the plot.
                     dbc.Col(
                         children=[dcc.Loading(id="expression_plot", type="circle")],
-                        # children=[html.Div(id="expression_plot")],
                         className="col-9",
                     ),
                 ]

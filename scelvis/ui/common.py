@@ -35,29 +35,35 @@ def render_plot(data_type, plot_type):
 
 def render_filter_cells_collapse(data, token):
 
-    return html.Div(
-        [
-            dbc.Button(
-                "filter cells",
-                id="%s_filter_cells_button" % token,
-                className="text-left",
-                color="primary",
-                outline=True,
-                size="md",
-            ),
-            dbc.Collapse(
-                dbc.Card(dbc.CardBody(render_filter_cells_controls(data, token))),
-                id="%s_filter_cells_collapse" % token,
-            ),
-        ],
-        id="%s_filter_cells_div" % token,
-    )
+    children = [
+        dbc.Button(
+            "filter cells",
+            id="%s_filter_cells_button" % token,
+            className="text-left",
+            color="primary",
+            outline=True,
+            size="md",
+        ),
+        dbc.Collapse(
+            dbc.Card(dbc.CardBody(render_filter_cells_controls(data, token))),
+            id="%s_filter_cells_collapse" % token,
+        ),
+    ]
+
+    if token == "meta":
+        # store list of choices in hidden div
+        filters = {}
+        children.append(
+            html.Div(
+                id="filter_cells_filters", style={"display": "none"}, children=json.dumps(filters)
+            )
+        )
+
+    return html.Div(children=children, id="%s_filter_cells_div" % token)
 
 
 def render_filter_cells_controls(data, token):
 
-    # store list of choices in hidden div
-    filters = {}
     options = (
         [{"label": "ncells", "value": "ncells"}]
         + [{"label": c, "value": c} for c in data.categorical_meta]
@@ -65,7 +71,7 @@ def render_filter_cells_controls(data, token):
         + [{"label": g, "value": g} for g in data.genes]
     )
 
-    output = [
+    return [
         html.Div(
             [dcc.Dropdown(id="%s_filter_cells_attribute" % token, options=options, value="None")]
         ),
@@ -134,15 +140,6 @@ def render_filter_cells_controls(data, token):
             ]
         ),
     ]
-
-    if token == "meta":
-        output.append(
-            html.Div(
-                id="filter_cells_filters", style={"display": "none"}, children=json.dumps(filters)
-            )
-        )
-
-    return output
 
 
 def apply_filter_cells_filters(data, filters_json):

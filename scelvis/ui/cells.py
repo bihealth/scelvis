@@ -47,6 +47,8 @@ def render_controls_scatter(data):
                 ),
                 html.Hr(),
                 render_select_cells(data),
+                # hidden div to store selection of cells
+                html.Div(id="select_cells_selected", style={"display": "none"}),
             ],
             title="Select x- and y-coordinates for embedding (TSNE or UMAP); "
             "color points according to cell annotation (e.g., cluster identity or n_genes); "
@@ -189,10 +191,10 @@ def render_select_cells_controls(data):
                         id="select_cells_view_groups",
                         color="link",
                         style={
-                            "padding-left": 2,
-                            "padding-right": 2,
-                            "padding-top": 0,
-                            "padding-bottom": 3,
+                            "paddingLeft": 2,
+                            "paddingRight": 2,
+                            "paddingTop": 0,
+                            "paddingBottom": 3,
                         },
                     ),
                     "or",
@@ -201,10 +203,10 @@ def render_select_cells_controls(data):
                         id="select_cells_view_table",
                         color="link",
                         style={
-                            "padding-left": 2,
-                            "padding-right": 0,
-                            "padding-top": 0,
-                            "padding-bottom": 3,
+                            "paddingLeft": 2,
+                            "paddingRight": 0,
+                            "paddingTop": 0,
+                            "paddingBottom": 3,
                         },
                     ),
                     "; download ",
@@ -227,7 +229,6 @@ def render_select_cells_controls(data):
                 id="select_cells_get_results",
                 style={"display": "none"},
             ),
-            html.Div(id="select_cells_results", style={"display": "none"}),
         ]
     )
 
@@ -263,6 +264,8 @@ def render_controls(data):
         html.Hr(),
         # Placeholder for the plot-specific controls.
         html.Div(id="meta_plot_controls"),
+        # hidden div for selection results
+        html.Div(id="select_cells_results", style={"display": "none"}),
     ]
 
 
@@ -270,12 +273,9 @@ def render(data):
     """Render the "Cell Annotation" content."""
     return dbc.Row(
         children=[
-            # hidden div to store selection of cells
-            html.Div(id="select_cells_selected", style={"display": "none"}),
             dbc.Col(children=render_controls(data), className="col-3"),
             # Placeholder for the plot.
             dbc.Col(children=[dcc.Loading(id="meta_plot", type="circle")], className="col-9"),
-            # dbc.Col(children=[html.Div(id="meta_plot")], className="col-9"),
         ]
     )
 
@@ -302,8 +302,12 @@ def render_plot_scatter(data, xc, yc, col, filters_json, select_json):
                 return {}, "", True
 
             # make sure groups are disjoint
-            group_A = list(set(selected["group_A"]) - set(selected["group_B"]))
-            group_B = list(set(selected["group_B"]) - set(selected["group_A"]))
+            group_A = list(
+                (set(selected["group_A"]) - set(selected["group_B"])) & set(ad_here.obs_names)
+            )
+            group_B = list(
+                (set(selected["group_B"]) - set(selected["group_A"])) & set(ad_here.obs_names)
+            )
 
             if len(group_A) == 0 or len(group_B) == 0:
                 return {}, "", True

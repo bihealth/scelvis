@@ -3,6 +3,13 @@ History
 =======
 
 ------
+v0.7.2
+------
+
+- fix ReferenceError
+- updated README and tutorialmovie
+
+------
 v0.7.1
 ------
 
