@@ -133,6 +133,7 @@ def setup_argparse(parser):
     parser.add_argument(
         "--cache-default-timeout",
         default=os.environ.get("SCELVIS_CACHE_DEFAULT_TIMEOUT", 7 * 24 * 60 * 60),
+        type=int,
         help="Default timeout for cache",
     )
     parser.add_argument(
