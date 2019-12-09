@@ -155,7 +155,8 @@ def load_data(identifier):
             if fs.path.basename(url.path)[: -len(".h5ad")] == identifier:
                 return data.load_data(url, identifier)
             else:
-                if does_exist(url, identifier + ".h5ad"):
+                if identifier and does_exist(url, identifier + ".h5ad"):
+                    logger.info("looking for %s in %s" % (url, identifier))
                     return _load_data_cached(
                         url._replace(path=fs.path.join(url.path, identifier + ".h5ad")), identifier
                     )
@@ -164,4 +165,6 @@ def load_data(identifier):
 @cache.memoize()
 def load_metadata(identifier):
     """Load metadata for the given identifier from data or upload directory."""
-    return load_data(identifier).metadata
+    data = load_data(identifier)
+    if data:
+        return data.metadata

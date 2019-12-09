@@ -73,7 +73,7 @@ def register_page_content(app):
             return ui.main.render_home()
         elif view == "upload":
             return ui.main.render_upload()
-        elif view == "viz":
+        elif view == "viz" and kwargs.get("dataset") and store.load_data(kwargs.get("dataset")):
             return ui.main.render_dataset(kwargs.get("dataset"))
         else:
             return ui.main.render_not_found()
@@ -104,9 +104,10 @@ def register_select_cell_plot_type(app):
 
     @app.callback(
         [Output("meta_plot_controls", "children")],
-        [Input("url", "pathname"), Input("meta_plot_type", "value")],
+        [Input("meta_plot_type", "value")],
+        [State("url", "pathname")]
     )
-    def update_meta_plot_controls(pathname, plot_type):
+    def update_meta_plot_controls(plot_type, pathname):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
         plots = {
@@ -131,15 +132,18 @@ def register_update_cell_scatter_plot_params(app):
             Output("meta_scatter_download", "hidden"),
         ],
         [
-            Input("url", "pathname"),
             Input("meta_scatter_select_x", "value"),
             Input("meta_scatter_select_y", "value"),
             Input("meta_scatter_select_color", "value"),
             Input("meta_filter_cells_update", "n_clicks"),
         ],
-        [State("filter_cells_filters", "children"), State("select_cells_selected", "children")],
+        [
+            State("filter_cells_filters", "children"),
+            State("select_cells_selected", "children"),
+            State("url", "pathname"),
+        ],
     )
-    def get_meta_plot_scatter(pathname, xc, yc, col, n_clicks, filters_json, select_json):
+    def get_meta_plot_scatter(xc, yc, col, n_clicks, filters_json, select_json, pathname):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
         return ui.cells.render_plot_scatter(data, xc, yc, col, filters_json, select_json)
@@ -221,13 +225,15 @@ def register_run_differential_expression(app):
             Output("meta_scatter_select_color", "options"),
         ],
         [
-            Input("url", "pathname"),
             Input("select_cells_run", "n_clicks"),
             Input("select_cells_selected", "children"),
         ],
-        [State("meta_scatter_select_color", "options")],
+        [
+            State("meta_scatter_select_color", "options"),
+            State("url", "pathname"),
+        ]
     )
-    def run_differential_expression(pathname, n_clicks, select_json, options):
+    def run_differential_expression(n_clicks, select_json, options, pathname):
         ctx = dash.callback_context
         if ctx.triggered and "run" in ctx.triggered[0]["prop_id"] and n_clicks:
             _, kwargs = get_route(pathname)
@@ -271,15 +277,17 @@ def register_update_cell_violin_plot_params(app):
             Output("meta_violin_download", "hidden"),
         ],
         [
-            Input("url", "pathname"),
             Input("meta_violin_select_vars", "value"),
             Input("meta_violin_select_group", "value"),
             Input("meta_violin_select_split", "value"),
             Input("meta_filter_cells_update", "n_clicks"),
         ],
-        [State("filter_cells_filters", "children")],
+        [
+            State("filter_cells_filters", "children"),
+            State("url", "pathname"),
+        ],
     )
-    def get_meta_plot_violin(pathname, variables, group, split, n, filters_json):
+    def get_meta_plot_violin(variables, group, split, n, filters_json, pathname):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
         return ui.cells.render_plot_violin(data, variables, group, split, filters_json)
@@ -305,15 +313,17 @@ def register_update_cell_bar_chart_params(app):
             Output("meta_bar_download", "hidden"),
         ],
         [
-            Input("url", "pathname"),
             Input("meta_bar_select_group", "value"),
             Input("meta_bar_select_split", "value"),
             Input("meta_bar_options", "value"),
             Input("meta_filter_cells_update", "n_clicks"),
         ],
-        [State("filter_cells_filters", "children")],
+        [
+            State("filter_cells_filters", "children"),
+            State("url", "pathname"),
+        ],
     )
-    def get_meta_plot_bars(pathname, group, split, options, n, filters_json):
+    def get_meta_plot_bars(group, split, options, n, filters_json, pathname):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
         return ui.cells.render_plot_bars(data, group, split, options, filters_json)
@@ -324,9 +334,10 @@ def register_select_gene_plot_type(app):
 
     @app.callback(
         [Output("expression_plot_controls", "children")],
-        [Input("url", "pathname"), Input("expression_plot_type", "value")],
+        [Input("expression_plot_type", "value")],
+        [State("url", "pathname")]
     )
-    def update_expression_plot_controls(pathname, plot_type):
+    def update_expression_plot_controls(plot_type, pathname):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
         plots = {
@@ -346,9 +357,10 @@ def register_select_gene_list(app):
 
     @app.callback(
         Output("expression_marker_list", "children"),
-        [Input("url", "pathname"), Input("expression_toggle_gene_list", "value")],
+        [Input("expression_toggle_gene_list", "value")],
+        [State("url", "pathname")]
     )
-    def toggle_marker_list(pathname, value):
+    def toggle_marker_list(value, pathname):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
         return ui.genes.render_marker_list(data, value)
@@ -373,7 +385,6 @@ def register_select_gene_list(app):
     @app.callback(
         Output("expression_select_genes", "value"),
         [
-            Input("url", "pathname"),
             Input("marker_selection", "n_clicks"),
             Input("diffexp_selection", "n_clicks"),
         ],
@@ -383,10 +394,10 @@ def register_select_gene_list(app):
             State("expression_toggle_gene_list", "value"),
             State("expression_select_genes", "value"),
             State("select_cells_results", "children"),
+            State("url", "pathname"),
         ],
     )
     def update_gene_selection(
-        pathname,
         n_clicks_markers,
         n_clicks_diffexp,
         rows_markers,
@@ -394,6 +405,7 @@ def register_select_gene_list(app):
         selected_tables,
         selected_genes,
         diffexp_json,
+        pathname,
     ):
         genelist = selected_genes
         if "markers" in selected_tables:
@@ -416,15 +428,17 @@ def register_select_gene_scatter_plot(app):
             Output("expression_scatter_download", "hidden"),
         ],
         [
-            Input("url", "pathname"),
             Input("expression_scatter_select_x", "value"),
             Input("expression_scatter_select_y", "value"),
             Input("expression_select_genes", "value"),
             Input("expression_filter_cells_update", "n_clicks"),
         ],
-        [State("filter_cells_filters", "children")],
+        [
+            State("filter_cells_filters", "children"),
+            State("url", "pathname"),
+        ]
     )
-    def get_expression_plot_scatter(pathname, xc, yc, genelist, n, filters_json):
+    def get_expression_plot_scatter(xc, yc, genelist, n, filters_json, pathname):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
         return ui.genes.render_plot_scatter(data, xc, yc, genelist, filters_json)
@@ -440,15 +454,17 @@ def register_select_gene_violin_plot(app):
             Output("expression_violin_download", "hidden"),
         ],
         [
-            Input("url", "pathname"),
             Input("expression_select_genes", "value"),
             Input("expression_violin_select_group", "value"),
             Input("expression_violin_select_split", "value"),
             Input("expression_filter_cells_update", "n_clicks"),
         ],
-        [State("filter_cells_filters", "children")],
+        [
+            State("filter_cells_filters", "children"),
+            State("url", "pathname"),
+        ],
     )
-    def get_expression_plot_violin(pathname, genelist, group, split, n, filters_json):
+    def get_expression_plot_violin(genelist, group, split, n, filters_json, pathname):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
         return ui.genes.render_plot_violin(data, pathname, genelist, group, split, filters_json)
@@ -464,15 +480,17 @@ def register_select_gene_dot_plot(app):
             Output("expression_dot_download", "hidden"),
         ],
         [
-            Input("url", "pathname"),
             Input("expression_select_genes", "value"),
             Input("expression_dot_select_group", "value"),
             Input("expression_dot_select_split", "value"),
             Input("expression_filter_cells_update", "n_clicks"),
         ],
-        [State("filter_cells_filters", "children")],
+        [
+            State("filter_cells_filters", "children"),
+            State("url", "pathname"),
+        ]
     )
-    def get_expression_plot_dot(pathname, genelist, group, split, n, filters_json):
+    def get_expression_plot_dot(genelist, group, split, n, filters_json, pathname):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
         return ui.genes.render_plot_dot(data, pathname, genelist, group, split, filters_json)
@@ -525,16 +543,18 @@ def register_update_filter_cells_controls(app):
             Output("expression_filter_cells_range", "step"),
         ],
         [
-            Input("url", "pathname"),
             Input("meta_filter_cells_attribute", "value"),
             Input("meta_filter_cells_reset", "n_clicks"),
             Input("expression_filter_cells_attribute", "value"),
             Input("expression_filter_cells_reset", "n_clicks"),
         ],
-        [State("filter_cells_filters", "children")],
+        [
+            State("filter_cells_filters", "children"),
+            State("url", "pathname"),
+        ],
     )
     def update_filter_cells_controls(
-        pathname, meta_attribute, reset_meta, expression_attribute, reset_expression, filters_json
+        meta_attribute, reset_meta, expression_attribute, reset_expression, filters_json, pathname 
     ):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
@@ -543,7 +563,7 @@ def register_update_filter_cells_controls(app):
         hidden_rangeslider = ({"display": "none"}, {}, None, None, None, None)
         ctx = dash.callback_context
 
-        if ctx.triggered and "reset" in ctx.triggered[0]["prop_id"]:
+        if ctx.triggered and 'reset' in ctx.triggered[0]["prop_id"]:
             return (
                 hidden_slider
                 + hidden_checklist
@@ -560,7 +580,7 @@ def register_update_filter_cells_controls(app):
             token = "expression"
             attribute = expression_attribute
 
-        if attribute is None or attribute == "None":
+        if not attribute or attribute == "None":
             return (
                 hidden_slider
                 + hidden_checklist
@@ -647,7 +667,6 @@ def register_update_filter_cells_filters(app):
             Output("expression_filter_cells_status", "children"),
         ],
         [
-            Input("url", "pathname"),
             Input("meta_filter_cells_ncells", "value"),
             Input("meta_filter_cells_choice", "value"),
             Input("meta_filter_cells_range", "value"),
@@ -661,10 +680,10 @@ def register_update_filter_cells_filters(app):
             State("meta_filter_cells_attribute", "value"),
             State("expression_filter_cells_attribute", "value"),
             State("filter_cells_filters", "children"),
+            State("url", "pathname"),
         ],
     )
     def update_filter_cells_filters(
-        pathname,
         meta_ncells_value,
         meta_cat_value,
         meta_range_value,
@@ -676,6 +695,7 @@ def register_update_filter_cells_filters(app):
         meta_attribute,
         expression_attribute,
         filters_json,
+        pathname,
     ):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
@@ -739,9 +759,10 @@ def register_activate_filter_cells_reset(app):
             Output("meta_filter_cells_reset", "disabled"),
             Output("expression_filter_cells_reset", "disabled"),
         ],
-        [Input("url", "pathname"), Input("filter_cells_filters", "children")],
+        [Input("filter_cells_filters", "children")],
+        [State("url", "pathname")]
     )
-    def activate_filter_cells_reset(pathname, filters_json):
+    def activate_filter_cells_reset(filters_json, pathname):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
         if filters_json is not None:
@@ -776,13 +797,19 @@ def register_file_upload(app):
     """Register callbacks for the file upload"""
 
     @app.callback(
-        Output("url", "pathname"),
+        #Output("url", "pathname"),
+        [
+            Output("file-upload-link", "href"),
+            Output("file-upload-link", "children"),
+            Output("file-upload-link", "style"),
+        ],
         [Input("file-upload", "contents")],
         [State("file-upload", "filename")],
     )
     def file_uploaded(contents, filename):
         logger.info("Handling upload of %s", filename)
         filename = secure_filename(filename)
+        #logger.info("obtained %s", contents)
         _content_type, content_string = contents.split(",")
         data_uuid = str(uuid.uuid4())
         logger.info("Data will have UUID %s", data_uuid)
@@ -791,5 +818,11 @@ def register_file_upload(app):
         logger.info("Writing to %s", filepath)
         with open(filepath, "wb") as tmpf:
             tmpf.write(base64.b64decode(content_string))
+        # show link to view the data set
+        return (
+            "/dash/viz/%s" % data_uuid,
+            ["view data from %s at /dash/viz/%s" % (filename, data_uuid)],
+            {"display": "block"}
+        )
         # Redirect to view the data set.
-        return "/dash/viz/%s" % data_uuid
+        #return "/dash/viz/%s" % data_uuid

@@ -74,6 +74,10 @@ def render_upload():
                     ),
                     id="file-upload",
                 ),
+                dcc.Link(href="",
+                         id="file-upload-link",
+                         style={"display": "none"},
+                ),
             ]
         )
     )
