@@ -168,9 +168,7 @@ def download_file(url, path=None, *more_components):
         full_path = url.path
         path = fs.path.basename(url.path)
         url = url._replace(path=fs.path.dirname(url.path))
-    logger.info("Attempting to download file %s", url._replace(path=full_path))
     if url.scheme == "file":
-        logger.info("No need for download, just use %s", full_path)
         if os.path.exists(full_path):
             yield full_path
         else:
@@ -245,7 +243,7 @@ def load_data(data_source, identifier):
     if identifier == FAKE_DATA_ID:
         return fake_data()
 
-    logger.info("Loading anndata for %s from %s", redacted_urlunparse(data_source), identifier)
+    logger.info("Loading anndata for %s from %s", identifier, redacted_urlunparse(data_source))
     with download_file(data_source) as path_anndata:
         ad = anndata.read_h5ad(path_anndata)
         # Extract the meta data

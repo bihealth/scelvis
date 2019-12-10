@@ -156,7 +156,6 @@ def load_data(identifier):
                 return data.load_data(url, identifier)
             else:
                 if identifier and does_exist(url, identifier + ".h5ad"):
-                    logger.info("looking for %s in %s" % (url, identifier))
                     return _load_data_cached(
                         url._replace(path=fs.path.join(url.path, identifier + ".h5ad")), identifier
                     )

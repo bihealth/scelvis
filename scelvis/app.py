@@ -6,14 +6,14 @@ this module is imported, the values in ``.settings`` must already have been setu
 
 import os.path
 import os
-import re
 import tempfile
 import tarfile
 import zipfile
 
 import dash
 import flask
-from flask import flash, request, redirect, helpers
+import uuid
+from flask import flash, request, redirect
 from logzero import logger
 from werkzeug.utils import secure_filename
 
@@ -110,6 +110,52 @@ def redirect_root():
     return flask.redirect("%s/dash/" % settings.PUBLIC_URL_PREFIX)
 
 
+# Mount upload site.
+@app_flask.route("/upload/", methods=("GET", "POST"))
+def upload_route():
+    """Perform file upload."""
+
+    import faulthandler
+
+    faulthandler.enable()
+
+    def find(name, path):
+        for root, _dirs, files in os.walk(path):
+            if name in files:
+                return os.path.join(root, name)
+
+    if request.method == "POST":
+        if "file" not in request.files or not request.files["file"].filename:
+            flash("No file uploaded!")
+            return redirect(request.url)
+        file = request.files["file"]
+        data_uuid = str(uuid.uuid4())
+        logger.info("Data will have UUID %s", data_uuid)
+        # Decode base64 string and write out to final file.
+        filepath = os.path.join(settings.UPLOAD_DIR, "%s.h5ad" % data_uuid)
+        logger.info("Writing to %s", filepath)
+        file.save(filepath)
+        return """
+        <!doctype html>
+        <p>upload successful!</p>
+        <p>
+        <a href="%(application_root)s/dash/viz/%(data_uuid)s" target="_PARENT">view uploaded dataset</a>
+        </p>""" % {
+            "application_root": settings.PUBLIC_URL_PREFIX,
+            "data_uuid": data_uuid,
+        }
+    else:
+        return """
+        <!doctype html>
+        <form method=post enctype=multipart/form-data>
+        <input type=file name=file>
+        <input type=submit value=Upload>
+        </form>
+        """ % {
+            "application_root": settings.PUBLIC_URL_PREFIX
+        }
+
+
 # Mount conversion site.
 @app_flask.route("/convert/", methods=("GET", "POST"))
 def convert_route():
@@ -174,37 +220,35 @@ def convert_route():
                             print("short_title: %s" % short_title, file=aboutf)
                         print("----", file=aboutf)
                     print(description or "No description", file=aboutf)
-                out_file = os.path.join(tmpdir2, re.sub(".zip|.tar.gz|.tar", ".h5ad", filename))
+                data_uuid = str(uuid.uuid4())
+                logger.info("Data will have UUID %s", data_uuid)
+                out_file = os.path.join(settings.UPLOAD_DIR, data_uuid + ".h5ad")
                 logger.info("Performing conversion (%s)", out_file)
                 convert.run(
                     convert.Config(
                         indir=input_dir, about_md=about_md, out_file=out_file, format=format_
                     )
                 )
-                logger.info("Sending file to the user")
-                return helpers.send_file(
-                    out_file, mimetype="application/binary", as_attachment=True
-                )
+                return """
+                <!doctype html>
+                <p>conversion successful!</p>
+                <p>
+                <a href="%(application_root)s/dash/viz/%(data_uuid)s" target="_PARENT">view uploaded dataset</a>
+                </p>""" % {
+                    "application_root": settings.PUBLIC_URL_PREFIX,
+                    "data_uuid": data_uuid,
+                }
     else:
         return """
-            <!doctype html>
-            <title>Convert File</title>
-            <h1>Upload ZIP or TAR.GZ of your data</h1>
-            <p>either containing CellRanger output, raw text files or a data.loom file<p>
-            <p>
-                The server will return a <tt>.h5a</tt> file that you can upload into the SCelVis visualization.
-            </p>
-            <p>
-                <a href="%(application_root)s/dash/">Back to Visualisation</a>
-            </p>
-            <form method=post enctype=multipart/form-data>
-            <label>Title</label> <input type=text name=title><br>
-            <label>Short Title</label> <input type=text name=short_title><br>
-            <label>Description</label><br>
-            <textarea cols=40 rows=5 name=description></textarea><br>
-            <label>CellRanger Output</label> <input type=file name=file>
-            <input type=submit value=Upload>
-            </form>
-            """ % {
+        <!doctype html>
+        <form method=post enctype=multipart/form-data>
+        <label>Title</label> <input type=text name=title><br>
+        <label>Short Title</label> <input type=text name=short_title><br>
+        <label>Description</label><br>
+        <textarea cols=40 rows=5 name=description></textarea><br>
+        <input type=file name=file>
+        <input type=submit value=Upload>
+        </form>
+        """ % {
             "application_root": settings.PUBLIC_URL_PREFIX
         }
