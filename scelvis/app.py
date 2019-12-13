@@ -13,14 +13,14 @@ import zipfile
 import dash
 import flask
 import uuid
-from flask import flash, request, redirect
+import scanpy as sc
+from flask import request
 from logzero import logger
 from werkzeug.utils import secure_filename
 
 
 from . import convert, cache, callbacks, settings
 from .__init__ import __version__
-from .exceptions import ScelVisException
 from .ui.main import build_layout
 
 #: Path to assets.
@@ -125,9 +125,19 @@ def upload_route():
                 return os.path.join(root, name)
 
     if request.method == "POST":
-        if "file" not in request.files or not request.files["file"].filename:
-            flash("No file uploaded!")
-            return redirect(request.url)
+        if (
+            "file" not in request.files
+            or not request.files["file"].filename
+            or not request.files["file"].filename.endswith(".h5ad")
+        ):
+            return """
+            <!doctype html>
+            <p>no .h5ad file provided!</p>
+            <p>
+            <a href="%(application_root)s/dash/upload" target="_PARENT">try again</a>
+            </p>""" % {
+                "application_root": settings.PUBLIC_URL_PREFIX
+            }
         file = request.files["file"]
         data_uuid = str(uuid.uuid4())
         logger.info("Data will have UUID %s", data_uuid)
@@ -135,15 +145,27 @@ def upload_route():
         filepath = os.path.join(settings.UPLOAD_DIR, "%s.h5ad" % data_uuid)
         logger.info("Writing to %s", filepath)
         file.save(filepath)
-        return """
-        <!doctype html>
-        <p>upload successful!</p>
-        <p>
-        <a href="%(application_root)s/dash/viz/%(data_uuid)s" target="_PARENT">view uploaded dataset</a>
-        </p>""" % {
-            "application_root": settings.PUBLIC_URL_PREFIX,
-            "data_uuid": data_uuid,
-        }
+        try:
+            sc.read(filepath)
+            return """
+            <!doctype html>
+            <p>upload successful!</p>
+            <p>
+            <a href="%(application_root)s/dash/viz/%(data_uuid)s" target="_PARENT">view uploaded dataset</a>
+            </p>""" % {
+                "application_root": settings.PUBLIC_URL_PREFIX,
+                "data_uuid": data_uuid,
+            }
+        except OSError as err:
+            return """
+            <!doctype html>
+            <p>%(err)s</p>
+            <p>
+            <a href="%(application_root)s/dash/upload" target="_PARENT">try again</a>
+            </p>""" % {
+                "application_root": settings.PUBLIC_URL_PREFIX,
+                "err": err,
+            }
     else:
         return """
         <!doctype html>
@@ -168,8 +190,14 @@ def convert_route():
 
     if request.method == "POST":
         if "file" not in request.files or not request.files["file"].filename:
-            flash("No file uploaded!")
-            return redirect(request.url)
+            return """
+            <!doctype html>
+            <p>no valid file provided!</p>
+            <p>
+            <a href="%(application_root)s/dash/convert" target="_PARENT">try again</a>
+            </p>""" % {
+                "application_root": settings.PUBLIC_URL_PREFIX
+            }
         file = request.files["file"]
         filename = secure_filename(file.filename)
         filepath = os.path.join(app_flask.config["UPLOAD_FOLDER"], filename)
@@ -184,10 +212,14 @@ def convert_route():
                 with tarfile.open(filepath) as tarf:
                     tarf.extractall(tmpdir)
             else:
-                raise ScelVisException(
-                    "Does not have one of the valid extensions .zip, .tar, or .tar.gz: %s"
-                    % filepath
-                )
+                return """
+                <!doctype html>
+                <p>file does not have .zip, .tar or .tar.gz extension!</p>
+                <p>
+                <a href="%(application_root)s/dash/convert" target="_PARENT">try again</a>
+                </p>""" % {
+                    "application_root": settings.PUBLIC_URL_PREFIX
+                }
             cellranger_needle = "filtered_feature_bc_matrix.h5"
             logger.info("Looking for %s file", cellranger_needle)
             needle_path = find(cellranger_needle, tmpdir)
@@ -224,20 +256,36 @@ def convert_route():
                 logger.info("Data will have UUID %s", data_uuid)
                 out_file = os.path.join(settings.UPLOAD_DIR, data_uuid + ".h5ad")
                 logger.info("Performing conversion (%s)", out_file)
-                convert.run(
-                    convert.Config(
-                        indir=input_dir, about_md=about_md, out_file=out_file, format=format_
+                try:
+                    convert.run(
+                        convert.Config(
+                            indir=input_dir, about_md=about_md, out_file=out_file, format=format_
+                        )
                     )
-                )
-                return """
-                <!doctype html>
-                <p>conversion successful!</p>
-                <p>
-                <a href="%(application_root)s/dash/viz/%(data_uuid)s" target="_PARENT">view uploaded dataset</a>
-                </p>""" % {
-                    "application_root": settings.PUBLIC_URL_PREFIX,
-                    "data_uuid": data_uuid,
-                }
+                    return """
+                    <!doctype html>
+                    <p>conversion successful!</p>
+                    <p>
+                    <a href="%(application_root)s/dash/viz/%(data_uuid)s" target="_PARENT">view uploaded dataset</a>
+                    </p>
+                    <p>
+                    copy <a href="file:///%(out_file)s">this link</a> to your address bar to download .h5ad file
+                    </p>""" % {
+                        "application_root": settings.PUBLIC_URL_PREFIX,
+                        "data_uuid": data_uuid,
+                        "out_file": out_file,
+                    }
+                except Exception as err:
+                    return """
+                    <!doctype html>
+                    <p>conversion failed (%(err)s)</p>
+                    <p>
+                    <a href="%(application_root)s/dash/convert" target="_PARENT">try again</a>
+                    </p>""" % {
+                        "application_root": settings.PUBLIC_URL_PREFIX,
+                        "err": err,
+                    }
+
     else:
         return """
         <!doctype html>
