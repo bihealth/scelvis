@@ -119,6 +119,7 @@ def register_select_cell_plot_type(app):
         plots = {
             "scatter": ui.cells.render_controls_scatter,
             "violin": ui.cells.render_controls_violin,
+            "box": ui.cells.render_controls_box,
             "bar": ui.cells.render_controls_bars,
         }
         return plots[plot_type](data)
@@ -290,6 +291,29 @@ def register_update_cell_violin_plot_params(app):
         return ui.cells.render_plot_violin(data, variables, group, split, filters_json)
 
 
+def register_update_cell_box_plot_params(app):
+    """Register handlers on box plot."""
+
+    @app.callback(
+        [
+            Output("meta_box_plot", "figure"),
+            Output("meta_box_download", "href"),
+            Output("meta_box_download", "hidden"),
+        ],
+        [
+            Input("meta_box_select_vars", "value"),
+            Input("meta_box_select_group", "value"),
+            Input("meta_box_select_split", "value"),
+            Input("meta_filter_cells_update", "n_clicks"),
+        ],
+        [State("filter_cells_filters", "children"), State("url", "pathname")],
+    )
+    def get_meta_plot_box(variables, group, split, n, filters_json, pathname):
+        _, kwargs = get_route(pathname)
+        data = store.load_data(kwargs.get("dataset"))
+        return ui.cells.render_plot_box(data, variables, group, split, filters_json)
+
+
 def register_update_cell_bar_chart_params(app):
     """Register handlers on bar chart and its controls."""
 
@@ -337,6 +361,7 @@ def register_select_gene_plot_type(app):
         plots = {
             "scatter": ui.genes.render_controls_scatter,
             "violin": ui.genes.render_controls_violin,
+            "box": ui.genes.render_controls_box,
             "dot": ui.genes.render_controls_dot,
         }
         return [plots[plot_type](data)]
@@ -453,6 +478,29 @@ def register_select_gene_violin_plot(app):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
         return ui.genes.render_plot_violin(data, pathname, genelist, group, split, filters_json)
+
+
+def register_select_gene_box_plot(app):
+    """Register callbacks for updating box plot"""
+
+    @app.callback(
+        [
+            Output("expression_box_plot", "figure"),
+            Output("expression_box_download", "href"),
+            Output("expression_box_download", "hidden"),
+        ],
+        [
+            Input("expression_select_genes", "value"),
+            Input("expression_box_select_group", "value"),
+            Input("expression_box_select_split", "value"),
+            Input("expression_filter_cells_update", "n_clicks"),
+        ],
+        [State("filter_cells_filters", "children"), State("url", "pathname")],
+    )
+    def get_expression_plot_box(genelist, group, split, n, filters_json, pathname):
+        _, kwargs = get_route(pathname)
+        data = store.load_data(kwargs.get("dataset"))
+        return ui.genes.render_plot_box(data, pathname, genelist, group, split, filters_json)
 
 
 def register_select_gene_dot_plot(app):
@@ -803,5 +851,3 @@ def register_file_upload(app):
             ["view data from %s at /dash/viz/%s" % (filename, data_uuid)],
             {"display": "block"},
         )
-        # Redirect to view the data set.
-        # return "/dash/viz/%s" % data_uuid

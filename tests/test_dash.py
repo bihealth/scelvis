@@ -56,6 +56,10 @@ def test_render_cell_annotation(dash_duo, scelvis_settings):
     app = dash.testing.application_runners.import_app("scelvis.app")
     dash_duo.start_server(app)
 
+    # uncomment this to call up interactive ipython session (run with pytest -s)
+    # from IPython import embed
+    # embed()
+
     # Click "Go To" menu.
     item = dash_duo.wait_for_element_by_css_selector("#page-goto")
     item.click()
@@ -105,6 +109,17 @@ def test_render_cell_annotation(dash_duo, scelvis_settings):
 
     item = dash_duo.wait_for_element_by_css_selector("#meta_plot_type *:nth-child(3)")
     item.click()
+    # select sth from the dropdown
+    dropdown = dash_duo.wait_for_element_by_css_selector("#meta_box_select_vars")
+    dropdown.click()
+    menu = dropdown.find_element_by_css_selector("div.Select-menu-outer")
+    options = menu.find_elements_by_css_selector("div.VirtualizedSelectOption")
+    options[0].click()
+    # plot = dash_duo.wait_for_element_by_css_selector('#meta_box_plot')
+    # dash_duo.take_snapshot('meta_box')
+
+    item = dash_duo.wait_for_element_by_css_selector("#meta_plot_type *:nth-child(4)")
+    item.click()
     # plot = dash_duo.wait_for_element_by_css_selector('#meta_bar_plot')
     # dash_duo.take_snapshot('meta_bar')
 
@@ -153,6 +168,11 @@ def test_render_gene_annotation(dash_duo, scelvis_settings):
     # dash_duo.take_snapshot('expression_violin')
 
     item = dash_duo.wait_for_element_by_css_selector("#expression_plot_type *:nth-child(3)")
+    item.click()
+    # plot = dash_duo.wait_for_element_by_css_selector('#expression_box_plot')
+    # dash_duo.take_snapshot('expression_box')
+
+    item = dash_duo.wait_for_element_by_css_selector("#expression_plot_type *:nth-child(4)")
     item.click()
     # plot = dash_duo.wait_for_element_by_css_selector('#expression_dot_plot')
     # dash_duo.take_snapshot('expression_dot')

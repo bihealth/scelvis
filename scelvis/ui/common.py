@@ -12,7 +12,7 @@ from ..exceptions import ScelVisException
 
 def render_plot(data_type, plot_type):
     """Render the plot component."""
-    if plot_type not in ("scatter", "violin", "bar", "dot"):
+    if plot_type not in ("scatter", "violin", "box", "bar", "dot"):
         raise ScelVisException("Invalid plot type: %s" % plot_type)
     elif data_type not in ("expression", "meta"):
         raise ScelVisException("Invalid data type: %s" % data_type)

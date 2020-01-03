@@ -249,11 +249,11 @@ def load_data(data_source, identifier):
         # Extract the meta data
         metadata = MetaData(
             id=identifier,
-            title=ad.uns["about_title"] if "about_title" in ad.uns_keys() else identifier,
-            short_title=ad.uns["about_short_title"]
+            title="".join(ad.uns["about_title"]) if "about_title" in ad.uns_keys() else identifier,
+            short_title="".join(ad.uns["about_short_title"])
             if "about_short_title" in ad.uns_keys()
             else identifier,
-            readme=ad.uns["about_readme"] if "about_readme" in ad.uns_keys() else None,
+            readme="".join(ad.uns["about_readme"]) if "about_readme" in ad.uns_keys() else None,
         )
         # Separate numerical and categorical columns for later.
         numerical_meta = []

@@ -84,6 +84,7 @@ callbacks.register_toggle_select_cells_controls(app)
 callbacks.register_update_select_cells_selected(app)
 callbacks.register_activate_select_cells_buttons(app)
 callbacks.register_update_cell_violin_plot_params(app)
+callbacks.register_update_cell_box_plot_params(app)
 callbacks.register_update_cell_bar_chart_params(app)
 callbacks.register_toggle_filter_cells_controls(app, "meta")
 callbacks.register_update_filter_cells_controls(app)
@@ -93,6 +94,7 @@ callbacks.register_select_gene_plot_type(app)
 callbacks.register_select_gene_list(app)
 callbacks.register_select_gene_scatter_plot(app)
 callbacks.register_select_gene_violin_plot(app)
+callbacks.register_select_gene_box_plot(app)
 callbacks.register_select_gene_dot_plot(app)
 callbacks.register_toggle_filter_cells_controls(app, "expression")
 
@@ -268,9 +270,7 @@ def convert_route():
                     <p>
                     <a href="%(application_root)s/dash/viz/%(data_uuid)s" target="_PARENT">view uploaded dataset</a>
                     </p>
-                    <p>
-                    copy <a href="file:///%(out_file)s">this link</a> to your address bar to download .h5ad file
-                    </p>""" % {
+                    """ % {
                         "application_root": settings.PUBLIC_URL_PREFIX,
                         "data_uuid": data_uuid,
                         "out_file": out_file,

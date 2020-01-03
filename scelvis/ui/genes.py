@@ -63,6 +63,30 @@ def render_controls_violin(data):
     )
 
 
+def render_controls_box(data):
+    """Render "top left" controls for the box plot for the given ``data``."""
+    return html.Div(
+        [
+            html.Label("select grouping"),
+            dcc.Dropdown(
+                id="expression_box_select_group",
+                options=[{"label": c, "value": c} for c in data.categorical_meta],
+                value=data.categorical_meta[0],
+            ),
+            html.Label("select split"),
+            dcc.Dropdown(
+                id="expression_box_select_split",
+                options=[{"label": c, "value": c} for c in data.categorical_meta],
+                value=None,
+            ),
+        ],
+        title=(
+            "Choose how to group cells for plotting gene expression distributions (e.g., by cluster); "
+            "optionally how to split these groups (e.g., by genotype)"
+        ),
+    )
+
+
 def render_controls_dot(data):
     """Render "top left" controls for the bubble plot for the given ``data``."""
     return html.Div(
@@ -103,6 +127,7 @@ def render_controls(data):
                     options=[
                         {"label": "scatter plot", "value": "scatter"},
                         {"label": "violin plot", "value": "violin"},
+                        {"label": "box plot", "value": "box"},
                         {"label": "dot plot", "value": "dot"},
                     ],
                     value="scatter",
@@ -112,7 +137,7 @@ def render_controls(data):
             ],
             title=(
                 "SCATTER: gene expression on 2-dimensional embedding, one plot per gene; "
-                "VIOLIN: gene expression distributions in different (sub)groups, one row per gene; "
+                "VIOLIN/BOX: gene expression distributions in different (sub)groups, one row per gene; "
                 "DOT: summarized gene expression in (sub)groups for multiple genes"
             ),
         ),
@@ -415,6 +440,89 @@ def render_plot_violin(data, pathname, genelist, group, split, filters_json):
 
     if split is not None:
         fig["layout"].update(violinmode="group")
+
+    csv_string = "data:text/csv;charset=utf-8," + urllib.parse.quote(
+        plot_data.to_csv(index=True, header=True, encoding="utf-8")
+    )
+
+    return fig, csv_string, False
+
+
+def render_plot_box(data, pathname, genelist, group, split, filters_json):
+
+    gl = [g for g in genelist if g in data.ad.var_names]
+
+    if gl is None or len(gl) == 0 or group is None:
+        return {}, "", True
+
+    ad_here = common.apply_filter_cells_filters(data, filters_json)
+
+    # select color palette
+    if split is None:
+        groupvals = ad_here.obs[group].cat.categories
+        cm = colors.get_cm(groupvals)
+    else:
+        splitvals = ad_here.obs[split].cat.categories
+        cm = colors.get_cm(splitvals)
+
+    ngenes = len(gl)
+
+    fig = subplots.make_subplots(
+        rows=ngenes, cols=1, specs=[[{}] for gene in gl], shared_xaxes=True, vertical_spacing=0.01
+    )
+    sg = 0
+    for ng, gene in enumerate(gl):
+
+        if split is None:
+            for n, cv in enumerate(groupvals):
+                y = ad_here[ad_here.obs[group] == cv, :].obs_vector(gene)
+                tr = go.Box(
+                    y=y,
+                    name=cv,
+                    fillcolor=cm[n % 40],
+                    line={"color": "gray", "width": 0.5},
+                    marker={"size": 1},
+                    showlegend=ng == 0,
+                )
+                fig.append_trace(tr, ngenes - ng, 1)
+                sg += 1
+            plot_data = ad_here[:, gl].to_df().join(ad_here.obs[group])
+        else:
+            for n, sv in enumerate(splitvals):
+                y = ad_here[ad_here.obs[split] == sv, :].obs_vector(gene)
+                tr = go.Box(
+                    x=ad_here[ad_here.obs[split] == sv].obs[group],
+                    y=y,
+                    name=sv,
+                    offsetgroup=n,
+                    showlegend=ng == 0,
+                    fillcolor=cm[n % 40],
+                    line={"color": "gray", "width": 0.5},
+                    marker={"size": 1},
+                )
+                fig.append_trace(tr, ngenes - ng, 1)
+                sg += 1
+            plot_data = ad_here[:, gl].to_df().join(ad_here.obs[[group, split]])
+
+    for ng, gene in enumerate(gl):
+        if ngenes - ng == 1:
+            fig["layout"]["yaxis"].update(title=gene)
+        else:
+            fig["layout"]["yaxis" + str(ngenes - ng)].update(title=gene)
+
+    fig["layout"]["xaxis" + (str(ngenes) if ngenes > 1 else "")].update(title=group)
+
+    fig["layout"].update(
+        xaxis={"tickangle": -45},
+        plot_bgcolor="rgb(255,255,255)",
+        margin={"l": 50, "b": 80, "t": 10, "r": 10},
+        legend={"x": 1.05, "y": 1},
+        hovermode="closest",
+        height=settings.PLOT_HEIGHT,
+    )
+
+    if split is not None:
+        fig["layout"].update(boxmode="group")
 
     csv_string = "data:text/csv;charset=utf-8," + urllib.parse.quote(
         plot_data.to_csv(index=True, header=True, encoding="utf-8")

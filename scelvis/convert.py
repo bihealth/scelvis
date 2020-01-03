@@ -186,7 +186,8 @@ class CellRangerConverter:
             .head(self.args.nmarkers)
         )
         for col in markers.columns:
-            ad.uns["marker_" + col] = markers[col]
+            ad.uns["marker_" + col] = markers[col].values
+
         return ad
 
     def _split_species(ad):
@@ -301,7 +302,7 @@ class TextConverter:
             var=pd.DataFrame([], index=DGE.index),
         )
         for col in markers.columns:
-            ad.uns["marker_" + col] = markers[col]
+            ad.uns["marker_" + col] = markers[col].values
 
         return ad
 
@@ -367,7 +368,7 @@ class LoomConverter:
             logger.info("Removing unused layer %s" % layer)
             del ad.layers[layer]
         for col in markers.columns:
-            ad.uns["marker_" + col] = markers[col]
+            ad.uns["marker_" + col] = markers[col].values
 
         return ad
 

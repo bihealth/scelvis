@@ -16,7 +16,6 @@ plotly
 # Numpy, Pandas and friends.
 numpy
 pandas
-anndata
 scanpy
 loompy
 
