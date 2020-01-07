@@ -2,6 +2,12 @@
 History
 =======
 
+-----------------
+HEAD (unreleased)
+-----------------
+
+- adding sphinx documentation for ReadTheDocs
+
 ------
 v0.8
 ------

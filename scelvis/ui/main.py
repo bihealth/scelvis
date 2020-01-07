@@ -169,6 +169,14 @@ def render_footer():
                             children=[
                                 html.A(
                                     children=[
+                                        html.I(className="fas fa-book mr-1"),
+                                        "Manual & Tutorial",
+                                    ],
+                                    href="https://scelvis.readthedocs.io",
+                                    className="text-muted mr-3",
+                                ),
+                                html.A(
+                                    children=[
                                         html.I(className="fas fa-globe-europe mr-1"),
                                         "CUBI Homepage",
                                     ],

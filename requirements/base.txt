@@ -39,3 +39,7 @@ htmllistparse
 # TODO: we need an fs[._]irods
 # Access to files through iRODS.
 python-irodsclient
+
+# Documentation
+sphinx
+sphinx-rtd-theme
