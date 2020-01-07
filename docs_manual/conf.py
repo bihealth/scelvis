@@ -7,7 +7,6 @@
 import os
 import sys
 
-
 # -- Workaround --------------------------------------------------------------
 #
 # Workaround to install and execute git-lfs on Read the Docs
