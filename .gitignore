@@ -1,4 +1,11 @@
-docs_manual/_build
+# ReadTheDocs git-lfs workaround.
+git-lfs*
+CHANGELOG.md
+README.md
+install.sh
+
+# Sphinx.
+/docs_manual/_build
 
 # Mac
 .DS_Store
