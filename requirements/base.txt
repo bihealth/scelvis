@@ -5,7 +5,7 @@ botocore
 pyOpenSSL
 
 # Dash and friends.
-dash[testing]
+dash
 dash-renderer 
 dash-html-components 
 dash-core-components 
@@ -14,6 +14,7 @@ dash_table
 plotly
 
 # Numpy, Pandas and friends.
+h5py !=2.10.0
 numpy
 pandas
 scanpy
