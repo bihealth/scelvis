@@ -3,6 +3,13 @@ History
 =======
 
 ------
+v0.8
+------
+
+- upload and convert with IFrames; increase size limit
+- add box plots
+
+------
 v0.7.3
 ------
 

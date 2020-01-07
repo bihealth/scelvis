@@ -14,7 +14,7 @@ import dash
 import flask
 import uuid
 import scanpy as sc
-from flask import request
+from flask import request, helpers
 from logzero import logger
 from werkzeug.utils import secure_filename
 
@@ -32,7 +32,7 @@ app_flask = flask.Flask(__name__)
 # Setup temporary upload folder
 app_flask.config["UPLOAD_FOLDER"] = settings.TEMP_DIR
 # Setup maximal file upload size
-app_flask.config["MAX_CONTENT_LENGTH"] = settings.MAX_UPLOAD_SIZE
+app_flask.config["MAX_CONTENT_LENGTH"] = settings.MAX_UPLOAD_DATA_SIZE
 # Setup URL prefix for Flask.
 app_flask.config["APPLICATION_ROOT"] = "%s/" % settings.PUBLIC_URL_PREFIX
 
@@ -180,6 +180,22 @@ def upload_route():
         }
 
 
+# enable download of conversion results
+@app_flask.route("/download/<string:data_uuid>", methods=("GET",))
+def download_route(data_uuid):
+    """Download converted file."""
+    try:
+        data_uuid = str(uuid.UUID(data_uuid))
+    except ValueError:
+        return """
+        <!doctype html>
+        <p>invalid identifier</p>
+        <p>
+        """
+    out_file = os.path.join(settings.UPLOAD_DIR, data_uuid + ".h5ad")
+    return helpers.send_file(out_file, mimetype="application/binary", as_attachment=True)
+
+
 # Mount conversion site.
 @app_flask.route("/convert/", methods=("GET", "POST"))
 def convert_route():
@@ -268,7 +284,10 @@ def convert_route():
                     <!doctype html>
                     <p>conversion successful!</p>
                     <p>
-                    <a href="%(application_root)s/dash/viz/%(data_uuid)s" target="_PARENT">view uploaded dataset</a>
+                    <a href="%(application_root)s/dash/viz/%(data_uuid)s" target="_PARENT">view</a>
+                    or
+                    <a href="%(application_root)s/download/%(data_uuid)s" target="_PARENT">download</a>
+                    converted dataset
                     </p>
                     """ % {
                         "application_root": settings.PUBLIC_URL_PREFIX,
