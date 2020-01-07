@@ -57,4 +57,4 @@ You can install with Pip and Bioconda or run directly via Docker.
     # OR
     $ docker run quay.io/biocontainers/scelvis:0.7.3--py_0 scelvis --help
 
-Look up the latest version (instead of ``0.7.0`` to use at `here <https://quay.io/repository/biocontainers/scelvis?tab=tags>`_)
+Look up the latest version (instead of ``0.7.3`` to use at `here <https://quay.io/repository/biocontainers/scelvis?tab=tags>`_)
