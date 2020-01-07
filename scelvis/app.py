@@ -6,21 +6,21 @@ this module is imported, the values in ``.settings`` must already have been setu
 
 import os.path
 import os
-import re
 import tempfile
 import tarfile
 import zipfile
 
 import dash
 import flask
-from flask import flash, request, redirect, helpers
+import uuid
+import scanpy as sc
+from flask import request, helpers
 from logzero import logger
 from werkzeug.utils import secure_filename
 
 
 from . import convert, cache, callbacks, settings
 from .__init__ import __version__
-from .exceptions import ScelVisException
 from .ui.main import build_layout
 
 #: Path to assets.
@@ -32,7 +32,7 @@ app_flask = flask.Flask(__name__)
 # Setup temporary upload folder
 app_flask.config["UPLOAD_FOLDER"] = settings.TEMP_DIR
 # Setup maximal file upload size
-app_flask.config["MAX_CONTENT_LENGTH"] = settings.MAX_UPLOAD_SIZE
+app_flask.config["MAX_CONTENT_LENGTH"] = settings.MAX_UPLOAD_DATA_SIZE
 # Setup URL prefix for Flask.
 app_flask.config["APPLICATION_ROOT"] = "%s/" % settings.PUBLIC_URL_PREFIX
 
@@ -84,6 +84,7 @@ callbacks.register_toggle_select_cells_controls(app)
 callbacks.register_update_select_cells_selected(app)
 callbacks.register_activate_select_cells_buttons(app)
 callbacks.register_update_cell_violin_plot_params(app)
+callbacks.register_update_cell_box_plot_params(app)
 callbacks.register_update_cell_bar_chart_params(app)
 callbacks.register_toggle_filter_cells_controls(app, "meta")
 callbacks.register_update_filter_cells_controls(app)
@@ -93,6 +94,7 @@ callbacks.register_select_gene_plot_type(app)
 callbacks.register_select_gene_list(app)
 callbacks.register_select_gene_scatter_plot(app)
 callbacks.register_select_gene_violin_plot(app)
+callbacks.register_select_gene_box_plot(app)
 callbacks.register_select_gene_dot_plot(app)
 callbacks.register_toggle_filter_cells_controls(app, "expression")
 
@@ -110,6 +112,83 @@ def redirect_root():
     return flask.redirect("%s/dash/" % settings.PUBLIC_URL_PREFIX)
 
 
+# Mount upload site.
+@app_flask.route("/upload/", methods=("GET", "POST"))
+def upload_route():
+    """Perform file upload."""
+
+    import faulthandler
+
+    faulthandler.enable()
+
+    if request.method == "POST":
+        if (
+            "file" not in request.files
+            or not request.files["file"].filename
+            or not request.files["file"].filename.endswith(".h5ad")
+        ):
+            return """
+            <!doctype html>
+            <p>no .h5ad file provided!</p>
+            <p>
+            <a href="%(application_root)s/dash/upload" target="_PARENT">try again</a>
+            </p>""" % {
+                "application_root": settings.PUBLIC_URL_PREFIX
+            }
+        file = request.files["file"]
+        data_uuid = str(uuid.uuid4())
+        logger.info("Data will have UUID %s", data_uuid)
+        # Decode base64 string and write out to final file.
+        filepath = os.path.join(settings.UPLOAD_DIR, "%s.h5ad" % data_uuid)
+        logger.info("Writing to %s", filepath)
+        file.save(filepath)
+        try:
+            sc.read(filepath)
+            return """
+            <!doctype html>
+            <p>upload successful!</p>
+            <p>
+            <a href="%(application_root)s/dash/viz/%(data_uuid)s" target="_PARENT">view uploaded dataset</a>
+            </p>""" % {
+                "application_root": settings.PUBLIC_URL_PREFIX,
+                "data_uuid": data_uuid,
+            }
+        except OSError as err:
+            return """
+            <!doctype html>
+            <p>%(err)s</p>
+            <p>
+            <a href="%(application_root)s/dash/upload" target="_PARENT">try again</a>
+            </p>""" % {
+                "application_root": settings.PUBLIC_URL_PREFIX,
+                "err": err,
+            }
+    else:
+        return """
+        <!doctype html>
+        <form method=post enctype=multipart/form-data>
+        <input type=file name=file>
+        <input type=submit value=Upload>
+        </form>
+        """
+
+
+# enable download of conversion results
+@app_flask.route("/download/<string:data_uuid>", methods=("GET",))
+def download_route(data_uuid):
+    """Download converted file."""
+    try:
+        data_uuid = str(uuid.UUID(data_uuid))
+    except ValueError:
+        return """
+        <!doctype html>
+        <p>invalid identifier</p>
+        <p>
+        """
+    out_file = os.path.join(settings.UPLOAD_DIR, data_uuid + ".h5ad")
+    return helpers.send_file(out_file, mimetype="application/binary", as_attachment=True)
+
+
 # Mount conversion site.
 @app_flask.route("/convert/", methods=("GET", "POST"))
 def convert_route():
@@ -122,8 +201,14 @@ def convert_route():
 
     if request.method == "POST":
         if "file" not in request.files or not request.files["file"].filename:
-            flash("No file uploaded!")
-            return redirect(request.url)
+            return """
+            <!doctype html>
+            <p>no valid file provided!</p>
+            <p>
+            <a href="%(application_root)s/dash/convert" target="_PARENT">try again</a>
+            </p>""" % {
+                "application_root": settings.PUBLIC_URL_PREFIX
+            }
         file = request.files["file"]
         filename = secure_filename(file.filename)
         filepath = os.path.join(app_flask.config["UPLOAD_FOLDER"], filename)
@@ -138,10 +223,14 @@ def convert_route():
                 with tarfile.open(filepath) as tarf:
                     tarf.extractall(tmpdir)
             else:
-                raise ScelVisException(
-                    "Does not have one of the valid extensions .zip, .tar, or .tar.gz: %s"
-                    % filepath
-                )
+                return """
+                <!doctype html>
+                <p>file does not have .zip, .tar or .tar.gz extension!</p>
+                <p>
+                <a href="%(application_root)s/dash/convert" target="_PARENT">try again</a>
+                </p>""" % {
+                    "application_root": settings.PUBLIC_URL_PREFIX
+                }
             cellranger_needle = "filtered_feature_bc_matrix.h5"
             logger.info("Looking for %s file", cellranger_needle)
             needle_path = find(cellranger_needle, tmpdir)
@@ -174,37 +263,49 @@ def convert_route():
                             print("short_title: %s" % short_title, file=aboutf)
                         print("----", file=aboutf)
                     print(description or "No description", file=aboutf)
-                out_file = os.path.join(tmpdir2, re.sub(".zip|.tar.gz|.tar", ".h5ad", filename))
+                data_uuid = str(uuid.uuid4())
+                logger.info("Data will have UUID %s", data_uuid)
+                out_file = os.path.join(settings.UPLOAD_DIR, data_uuid + ".h5ad")
                 logger.info("Performing conversion (%s)", out_file)
-                convert.run(
-                    convert.Config(
-                        indir=input_dir, about_md=about_md, out_file=out_file, format=format_
+                try:
+                    convert.run(
+                        convert.Config(
+                            indir=input_dir, about_md=about_md, out_file=out_file, format=format_
+                        )
                     )
-                )
-                logger.info("Sending file to the user")
-                return helpers.send_file(
-                    out_file, mimetype="application/binary", as_attachment=True
-                )
+                    return """
+                    <!doctype html>
+                    <p>conversion successful!</p>
+                    <p>
+                    <a href="%(application_root)s/dash/viz/%(data_uuid)s" target="_PARENT">view</a>
+                    or
+                    <a href="%(application_root)s/download/%(data_uuid)s" target="_PARENT">download</a>
+                    converted dataset
+                    </p>
+                    """ % {
+                        "application_root": settings.PUBLIC_URL_PREFIX,
+                        "data_uuid": data_uuid,
+                    }
+                except Exception as err:
+                    return """
+                    <!doctype html>
+                    <p>conversion failed (%(err)s)</p>
+                    <p>
+                    <a href="%(application_root)s/dash/convert" target="_PARENT">try again</a>
+                    </p>""" % {
+                        "application_root": settings.PUBLIC_URL_PREFIX,
+                        "err": err,
+                    }
+
     else:
         return """
-            <!doctype html>
-            <title>Convert File</title>
-            <h1>Upload ZIP or TAR.GZ of your data</h1>
-            <p>either containing CellRanger output, raw text files or a data.loom file<p>
-            <p>
-                The server will return a <tt>.h5a</tt> file that you can upload into the SCelVis visualization.
-            </p>
-            <p>
-                <a href="%(application_root)s/dash/">Back to Visualisation</a>
-            </p>
-            <form method=post enctype=multipart/form-data>
-            <label>Title</label> <input type=text name=title><br>
-            <label>Short Title</label> <input type=text name=short_title><br>
-            <label>Description</label><br>
-            <textarea cols=40 rows=5 name=description></textarea><br>
-            <label>CellRanger Output</label> <input type=file name=file>
-            <input type=submit value=Upload>
-            </form>
-            """ % {
-            "application_root": settings.PUBLIC_URL_PREFIX
-        }
+        <!doctype html>
+        <form method=post enctype=multipart/form-data>
+        <label>Title</label> <input type=text name=title><br>
+        <label>Short Title</label> <input type=text name=short_title><br>
+        <label>Description</label><br>
+        <textarea cols=40 rows=5 name=description></textarea><br>
+        <input type=file name=file>
+        <input type=submit value=Upload>
+        </form>
+        """

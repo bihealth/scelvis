@@ -95,6 +95,7 @@ def run(args, parser):
     settings.UPLOAD_ENABLED = not args.upload_disabled
     settings.UPLOAD_DIR = args.upload_dir
     settings.CONVERSION_ENABLED = not args.conversion_disabled
+    settings.MAX_UPLOAD_DATA_SIZE = args.max_upload_data_size
     run_cache_dir(args)
 
 
@@ -167,4 +168,11 @@ def setup_argparse(parser):
         dest="conversion_disabled",
         action="store_true",
         help="Directory for visualization uploads, default is to create temporary directory",
+    )
+
+    parser.add_argument(
+        "--max-upload-data-size",
+        default=os.environ.get("SCELVIS_MAX_UPLOAD_DATA_SIZE", "1000000000"),
+        type=int,
+        help="Maximal size for data upload in bytes",
     )

@@ -63,6 +63,30 @@ def render_controls_violin(data):
     )
 
 
+def render_controls_box(data):
+    """Render "top left" controls for the box plot for the given ``data``."""
+    return html.Div(
+        [
+            html.Label("select grouping"),
+            dcc.Dropdown(
+                id="expression_box_select_group",
+                options=[{"label": c, "value": c} for c in data.categorical_meta],
+                value=data.categorical_meta[0],
+            ),
+            html.Label("select split"),
+            dcc.Dropdown(
+                id="expression_box_select_split",
+                options=[{"label": c, "value": c} for c in data.categorical_meta],
+                value=None,
+            ),
+        ],
+        title=(
+            "Choose how to group cells for plotting gene expression distributions (e.g., by cluster); "
+            "optionally how to split these groups (e.g., by genotype)"
+        ),
+    )
+
+
 def render_controls_dot(data):
     """Render "top left" controls for the bubble plot for the given ``data``."""
     return html.Div(
@@ -103,6 +127,7 @@ def render_controls(data):
                     options=[
                         {"label": "scatter plot", "value": "scatter"},
                         {"label": "violin plot", "value": "violin"},
+                        {"label": "box plot", "value": "box"},
                         {"label": "dot plot", "value": "dot"},
                     ],
                     value="scatter",
@@ -112,7 +137,7 @@ def render_controls(data):
             ],
             title=(
                 "SCATTER: gene expression on 2-dimensional embedding, one plot per gene; "
-                "VIOLIN: gene expression distributions in different (sub)groups, one row per gene; "
+                "VIOLIN/BOX: gene expression distributions in different (sub)groups, one row per gene; "
                 "DOT: summarized gene expression in (sub)groups for multiple genes"
             ),
         ),
@@ -334,7 +359,7 @@ def render_plot_scatter(data, xc, yc, genelist, filters_json):
     return fig, csv_string, False
 
 
-def render_plot_violin(data, pathname, genelist, group, split, filters_json):
+def render_plot_violin_box(data, pathname, plot_type, genelist, group, split, filters_json):
 
     gl = [g for g in genelist if g in data.ad.var_names]
 
@@ -362,36 +387,58 @@ def render_plot_violin(data, pathname, genelist, group, split, filters_json):
         if split is None:
             for n, cv in enumerate(groupvals):
                 y = ad_here[ad_here.obs[group] == cv, :].obs_vector(gene)
-                tr = go.Violin(
-                    y=y,
-                    name=cv,
-                    fillcolor=cm[n % 40],
-                    line={"color": "gray", "width": 0.5},
-                    marker={"size": 1},
-                    spanmode="manual",
-                    span=[y.min(), None],
-                    showlegend=ng == 0,
-                    scalegroup=sg,
-                )
+                if plot_type == "violin":
+                    tr = go.Violin(
+                        y=y,
+                        name=cv,
+                        fillcolor=cm[n % 40],
+                        line={"color": "gray", "width": 0.5},
+                        marker={"size": 1},
+                        spanmode="manual",
+                        span=[y.min(), None],
+                        showlegend=ng == 0,
+                        scalegroup=sg,
+                    )
+                else:
+                    tr = go.Box(
+                        y=y,
+                        name=cv,
+                        fillcolor=cm[n % 40],
+                        line={"color": "gray", "width": 0.5},
+                        marker={"size": 1},
+                        showlegend=ng == 0,
+                    )
                 fig.append_trace(tr, ngenes - ng, 1)
                 sg += 1
             plot_data = ad_here[:, gl].to_df().join(ad_here.obs[group])
         else:
             for n, sv in enumerate(splitvals):
                 y = ad_here[ad_here.obs[split] == sv, :].obs_vector(gene)
-                tr = go.Violin(
-                    x=ad_here[ad_here.obs[split] == sv].obs[group],
-                    y=y,
-                    name=sv,
-                    offsetgroup=n,
-                    scalegroup=sg,
-                    showlegend=ng == 0,
-                    fillcolor=cm[n % 40],
-                    line={"color": "gray", "width": 0.5},
-                    spanmode="manual",
-                    marker={"size": 1},
-                    span=[y.min(), None],
-                )
+                if plot_type == "violin":
+                    tr = go.Violin(
+                        x=ad_here[ad_here.obs[split] == sv].obs[group],
+                        y=y,
+                        name=sv,
+                        offsetgroup=n,
+                        scalegroup=sg,
+                        showlegend=ng == 0,
+                        fillcolor=cm[n % 40],
+                        line={"color": "gray", "width": 0.5},
+                        spanmode="manual",
+                        marker={"size": 1},
+                        span=[y.min(), None],
+                    )
+                else:
+                    tr = go.Box(
+                        x=ad_here[ad_here.obs[split] == sv].obs[group],
+                        y=y,
+                        name=sv,
+                        offsetgroup=n,
+                        showlegend=ng == 0,
+                        fillcolor=cm[n % 40],
+                        line={"color": "gray", "width": 0.5},
+                        marker={"size": 1},
+                    )
                 fig.append_trace(tr, ngenes - ng, 1)
                 sg += 1
             plot_data = ad_here[:, gl].to_df().join(ad_here.obs[[group, split]])
@@ -414,7 +461,10 @@ def render_plot_violin(data, pathname, genelist, group, split, filters_json):
     )
 
     if split is not None:
-        fig["layout"].update(violinmode="group")
+        if plot_type == "violin":
+            fig["layout"].update(violinmode="group")
+        else:
+            fig["layout"].update(boxmode="group")
 
     csv_string = "data:text/csv;charset=utf-8," + urllib.parse.quote(
         plot_data.to_csv(index=True, header=True, encoding="utf-8")

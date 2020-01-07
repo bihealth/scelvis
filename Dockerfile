@@ -4,7 +4,7 @@
 # some situations, it's useful to manually build a Docker image, e.g., when putting intermediate versions into
 # private Docker registries.
 
-FROM python:3.7
+FROM python:3.7.4
 
 COPY . /app
 WORKDIR /app

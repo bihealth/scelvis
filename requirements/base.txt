@@ -1,5 +1,9 @@
 # Base requirements
 
+# botocore and pyOpenSSL to avoid incompatibility errors
+botocore
+pyOpenSSL
+
 # Dash and friends.
 dash[testing]
 dash-renderer 
@@ -12,7 +16,6 @@ plotly
 # Numpy, Pandas and friends.
 numpy
 pandas
-anndata
 scanpy
 loompy
 

@@ -19,6 +19,7 @@ from irods.exception import CAT_SQL_ERR, DoesNotExist
 import htmllistparse
 from logzero import logger
 import requests
+from requests.exceptions import HTTPError
 
 from scelvis.data import redacted_urlunparse
 from . import data, settings
@@ -50,8 +51,11 @@ def does_exist(url, path, *more_components):
         return s3.exists("%s/%s" % (url.hostname, path))
     elif url.scheme.startswith("http"):
         path_full = fs.path.join(url.path, path, *more_components)
-        url._replace(path=path_full)
-        res = requests.get(urlunparse(url))
+        try:
+            res = requests.get(urlunparse(url._replace(path=path_full)))
+            res.raise_for_status()
+        except HTTPError:
+            return False
         return res.ok
     elif url.scheme.startswith("irods"):
         path_full = fs.path.join(url.path, path, *more_components)
@@ -155,7 +159,7 @@ def load_data(identifier):
             if fs.path.basename(url.path)[: -len(".h5ad")] == identifier:
                 return data.load_data(url, identifier)
             else:
-                if does_exist(url, identifier + ".h5ad"):
+                if identifier and does_exist(url, identifier + ".h5ad"):
                     return _load_data_cached(
                         url._replace(path=fs.path.join(url.path, identifier + ".h5ad")), identifier
                     )
@@ -164,4 +168,6 @@ def load_data(identifier):
 @cache.memoize()
 def load_metadata(identifier):
     """Load metadata for the given identifier from data or upload directory."""
-    return load_data(identifier).metadata
+    data = load_data(identifier)
+    if data:
+        return data.metadata

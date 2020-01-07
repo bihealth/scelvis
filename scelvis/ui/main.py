@@ -39,43 +39,29 @@ def render_dataset(identifier):
         return ""
 
 
+def render_convert():
+    return html.Div(
+        children=[
+            html.P(
+                "Upload .zip or .tar.gz of your data, either containing CellRanger output, raw text files or a .loom file"
+            ),
+            html.Iframe(src=f"/convert", width="400", height="250"),
+        ]
+    )
+
+
 def render_upload():
-    """Display the upload form."""
-    return dbc.Row(
-        dbc.Col(
-            [
-                html.P(
-                    children=[
-                        (
-                            "Use the following form to upload your .h5ad file.  You can convert "
-                            "your pipeline output to such a file using "
-                        ),
-                        html.A(
-                            children=[html.I(className="fas fa-redo mr-1"), "Convert Data"],
-                            href="%s/convert/" % settings.PUBLIC_URL_PREFIX,
-                        ),
-                        ".",
-                    ]
-                ),
-                dcc.Upload(
-                    html.Div(
-                        children=[
-                            html.I(className="fas fa-file-upload mx-1"),
-                            "Drag and Drop or ",
-                            html.A(
-                                children=[
-                                    html.I(className="fas fa-hand-pointer mr-1"),
-                                    "Click and Select files",
-                                ]
-                            ),
-                            ".",
-                        ],
-                        className="text-center p-3 m-5 bg-light border border-primary rounded",
-                    ),
-                    id="file-upload",
-                ),
-            ]
-        )
+    return html.Div(
+        children=[
+            "upload .h5ad file here (you can convert your pipeline output to such a file using ",
+            html.A(
+                children=[html.I(className="fas fa-redo mr-1"), "Convert Data"],
+                href="%s/dash/convert/" % settings.PUBLIC_URL_PREFIX,
+            ),
+            ")",
+            html.P(),
+            html.Iframe(src=f"/upload", width="400", height="200"),
+        ]
     )
 
 
@@ -118,7 +104,7 @@ def render_children_goto():
     for meta in metas:
         result.append(
             dbc.DropdownMenuItem(
-                meta.short_title, id="menu-item-%s" % meta.id, href="/dash/viz/%s" % meta.id
+                meta.short_title, id="menu-item-%s" % meta.ID, href="/dash/viz/%s" % meta.ID
             )
         )
     if not metas:
@@ -142,8 +128,7 @@ def render_children_goto():
             dbc.DropdownMenuItem(
                 html.Span(children=[html.I(className="fas fa-redo mr-1"), "Convert Data"]),
                 id="menu-item-convert",
-                href="%s/convert/" % settings.PUBLIC_URL_PREFIX,
-                external_link=True,
+                href="/dash/convert",
             )
         )
     return result

@@ -91,6 +91,40 @@ def render_controls_violin(data):
     ]
 
 
+def render_controls_box(data):
+    """Render "top left" controls for the box plot for the given ``data``."""
+    return [
+        html.Div(
+            children=[
+                html.Label("select variable(s) and scaling"),
+                dcc.Dropdown(
+                    id="meta_box_select_vars",
+                    options=[{"label": c, "value": c} for c in data.numerical_meta],
+                    value=None,
+                    multi=True,
+                ),
+                html.Label("select grouping"),
+                dcc.Dropdown(
+                    id="meta_box_select_group",
+                    options=[{"label": c, "value": c} for c in data.categorical_meta],
+                    value=data.categorical_meta[0],
+                ),
+                html.Label("select split"),
+                dcc.Dropdown(
+                    id="meta_box_select_split",
+                    options=[{"label": c, "value": c} for c in data.categorical_meta],
+                    value=None,
+                ),
+            ],
+            title=(
+                "Select one or more numerical variables (e.g., n_genes or n_counts) to display in box plots; "
+                "choose how to group the cells (e.g., by cluster); and optionally also split these groups by another "
+                "variable (e.g., by genotype)."
+            ),
+        )
+    ]
+
+
 def render_controls_bars(data):
     """Render "top left" controls for the bar chart for the given ``data``."""
     return [
@@ -245,6 +279,7 @@ def render_controls(data):
                     options=[
                         {"label": "scatter plot", "value": "scatter"},
                         {"label": "violin plot", "value": "violin"},
+                        {"label": "box plot", "value": "box"},
                         {"label": "bar plot", "value": "bar"},
                     ],
                     value="scatter",
@@ -254,7 +289,7 @@ def render_controls(data):
             ],
             title=(
                 "SCATTER: plot annotation on two-dimensional embedding, e.g., TSNE or UMAP; "
-                "VIOLIN: plot distributions of numerical variables (n_cells, n_counts, ...) in cell groups; "
+                "VIOLIN/BOX: plot distributions of numerical variables (n_cells, n_counts, ...) in cell groups; "
                 "BAR: plot cell numbers/fractions per (sub-)group"
             ),
         ),
@@ -385,7 +420,7 @@ def render_plot_scatter(data, xc, yc, col, filters_json, select_json):
     return fig, csv_string, False
 
 
-def render_plot_violin(data, variables, group, split, filters_json):
+def render_plot_violin_box(data, variables, plot_type, group, split, filters_json):
     """Render the violin plot figure."""
 
     if variables is None or len(variables) == 0 or group is None:
@@ -416,48 +451,72 @@ def render_plot_violin(data, variables, group, split, filters_json):
         if split is None:
             for n, cv in enumerate(groupvals):
                 y = ad_here.obs[ad_here.obs[group] == cv][var]
-                tr = go.Violin(
-                    y=y,
-                    name=cv,
-                    fillcolor=cm[n % 40],
-                    line={"color": "gray", "width": 0.5},
-                    marker={"size": 1},
-                    spanmode="manual",
-                    span=[y.min(), None],
-                    showlegend=nv == 0,
-                    scalegroup=sg,
-                )
+                if plot_type == "violin":
+                    tr = go.Violin(
+                        y=y,
+                        name=cv,
+                        fillcolor=cm[n % 40],
+                        line={"color": "gray", "width": 0.5},
+                        marker={"size": 1},
+                        spanmode="manual",
+                        span=[y.min(), None],
+                        showlegend=nv == 0,
+                        scalegroup=sg,
+                    )
+                else:
+                    tr = go.Box(
+                        y=y,
+                        name=cv,
+                        fillcolor=cm[n % 40],
+                        line={"color": "gray", "width": 0.5},
+                        marker={"size": 1},
+                        showlegend=nv == 0,
+                    )
                 fig.append_trace(tr, nvar - nv, 1)
                 sg += 1
             plot_data = ad_here.obs[variables + [group]]
         else:
             for n, sv in enumerate(splitvals):
                 y = ad_here.obs[ad_here.obs[split] == sv][var]
-                tr = go.Violin(
-                    x=ad_here.obs[ad_here.obs[split] == sv][group],
-                    y=y,
-                    name=sv,
-                    offsetgroup=n,
-                    scalegroup=sg,
-                    showlegend=nv == 0,
-                    fillcolor=cm[n % 40],
-                    line={"color": "gray", "width": 0.5},
-                    marker={"size": 1},
-                    spanmode="manual",
-                    span=[y.min(), None],
-                )
+                if plot_type == "violin":
+                    tr = go.Violin(
+                        x=ad_here.obs[ad_here.obs[split] == sv][group],
+                        y=y,
+                        name=sv,
+                        offsetgroup=n,
+                        scalegroup=sg,
+                        showlegend=nv == 0,
+                        fillcolor=cm[n % 40],
+                        line={"color": "gray", "width": 0.5},
+                        marker={"size": 1},
+                        spanmode="manual",
+                        span=[y.min(), None],
+                    )
+                else:
+                    tr = go.Box(
+                        x=ad_here.obs[ad_here.obs[split] == sv][group],
+                        y=y,
+                        name=sv,
+                        showlegend=nv == 0,
+                        fillcolor=cm[n % 40],
+                        offsetgroup=n,
+                        line={"color": "gray", "width": 0.5},
+                        marker={"size": 1},
+                    )
                 fig.append_trace(tr, nvar - nv, 1)
                 sg += 1
             plot_data = ad_here.obs[variables + [group, split]]
 
     for nv, var in enumerate(variables):
-        if len(variables) - nv == 1:
+        if nvar - nv == 1:
             fig["layout"]["yaxis"].update(title=var)
         else:
             fig["layout"]["yaxis" + str(nvar - nv)].update(title=var)
 
+    fig["layout"]["xaxis" + (str(nvar) if nvar > 1 else "")].update(title=group)
+
     fig["layout"].update(
-        xaxis={"title": group, "tickangle": -45},
+        xaxis={"tickangle": -45},
         margin={"l": 50, "b": 80, "t": 10, "r": 10},
         legend={"x": 1.05, "y": 1},
         hovermode="closest",
@@ -466,7 +525,10 @@ def render_plot_violin(data, variables, group, split, filters_json):
     )
 
     if split is not None:
-        fig["layout"].update(violinmode="group")
+        if plot_type == "violin":
+            fig["layout"].update(violinmode="group")
+        else:
+            fig["layout"].update(boxmode="group")
 
     csv_string = "data:text/csv;charset=utf-8," + urllib.parse.quote(
         plot_data.to_csv(index=True, header=True, encoding="utf-8")

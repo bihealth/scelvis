@@ -11,7 +11,7 @@ import contextlib
 from urllib.parse import urlunparse as _urlunparse
 import shutil
 import ssl
-from urllib.parse import parse_qs, urlunparse
+from urllib.parse import parse_qs
 
 import anndata
 import re
@@ -126,7 +126,7 @@ class MetaData:
     """Class to bundle the data loaded for SCelVis."""
 
     #: ID (= folder name) of the dataset
-    id: str
+    ID: str
     #: Title of the data set
     title: str
     #: Short title of the data set
@@ -168,9 +168,7 @@ def download_file(url, path=None, *more_components):
         full_path = url.path
         path = fs.path.basename(url.path)
         url = url._replace(path=fs.path.dirname(url.path))
-    logger.info("Attempting to download file %s", url._replace(path=full_path))
     if url.scheme == "file":
-        logger.info("No need for download, just use %s", full_path)
         if os.path.exists(full_path):
             yield full_path
         else:
@@ -206,7 +204,7 @@ def download_file(url, path=None, *more_components):
             logger.info("Downloading via HTTP(S)...")
             with TempFS() as tmpfs:
                 logger.info("Downloading file %s from %s" % (path, redacted_urlunparse(url)))
-                r = requests.get(urlunparse(url._replace(path=full_path)), allow_redirects=True)
+                r = requests.get(_urlunparse(url._replace(path=full_path)), allow_redirects=True)
                 r.raise_for_status()
                 with open(tmpfs.getospath(basename), "wb") as outputf:
                     outputf.write(r.content)
@@ -245,17 +243,17 @@ def load_data(data_source, identifier):
     if identifier == FAKE_DATA_ID:
         return fake_data()
 
-    logger.info("Loading anndata for %s from %s", redacted_urlunparse(data_source), identifier)
+    logger.info("Loading anndata for %s from %s", identifier, redacted_urlunparse(data_source))
     with download_file(data_source) as path_anndata:
         ad = anndata.read_h5ad(path_anndata)
         # Extract the meta data
         metadata = MetaData(
-            id=identifier,
-            title=ad.uns["about_title"] if "about_title" in ad.uns_keys() else identifier,
-            short_title=ad.uns["about_short_title"]
+            ID=identifier,
+            title="".join(ad.uns["about_title"]) if "about_title" in ad.uns_keys() else identifier,
+            short_title="".join(ad.uns["about_short_title"])
             if "about_short_title" in ad.uns_keys()
             else identifier,
-            readme=ad.uns["about_readme"] if "about_readme" in ad.uns_keys() else None,
+            readme="".join(ad.uns["about_readme"]) if "about_readme" in ad.uns_keys() else None,
         )
         # Separate numerical and categorical columns for later.
         numerical_meta = []
@@ -364,7 +362,7 @@ def fake_data(seed=42):
 
     return Data(
         metadata=MetaData(
-            id=FAKE_DATA_ID, title="fake data", short_title="fake", readme="fake data"
+            ID=FAKE_DATA_ID, title="fake data", short_title="fake", readme="fake data"
         ),
         ad=ad,
         genes=genes,
