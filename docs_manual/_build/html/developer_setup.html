@@ -1,0 +1,246 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Developer Setup &mdash; SCelVis  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Releasing Packages" href="developer_release.html" />
+    <link rel="prev" title="Command Line Tutorial" href="tutorial_cli.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> SCelVis
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Tutorial</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_analysis.html">Analysis Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_convert.html">Conversion Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_cli.html">Command Line Tutorial</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Developer Info</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Developer Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="developer_release.html">Releasing Packages</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">SCelVis</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Developer Setup</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/developer_setup.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="developer-setup">
+<span id="id1"></span><h1>Developer Setup<a class="headerlink" href="#developer-setup" title="Permalink to this headline">¶</a></h1>
+<p>The prerequisites are:</p>
+<ul>
+<li><p>Python 3, either</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>system-wide installation with <code class="docutils literal notranslate"><span class="pre">virtualenv</span></code>, or</p></li>
+<li><p>installed with <a class="reference external" href="https://docs.conda.io/en/latest/">Conda</a>.</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p><a class="reference external" href="https://git-lfs.github.com/">Git LFS</a> must be installed for obtaining the example data files.</p></li>
+</ul>
+<p>For <code class="docutils literal notranslate"><span class="pre">virtualenv</span></code>, first create a virtual environment and activate it.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>$ virtualenv -p venv
+$ <span class="nb">source</span> venv/bin/activate
+</pre></div>
+</div>
+<p>For a Conda-based setup create a new environment and activate it.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>$ conda create -y -n scelvis <span class="s1">&#39;python&gt;=3.6&#39;</span>
+$ conda activate scelvis
+</pre></div>
+</div>
+<p>Next, clone the repository and install the software as editable (<code class="docutils literal notranslate"><span class="pre">-e</span></code>).
+Also install the development requirements to get helpers such as black.
+(Note that you must have <a class="reference external" href="https://git-lfs.github.com/">Git LFS</a> installed to actually obtain the data files).</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>$ git clone git@github.com:bihealth/scelvis.git
+$ <span class="nb">cd</span> scelvis
+$ pip install -e .
+$ pip install -r requirements/develop.txt
+</pre></div>
+</div>
+<p>Afterwards, you can run the visualization web server as follows:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>$ scelvis run --data-source path/to/data/dir
+</pre></div>
+</div>
+<p>To explore the datasets provided in the git repository, use <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">lfs</span> <span class="pre">fetch</span></code> to download</p>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="developer_release.html" class="btn btn-neutral float-right" title="Releasing Packages" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="tutorial_cli.html" class="btn btn-neutral float-left" title="Command Line Tutorial" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019-2020, BIH Core Unit Bioinformatics
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
