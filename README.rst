@@ -17,6 +17,10 @@ SCelVis: Easy Single-Cell Visualization
 .. image:: https://api.codacy.com/project/badge/Coverage/9ee0ec1424c143dfad9977a649f917f7
     :target: https://www.codacy.com/app/bihealth/scelvis?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=bihealth/scelvis&amp;utm_campaign=Badge_Coverage
 
+.. image:: https://readthedocs.org/projects/scelvis/badge/?version=latest
+    :target: https://scelvis.readthedocs.io/en/latest/?badge=latest
+    :alt: Documentation Status
+
 .. image:: https://travis-ci.org/bihealth/scelvis.svg?branch=master
     :target: https://travis-ci.org/bihealth/scelvis
 
@@ -29,7 +33,7 @@ Documentation
 
 The SCelVis documentation at `ReadTheDocs.org <https://scelvis.readthedocs.org>`_ contains comprehensive more information including a
 
-- `Tutorial <https://selvis.readthedocs.io/en/latest/tutorial_analysis.html>`_.
+- `Tutorial <https://scelvis.readthedocs.io/en/latest/tutorial_analysis.html>`_.
 
 -----
 Movie
