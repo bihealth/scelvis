@@ -121,11 +121,6 @@ def upload_route():
 
     faulthandler.enable()
 
-    def find(name, path):
-        for root, _dirs, files in os.walk(path):
-            if name in files:
-                return os.path.join(root, name)
-
     if request.method == "POST":
         if (
             "file" not in request.files
@@ -292,7 +287,6 @@ def convert_route():
                     """ % {
                         "application_root": settings.PUBLIC_URL_PREFIX,
                         "data_uuid": data_uuid,
-                        "out_file": out_file,
                     }
                 except Exception as err:
                     return """
@@ -316,6 +310,4 @@ def convert_route():
         <input type=file name=file>
         <input type=submit value=Upload>
         </form>
-        """ % {
-            "application_root": settings.PUBLIC_URL_PREFIX
-        }
+        """

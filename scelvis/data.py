@@ -11,7 +11,7 @@ import contextlib
 from urllib.parse import urlunparse as _urlunparse
 import shutil
 import ssl
-from urllib.parse import parse_qs, urlunparse
+from urllib.parse import parse_qs
 
 import anndata
 import re
@@ -204,7 +204,7 @@ def download_file(url, path=None, *more_components):
             logger.info("Downloading via HTTP(S)...")
             with TempFS() as tmpfs:
                 logger.info("Downloading file %s from %s" % (path, redacted_urlunparse(url)))
-                r = requests.get(urlunparse(url._replace(path=full_path)), allow_redirects=True)
+                r = requests.get(_urlunparse(url._replace(path=full_path)), allow_redirects=True)
                 r.raise_for_status()
                 with open(tmpfs.getospath(basename), "wb") as outputf:
                     outputf.write(r.content)
