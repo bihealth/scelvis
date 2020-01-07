@@ -420,7 +420,7 @@ def render_plot_scatter(data, xc, yc, col, filters_json, select_json):
     return fig, csv_string, False
 
 
-def render_plot_violin(data, variables, group, split, filters_json):
+def render_plot_violin_box(data, variables, plot_type, group, split, filters_json):
     """Render the violin plot figure."""
 
     if variables is None or len(variables) == 0 or group is None:
@@ -451,36 +451,58 @@ def render_plot_violin(data, variables, group, split, filters_json):
         if split is None:
             for n, cv in enumerate(groupvals):
                 y = ad_here.obs[ad_here.obs[group] == cv][var]
-                tr = go.Violin(
-                    y=y,
-                    name=cv,
-                    fillcolor=cm[n % 40],
-                    line={"color": "gray", "width": 0.5},
-                    marker={"size": 1},
-                    spanmode="manual",
-                    span=[y.min(), None],
-                    showlegend=nv == 0,
-                    scalegroup=sg,
-                )
+                if plot_type == "violin":
+                    tr = go.Violin(
+                        y=y,
+                        name=cv,
+                        fillcolor=cm[n % 40],
+                        line={"color": "gray", "width": 0.5},
+                        marker={"size": 1},
+                        spanmode="manual",
+                        span=[y.min(), None],
+                        showlegend=nv == 0,
+                        scalegroup=sg,
+                    )
+                else:
+                    tr = go.Box(
+                        y=y,
+                        name=cv,
+                        fillcolor=cm[n % 40],
+                        line={"color": "gray", "width": 0.5},
+                        marker={"size": 1},
+                        showlegend=nv == 0,
+                    )
                 fig.append_trace(tr, nvar - nv, 1)
                 sg += 1
             plot_data = ad_here.obs[variables + [group]]
         else:
             for n, sv in enumerate(splitvals):
                 y = ad_here.obs[ad_here.obs[split] == sv][var]
-                tr = go.Violin(
-                    x=ad_here.obs[ad_here.obs[split] == sv][group],
-                    y=y,
-                    name=sv,
-                    offsetgroup=n,
-                    scalegroup=sg,
-                    showlegend=nv == 0,
-                    fillcolor=cm[n % 40],
-                    line={"color": "gray", "width": 0.5},
-                    marker={"size": 1},
-                    spanmode="manual",
-                    span=[y.min(), None],
-                )
+                if plot_type == "violin":
+                    tr = go.Violin(
+                        x=ad_here.obs[ad_here.obs[split] == sv][group],
+                        y=y,
+                        name=sv,
+                        offsetgroup=n,
+                        scalegroup=sg,
+                        showlegend=nv == 0,
+                        fillcolor=cm[n % 40],
+                        line={"color": "gray", "width": 0.5},
+                        marker={"size": 1},
+                        spanmode="manual",
+                        span=[y.min(), None],
+                    )
+                else:
+                    tr = go.Box(
+                        x=ad_here.obs[ad_here.obs[split] == sv][group],
+                        y=y,
+                        name=sv,
+                        showlegend=nv == 0,
+                        fillcolor=cm[n % 40],
+                        offsetgroup=n,
+                        line={"color": "gray", "width": 0.5},
+                        marker={"size": 1},
+                    )
                 fig.append_trace(tr, nvar - nv, 1)
                 sg += 1
             plot_data = ad_here.obs[variables + [group, split]]
@@ -503,93 +525,10 @@ def render_plot_violin(data, variables, group, split, filters_json):
     )
 
     if split is not None:
-        fig["layout"].update(violinmode="group")
-
-    csv_string = "data:text/csv;charset=utf-8," + urllib.parse.quote(
-        plot_data.to_csv(index=True, header=True, encoding="utf-8")
-    )
-
-    return fig, csv_string, False
-
-
-def render_plot_box(data, variables, group, split, filters_json):
-    """Render the box plot figure."""
-
-    if variables is None or len(variables) == 0 or group is None:
-        return {}, "", True
-
-    ad_here = common.apply_filter_cells_filters(data, filters_json)
-
-    # select color palette
-    if split is None:
-        groupvals = ad_here.obs[group].unique()
-        cm = colors.get_cm(groupvals)
-    else:
-        splitvals = ad_here.obs[split].unique()
-        cm = colors.get_cm(splitvals)
-
-    nvar = len(variables)
-
-    fig = subplots.make_subplots(
-        rows=nvar,
-        cols=1,
-        specs=[[{}] for var in variables],
-        shared_xaxes=True,
-        vertical_spacing=0.001,
-    )
-
-    sg = 0
-    for nv, var in enumerate(variables):
-        if split is None:
-            for n, cv in enumerate(groupvals):
-                y = ad_here.obs[ad_here.obs[group] == cv][var]
-                tr = go.Box(
-                    y=y,
-                    name=cv,
-                    fillcolor=cm[n % 40],
-                    line={"color": "gray", "width": 0.5},
-                    marker={"size": 1},
-                    showlegend=nv == 0,
-                )
-                fig.append_trace(tr, nvar - nv, 1)
-                sg += 1
-            plot_data = ad_here.obs[variables + [group]]
+        if plot_type == "violin":
+            fig["layout"].update(violinmode="group")
         else:
-            for n, sv in enumerate(splitvals):
-                y = ad_here.obs[ad_here.obs[split] == sv][var]
-                tr = go.Box(
-                    x=ad_here.obs[ad_here.obs[split] == sv][group],
-                    y=y,
-                    name=sv,
-                    showlegend=nv == 0,
-                    fillcolor=cm[n % 40],
-                    offsetgroup=n,
-                    line={"color": "gray", "width": 0.5},
-                    marker={"size": 1},
-                )
-                fig.append_trace(tr, nvar - nv, 1)
-                sg += 1
-            plot_data = ad_here.obs[variables + [group, split]]
-
-    for nv, var in enumerate(variables):
-        if nvar - nv == 1:
-            fig["layout"]["yaxis"].update(title=var)
-        else:
-            fig["layout"]["yaxis" + str(nvar - nv)].update(title=var)
-
-    fig["layout"]["xaxis" + (str(nvar) if nvar > 1 else "")].update(title=group)
-
-    fig["layout"].update(
-        xaxis={"tickangle": -45},
-        margin={"l": 50, "b": 80, "t": 10, "r": 10},
-        legend={"x": 1.05, "y": 1},
-        hovermode="closest",
-        plot_bgcolor="rgb(255,255,255)",
-        height=settings.PLOT_HEIGHT,
-    )
-
-    if split is not None:
-        fig["layout"].update(boxmode="group")
+            fig["layout"].update(boxmode="group")
 
     csv_string = "data:text/csv;charset=utf-8," + urllib.parse.quote(
         plot_data.to_csv(index=True, header=True, encoding="utf-8")

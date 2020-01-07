@@ -126,7 +126,7 @@ class MetaData:
     """Class to bundle the data loaded for SCelVis."""
 
     #: ID (= folder name) of the dataset
-    id: str
+    ID: str
     #: Title of the data set
     title: str
     #: Short title of the data set
@@ -248,7 +248,7 @@ def load_data(data_source, identifier):
         ad = anndata.read_h5ad(path_anndata)
         # Extract the meta data
         metadata = MetaData(
-            id=identifier,
+            ID=identifier,
             title="".join(ad.uns["about_title"]) if "about_title" in ad.uns_keys() else identifier,
             short_title="".join(ad.uns["about_short_title"])
             if "about_short_title" in ad.uns_keys()
@@ -362,7 +362,7 @@ def fake_data(seed=42):
 
     return Data(
         metadata=MetaData(
-            id=FAKE_DATA_ID, title="fake data", short_title="fake", readme="fake data"
+            ID=FAKE_DATA_ID, title="fake data", short_title="fake", readme="fake data"
         ),
         ad=ad,
         genes=genes,

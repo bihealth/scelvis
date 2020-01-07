@@ -288,7 +288,9 @@ def register_update_cell_violin_plot_params(app):
     def get_meta_plot_violin(variables, group, split, n, filters_json, pathname):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
-        return ui.cells.render_plot_violin(data, variables, group, split, filters_json)
+        return ui.cells.render_plot_violin_box(
+            data, variables, "violin", group, split, filters_json
+        )
 
 
 def register_update_cell_box_plot_params(app):
@@ -311,7 +313,7 @@ def register_update_cell_box_plot_params(app):
     def get_meta_plot_box(variables, group, split, n, filters_json, pathname):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
-        return ui.cells.render_plot_box(data, variables, group, split, filters_json)
+        return ui.cells.render_plot_violin_box(data, variables, "box", group, split, filters_json)
 
 
 def register_update_cell_bar_chart_params(app):
@@ -477,7 +479,9 @@ def register_select_gene_violin_plot(app):
     def get_expression_plot_violin(genelist, group, split, n, filters_json, pathname):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
-        return ui.genes.render_plot_violin(data, pathname, genelist, group, split, filters_json)
+        return ui.genes.render_plot_violin_box(
+            data, pathname, "violin", genelist, group, split, filters_json
+        )
 
 
 def register_select_gene_box_plot(app):
@@ -500,7 +504,9 @@ def register_select_gene_box_plot(app):
     def get_expression_plot_box(genelist, group, split, n, filters_json, pathname):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
-        return ui.genes.render_plot_box(data, pathname, genelist, group, split, filters_json)
+        return ui.genes.render_plot_violin_box(
+            data, pathname, "box", genelist, group, split, filters_json
+        )
 
 
 def register_select_gene_dot_plot(app):

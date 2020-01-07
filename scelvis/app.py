@@ -170,9 +170,7 @@ def upload_route():
         <input type=file name=file>
         <input type=submit value=Upload>
         </form>
-        """ % {
-            "application_root": settings.PUBLIC_URL_PREFIX
-        }
+        """
 
 
 # enable download of conversion results

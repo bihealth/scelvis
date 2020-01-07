@@ -45,7 +45,7 @@ def render_convert():
             html.P(
                 "Upload .zip or .tar.gz of your data, either containing CellRanger output, raw text files or a .loom file"
             ),
-            html.Iframe(id="iframe-convert", src=f"/convert", width="400", height="250"),
+            html.Iframe(src=f"/convert", width="400", height="250"),
         ]
     )
 
@@ -60,7 +60,7 @@ def render_upload():
             ),
             ")",
             html.P(),
-            html.Iframe(id="iframe-upload", src=f"/upload", width="400", height="200"),
+            html.Iframe(src=f"/upload", width="400", height="200"),
         ]
     )
 
@@ -104,7 +104,7 @@ def render_children_goto():
     for meta in metas:
         result.append(
             dbc.DropdownMenuItem(
-                meta.short_title, id="menu-item-%s" % meta.id, href="/dash/viz/%s" % meta.id
+                meta.short_title, id="menu-item-%s" % meta.ID, href="/dash/viz/%s" % meta.ID
             )
         )
     if not metas:
