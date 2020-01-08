@@ -1,0 +1,45 @@
+# Base requirements
+
+# botocore and pyOpenSSL to avoid incompatibility errors
+botocore
+pyOpenSSL
+
+# Dash and friends.
+dash-renderer 
+dash-html-components 
+dash-core-components 
+dash-bootstrap-components
+dash_table 
+plotly
+
+# Numpy, Pandas and friends.
+h5py !=2.10.0
+numpy
+pandas
+scanpy
+loompy
+
+# Caching functionality for Flask.
+flask-caching
+
+# Lightweight setup of data classes.
+attrs
+# Simplified logging.
+logzero
+# Support for YAML access.
+ruamel.yaml
+# Unified access to files within archives or behind protocols.
+fs
+fs.sshfs >=0.11.0
+s3fs  # NOT fs-s3fs
+# HTTP requests
+requests
+# Parsing of HTML listings
+htmllistparse
+# TODO: we need an fs[._]irods
+# Access to files through iRODS.
+python-irodsclient
+
+# Documentation
+sphinx
+sphinx-rtd-theme
