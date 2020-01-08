@@ -1,4 +1,14 @@
-### ScelVis Quickstart
+### SCelVis
+
+#### For the very impatient
+
+Check out
+
+- the example data in the top right `Go To` menu.
+- our [Documentation](https://scelvis.readthedocs.io/en/latest/index.html), in particular the [Tutorial](https://scelvis.readthedocs.io/en/latest/tutorial_analysis.html).
+- some example data to upload: [pbmc.h5ad](https://files.figshare.com/18037739/pbmc.h5ad), [hgmm_1k.h5ad](https://github.com/bihealth/scelvis/raw/master/examples/hgmm_1k.h5ad).
+
+#### For the impatient: Quickstart!
 
 SCelVis is a web app for the visualization and interactive exploration of single-cell transcriptomic data.
 
