@@ -2,16 +2,11 @@
 History
 =======
 
------------------
-HEAD (unreleased)
------------------
-
-- adding sphinx documentation for ReadTheDocs
-
 ------
 v0.8
 ------
 
+- adding sphinx documentation for ReadTheDocs
 - upload and convert with IFrames; increase size limit
 - add box plots
 

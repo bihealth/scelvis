@@ -31,7 +31,7 @@ SCelVis: Easy Single-Cell Visualization
 Documentation
 -------------
 
-The SCelVis documentation at `ReadTheDocs.org <https://scelvis.readthedocs.org>`_ contains comprehensive more information including a `Tutorial <https://scelvis.readthedocs.io/en/latest/tutorial_analysis.html>`_.
+The SCelVis documentation at `ReadTheDocs.org <https://scelvis.readthedocs.org>`_ contains comprehensive information including a `Tutorial <https://scelvis.readthedocs.io/en/latest/tutorial_analysis.html>`_.
 
 -----
 Movie
