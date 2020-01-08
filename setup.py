@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import os
 import os.path
 
 from setuptools import setup, find_packages
@@ -30,7 +31,11 @@ with open("HISTORY.rst") as history_file:
     history = history_file.read()
 
 test_requirements = parse_requirements("requirements/test.txt")
-install_requirements = parse_requirements("requirements/base.txt")
+# Use special requirements for RTD ("dash" instead of "dash[testing]").
+if os.environ.get("READTHEDOCS", False):
+    install_requirements = parse_requirements("requirements/rtd.txt")
+else:
+    install_requirements = parse_requirements("requirements/base.txt")
 
 setup(
     author="Benedikt Obermayer, Manuel Holtgrewe",
