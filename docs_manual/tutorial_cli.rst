@@ -5,10 +5,6 @@ Command Line Tutorial
 =====================
 
 This tutorial explains the installation of SCelVis on your own computer.
-We provide the following two example HDF5 files.
-
-- `hgmm_1k.h5ad <https://github.com/bihealth/scelvis/raw/master/examples/hgmm_1k.h5ad>`_
-- `pbmc.h5ad <https://files.figshare.com/18037739/pbmc.h5ad>`_
 
 ------------
 Installation
@@ -57,7 +53,12 @@ You can run the SCelVis Web server with ``scelvis run``.
 
 and then point your browser to http://0.0.0.0:8050/ or http://localhost:8050/.
 
-The first command will make SCelVis directly serve the given ``hgmm_1k.h5ad`` file while the second command will first download the fiel ``pbmc.h5ad`` from the given URL and then complete web server startup.
+We provide the following two example HDF5 files:
+
+- `hgmm_1k.h5ad <https://github.com/bihealth/scelvis/raw/master/examples/hgmm_1k.h5ad>`_
+- `pbmc.h5ad <https://files.figshare.com/18037739/pbmc.h5ad>`_
+
+The first command will make SCelVis directly serve the given ``hgmm_1k.h5ad`` file while the second command will first download the file ``pbmc.h5ad`` from the given URL and then complete web server startup.
 The files given as ``--data-source`` on server startup will be displayed in the top right :guilabel:`Go To` menu.
 
 ------------
@@ -82,7 +83,6 @@ FTP URLs
     e.g., ``ftp://user:password@host/path/to/data`` (sadly encryption is not supported by the underlying library `PyFilesystem2 <https://github.com/PyFilesystem/pyfilesystem2>`__.
 
 iRODS URLS
-
     e.g., ``irods://user:password@host/zoneName/path/to/data``
 
     - Enable SSL via ``irods+ssl``

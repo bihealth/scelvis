@@ -62,7 +62,7 @@ def render_controls_violin(data):
     return [
         html.Div(
             children=[
-                html.Label("select variable(s) and scaling"),
+                html.Label("select variable(s)"),
                 dcc.Dropdown(
                     id="meta_violin_select_vars",
                     options=[{"label": c, "value": c} for c in data.numerical_meta],
@@ -96,7 +96,7 @@ def render_controls_box(data):
     return [
         html.Div(
             children=[
-                html.Label("select variable(s) and scaling"),
+                html.Label("select variable(s)"),
                 dcc.Dropdown(
                     id="meta_box_select_vars",
                     options=[{"label": c, "value": c} for c in data.numerical_meta],

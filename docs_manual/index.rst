@@ -10,15 +10,11 @@ SCelVis is a web-based visualization tool for single-cell sequencing data.
 Getting Started
 ---------------
 
-- You can find the **publically available web app** at https://scelvis-demo.bihealth.org.
-  To get started with your analysis, you can follow the :ref:`tutorial_analysis`.
-- If you are a bioinformatician and interested in running your own SCelVis server, you can follow the :ref:`tutorial_cli`.
+- you can find the **publically available web app** at https://scelvis-demo.bihealth.org.
+- to get started with your analysis, follow the :ref:`tutorial_analysis`.
+- to learn how to get your own data into SCelVis, read about :ref:`tutorial_input_formats`.
+- if you are a bioinformatician and interested in running your own SCelVis server, follow the :ref:`tutorial_cli`.
 
-.. figure:: figures/scelvis_movie.gif
-    :width: 80%
-    :align: center
-
-    A short demonstration of SCelVis in action.
 
 ------------------------
 Running on your Computer
@@ -34,7 +30,7 @@ The recommended way to run SCelVis is using Docker:
 In the above, replace ``TAG`` with the latest version that you can find on the corresponding `Quay.io <https://quay.io/repository/biocontainers/scelvis?tag=latest&tab=tags>`_ project.
 For example, use ``0.7.3--py_0``.
 
-Alternatively, you can install it using ``pip``...
+Alternatively, you can install it using ``pip`` ...
 
 .. code-block:: shell
 
@@ -47,6 +43,7 @@ Alternatively, you can install it using ``pip``...
 .. code-block:: shell
 
     $ conda install scelvis
+    $ scelvis run --data-source ./data
 
 
 .. toctree::
@@ -58,6 +55,7 @@ Alternatively, you can install it using ``pip``...
 
     tutorial_analysis
     tutorial_convert
+    tutorial_input_formats
     tutorial_cli
 
 .. toctree::

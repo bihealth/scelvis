@@ -4,9 +4,6 @@
 # list see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
-import os
-import sys
-
 # -- Workaround --------------------------------------------------------------
 #
 # Workaround to install and execute git-lfs on Read the Docs
