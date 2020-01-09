@@ -2,8 +2,14 @@
 History
 =======
 
+-----------------
+HEAD (unreleased)
+-----------------
+
+- fixing iframe sources (important if running behind reverse proxy with HTTPS)
+
 ------
-v0.8
+v0.8.0
 ------
 
 - adding sphinx documentation for ReadTheDocs

@@ -45,7 +45,7 @@ def render_convert():
             html.P(
                 "Upload .zip or .tar.gz of your data, either containing CellRanger output, raw text files or a .loom file"
             ),
-            html.Iframe(src="/convert", width="400", height="250"),
+            html.Iframe(src="/convert/", width="400", height="250"),
         ]
     )
 
@@ -60,7 +60,7 @@ def render_upload():
             ),
             ")",
             html.P(),
-            html.Iframe(src="/upload", width="400", height="200"),
+            html.Iframe(src="/upload/", width="400", height="200"),
         ]
     )
 
