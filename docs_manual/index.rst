@@ -11,9 +11,9 @@ Getting Started
 ---------------
 
 - you can find the **publically available web app** at https://scelvis-demo.bihealth.org.
-- to get started with your analysis, follow the :ref:`tutorial_analysis`.
+- to get started with your analysis, watch the `Movie <https://github.com/bihealth/scelvis#Movie>`_ or follow the :ref:`tutorial_analysis`.
 - to learn how to get your own data into SCelVis, read about :ref:`tutorial_input_formats`.
-- if you are a bioinformatician and interested in running your own SCelVis server, follow the :ref:`tutorial_cli`.
+- if you are a bioinformatician and interested in running your own SCelVis server, read the :ref:`tutorial_cli`.
 
 
 ------------------------
