@@ -2,11 +2,12 @@
 History
 =======
 
------------------
-HEAD (unreleased)
------------------
+------
+v0.8.1
+------
 
 - fixing iframe sources (important if running behind reverse proxy with HTTPS)
+- link documentation on home screen
 
 ------
 v0.8.0
