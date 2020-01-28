@@ -13,7 +13,7 @@ import zipfile
 import dash
 import flask
 import uuid
-import scanpy as sc
+import anndata
 from flask import request, helpers
 from logzero import logger
 from werkzeug.utils import secure_filename
@@ -143,7 +143,7 @@ def upload_route():
         logger.info("Writing to %s", filepath)
         file.save(filepath)
         try:
-            sc.read(filepath)
+            anndata.read_h5ad(filepath)
             return """
             <!doctype html>
             <p>upload successful!</p>

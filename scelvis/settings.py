@@ -50,3 +50,12 @@ UPLOAD_DIR = None
 
 #: Whether or not to enable file upload for conversion, default is ``True``.
 CONVERSION_ENABLED = False
+
+#: various default iRODS settings
+IRODS_CLIENT_SERVER_NEGOTIATION = "request_server_negotiation"
+IRODS_CLIENT_SERVER_POLICY = "CS_NEG_REQUIRE"
+IRODS_SSL_VERIFY_SERVER = "none"
+IRODS_ENCRYPTION_ALGORITHM = "AES-256-CBC"
+IRODS_ENCRYPTION_KEY_SIZE = 32
+IRODS_ENCRYPTION_NUM_HASH_ROUNDS = 16
+IRODS_ENCRYPTION_SALT_SIZE = 8

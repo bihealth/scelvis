@@ -3,6 +3,13 @@ History
 =======
 
 ------
+v0.8.2
+------
+
+- fix iRODS authentication issues
+- update docs for .h5ad input
+
+------
 v0.8.1
 ------
 

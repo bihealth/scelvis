@@ -92,7 +92,7 @@ def create_irods_session(url):
     if "ssl" in url.scheme:
         ssl_settings = {
             "ssl_context": ssl.create_default_context(
-                purpose=ssl.Purpose.SERVER_AUTH, cafile=None, capath=None, cadata=None
+                purpose=ssl.Purpose.CLIENT_AUTH, cafile=None, capath=None, cadata=None
             )
         }
     else:
@@ -109,8 +109,15 @@ def create_irods_session(url):
         port=(url.port or 1247),
         user=url.username,
         password=url.password or "",
-        irods_authentication_scheme=irods_authentication_scheme,
         zone=(url.path or "/").split("/")[1],
+        irods_authentication_scheme=irods_authentication_scheme,
+        irods_client_server_negotiation=settings.IRODS_CLIENT_SERVER_NEGOTIATION,
+        irods_client_server_policy=settings.IRODS_CLIENT_SERVER_POLICY,
+        irods_ssl_verify_server=settings.IRODS_SSL_VERIFY_SERVER,
+        irods_encryption_algorithm=settings.IRODS_ENCRYPTION_ALGORITHM,
+        irods_encryption_key_size=settings.IRODS_ENCRYPTION_KEY_SIZE,
+        irods_encryption_num_hash_rounds=settings.IRODS_ENCRYPTION_NUM_HASH_ROUNDS,
+        irods_encryption_salt_size=settings.IRODS_ENCRYPTION_SALT_SIZE,
         **ssl_settings
     )
     query = parse_qs(url.query)

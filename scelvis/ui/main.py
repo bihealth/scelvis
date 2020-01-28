@@ -53,12 +53,14 @@ def render_convert():
 def render_upload():
     return html.Div(
         children=[
-            "upload .h5ad file here (you can convert your pipeline output to such a file using ",
+            "upload .h5ad file here (should be smaller than %.0f MB)"
+            % (int(settings.MAX_UPLOAD_DATA_SIZE) / 1.0e6),
+            html.P(),
+            "you can convert your pipeline output to such a file using ",
             html.A(
                 children=[html.I(className="fas fa-redo mr-1"), "Convert Data"],
-                href="%s/dash/convert/" % settings.PUBLIC_URL_PREFIX,
+                href="/dash/convert",
             ),
-            ")",
             html.P(),
             html.Iframe(src="/upload/", width="400", height="200"),
         ]

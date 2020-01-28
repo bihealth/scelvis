@@ -121,6 +121,13 @@ def setup_argparse(parser):
         action="append",
         help="Path to data source(s)",
     )
+
+    parser.add_argument(
+        "--public-url-prefix",
+        default=os.environ.get("SCELVIS_URL_PREFIX", ""),
+        help="The prefix that this app will be served under (e.g., if behind a reverse proxy.)",
+    )
+
     parser.add_argument(
         "--cache-dir",
         default=os.environ.get("SCELVIS_CACHE_DIR"),
@@ -143,10 +150,17 @@ def setup_argparse(parser):
         action="store_true",
         help="whether to preload data at startup",
     )
+
     parser.add_argument(
         "--upload-dir",
         default=os.environ.get("SCELVIS_UPLOAD_DIR"),
         help="Directory for visualization uploads, default is to create temporary directory",
+    )
+    parser.add_argument(
+        "--max-upload-data-size",
+        default=os.environ.get("SCELVIS_MAX_UPLOAD_DATA_SIZE", "1000000000"),
+        type=int,
+        help="Maximal size for data upload in bytes",
     )
     parser.add_argument(
         "--disable-upload",
@@ -154,12 +168,6 @@ def setup_argparse(parser):
         dest="upload_disabled",
         action="store_true",
         help="Whether or not to disable visualization uploads",
-    )
-
-    parser.add_argument(
-        "--public-url-prefix",
-        default=os.environ.get("SCELVIS_URL_PREFIX", ""),
-        help="The prefix that this app will be served under (e.g., if behind a reverse proxy.)",
     )
 
     parser.add_argument(
@@ -171,8 +179,40 @@ def setup_argparse(parser):
     )
 
     parser.add_argument(
-        "--max-upload-data-size",
-        default=os.environ.get("SCELVIS_MAX_UPLOAD_DATA_SIZE", "1000000000"),
+        "--irods-client-server-negotiation",
+        default=os.environ.get("IRODS_CLIENT_SERVER_NEGOTIATION", None),
+        help="IRODS setting",
+    )
+    parser.add_argument(
+        "--irods-client-server-policy",
+        default=os.environ.get("IRODS_CLIENT_SERVER_POLICY", None),
+        help="IRODS setting",
+    )
+    parser.add_argument(
+        "--irods-ssl-verify-server",
+        default=os.environ.get("IRODS_SSL_VERIFY_SERVER", None),
+        help="IRODS setting",
+    )
+    parser.add_argument(
+        "--irods-encryption-algorithm",
+        default=os.environ.get("IRODS_ENCRYPTION_ALGORITHM", None),
+        help="IRODS setting",
+    )
+    parser.add_argument(
+        "--irods-encryption-key-size",
+        default=os.environ.get("IRODS_ENCRYPTION_KEY_SIZE", None),
         type=int,
-        help="Maximal size for data upload in bytes",
+        help="IRODS setting",
+    )
+    parser.add_argument(
+        "--irods-encryption-num-hash-rounds",
+        default=os.environ.get("IRODS_ENCRYPTION_NUM_HASH_ROUNDS", None),
+        type=int,
+        help="IRODS setting",
+    )
+    parser.add_argument(
+        "--irods-encryption-salt-size",
+        default=os.environ.get("IRODS_ENCRYPTION_SALT_SIZE", None),
+        type=int,
+        help="IRODS setting",
     )
