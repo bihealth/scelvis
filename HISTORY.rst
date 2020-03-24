@@ -3,6 +3,13 @@ History
 =======
 
 ------
+v0.8.3
+------
+
+- allow custom markdowns for home screen
+- enable gene-gene plots and change colormap for gene scatter
+
+------
 v0.8.2
 ------
 
