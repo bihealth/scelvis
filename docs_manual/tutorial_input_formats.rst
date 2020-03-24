@@ -13,6 +13,8 @@ Information about marker genes will be taken from entries starting with ``marker
 
 If you prepared your data with ``Seurat`` (v2), you can use ``Convert(from = sobj, to = "anndata", filename = "data.h5ad")`` to get an HDF5 file.
 
+Alternatively, you can use `sceasy <https://github.com/cellgeni/sceasy>`__ to convert your objects into ``anndata`` HDF5 format.
+
 Text Input
 ==========
 

@@ -331,7 +331,7 @@ def render_plot_scatter(data, xc, yc, genelist, filters_json):
             marker={
                 "size": 3,
                 "color": maxval * ad_here.obs_vector(gene) / max(1, ad_here.obs_vector(gene).max()),
-                "colorscale": "Viridis",
+                "colorscale": "deep",
                 "colorbar": {"title": "expression", "titleside": "right"},
                 "showscale": (ng == 0),
             },

@@ -14,7 +14,7 @@ import dash
 import flask
 import uuid
 import anndata
-from flask import request, helpers
+from flask import request, helpers, send_from_directory
 from logzero import logger
 from werkzeug.utils import secure_filename
 
@@ -110,6 +110,14 @@ callbacks.register_file_upload(app)
 @app_flask.route("/")
 def redirect_root():
     return flask.redirect("%s/dash/" % settings.PUBLIC_URL_PREFIX)
+
+
+# add redirection for custom static folder
+if settings.CUSTOM_STATIC_FOLDER:
+
+    @app.server.route(os.path.join("/static", "<filename>"))
+    def custom_static_route(filename):
+        return send_from_directory(settings.CUSTOM_STATIC_FOLDER, filename)
 
 
 # Mount upload site.

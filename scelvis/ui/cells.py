@@ -27,13 +27,19 @@ def render_controls_scatter(data):
                 html.Label("select x axis"),
                 dcc.Dropdown(
                     id="meta_scatter_select_x",
-                    options=[{"label": c, "value": c} for c in data.coords + data.numerical_meta],
+                    options=[
+                        {"label": c, "value": c}
+                        for c in np.concatenate([data.coords, data.numerical_meta, data.genes])
+                    ],
                     value=data.coords[0] if len(data.coords) > 1 else data.numerical_meta[0],
                 ),
                 html.Label("select y axis"),
                 dcc.Dropdown(
                     id="meta_scatter_select_y",
-                    options=[{"label": c, "value": c} for c in data.coords + data.numerical_meta],
+                    options=[
+                        {"label": c, "value": c}
+                        for c in np.concatenate([data.coords, data.numerical_meta, data.genes])
+                    ],
                     value=data.coords[1] if len(data.coords) > 1 else data.numerical_meta[1],
                 ),
                 html.Label("select coloring"),
@@ -365,8 +371,8 @@ def render_plot_scatter(data, xc, yc, col, filters_json, select_json):
         for n, cv in enumerate(colvals):
             traces.append(
                 go.Scattergl(
-                    x=ad_here.obs[ad_here.obs[col] == cv][xc],
-                    y=ad_here.obs[ad_here.obs[col] == cv][yc],
+                    x=ad_here[ad_here.obs[col] == cv].obs_vector(xc),
+                    y=ad_here[ad_here.obs[col] == cv].obs_vector(yc),
                     text=ad_here.obs[ad_here.obs[col] == cv].index,
                     mode="markers",
                     opacity=0.7,
@@ -383,14 +389,14 @@ def render_plot_scatter(data, xc, yc, col, filters_json, select_json):
         # for numerical data, plot scatter all at once
         traces = [
             go.Scattergl(
-                x=ad_here.obs[xc],
-                y=ad_here.obs[yc],
-                text=ad_here.obs.index,
+                x=ad_here.obs_vector(xc),
+                y=ad_here.obs_vector(yc),
+                text=ad_here.obs_names,
                 mode="markers",
                 opacity=0.7,
                 marker={
                     "size": 5,
-                    "color": ad_here.obs[col],
+                    "color": ad_here.obs_vector(col),
                     "colorscale": "Viridis",
                     "colorbar": {"title": col, "titleside": "right"},
                     "showscale": True,
@@ -399,7 +405,10 @@ def render_plot_scatter(data, xc, yc, col, filters_json, select_json):
             )
         ]
 
-    plot_data = ad_here.obs[[xc, yc, col]]
+    plot_data = pd.DataFrame(
+        {xc: ad_here.obs_vector(xc), yc: ad_here.obs_vector(yc), col: ad_here.obs[col].values},
+        index=ad_here.obs_names,
+    )
     csv_string = "data:text/csv;charset=utf-8," + urllib.parse.quote(
         plot_data.to_csv(index=True, header=True, encoding="utf-8")
     )

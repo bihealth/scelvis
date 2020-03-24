@@ -13,7 +13,7 @@ dash_table
 plotly
 
 # Numpy, Pandas and friends.
-h5py !=2.10.0
+h5py 
 numpy
 pandas
 scanpy

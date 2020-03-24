@@ -23,10 +23,14 @@ def render_not_found():
 
 def render_home():
     """Return site content for the home screen."""
-    with open(os.path.join(os.path.dirname(__file__), "..", "static", "home.md")) as inputf:
+    if settings.CUSTOM_HOME_MD:
+        home_md_file = settings.CUSTOM_HOME_MD
+    else:
+        home_md_file = os.path.join(os.path.dirname(__file__), "..", "static", "home.md")
+    with open(home_md_file) as inputf:
         home_md = inputf.read()
         if settings.PUBLIC_URL_PREFIX:
-            home_md = home_md.replace("](assets", "](%s/dash/assets" % settings.PUBLIC_URL_PREFIX)
+            home_md = home_md.replace("](/static", "](%s/dash/static" % settings.PUBLIC_URL_PREFIX)
     return dbc.Row(dbc.Col(html.Div(dcc.Markdown(home_md), className="home-text")))
 
 

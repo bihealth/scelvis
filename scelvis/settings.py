@@ -51,6 +51,10 @@ UPLOAD_DIR = None
 #: Whether or not to enable file upload for conversion, default is ``True``.
 CONVERSION_ENABLED = False
 
+#: define a custom home screen and associated static folder
+CUSTOM_HOME_MD = None
+CUSTOM_STATIC_FOLDER = None
+
 #: various default iRODS settings
 IRODS_CLIENT_SERVER_NEGOTIATION = "request_server_negotiation"
 IRODS_CLIENT_SERVER_POLICY = "CS_NEG_REQUIRE"

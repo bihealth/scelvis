@@ -92,10 +92,20 @@ def run(args, parser):
     elif args.cache_dir:
         settings.CACHE_DIR = args.cache_dir
     settings.CACHE_PRELOAD_DATA = args.cache_preload_data
+    settings.CACHE_DEFAULT_TIMEOUT = args.cache_default_timeout
     settings.UPLOAD_ENABLED = not args.upload_disabled
     settings.UPLOAD_DIR = args.upload_dir
     settings.CONVERSION_ENABLED = not args.conversion_disabled
     settings.MAX_UPLOAD_DATA_SIZE = args.max_upload_data_size
+    settings.CUSTOM_HOME_MD = args.custom_home_md
+    settings.CUSTOM_STATIC_FOLDER = args.custom_static_folder
+    settings.IRODS_CLIENT_SERVER_NEGOTIATION = args.irods_client_server_negotiation
+    settings.IRODS_CLIENT_SERVER_POLICY = args.irods_client_server_policy
+    settings.IRODS_SSL_VERIFY_SERVER = args.irods_ssl_verify_server
+    settings.IRODS_ENCRYPTION_ALGORITHM = args.irods_encryption_algorithm
+    settings.IRODS_ENCRYPTION_KEY_SIZE = args.irods_encryption_key_size
+    settings.IRODS_NUM_HASH_ROUNDS = args.irods_encryption_num_hash_rounds
+    settings.IRODS_ENCRYPTION_SALT_SIZE = args.irods_encryption_salt_size
     run_cache_dir(args)
 
 
@@ -146,6 +156,7 @@ def setup_argparse(parser):
     )
     parser.add_argument(
         "--cache-preload-data",
+        dest="cache_preload_data",
         default=os.environ.get("SCELVIS_CACHE_PRELOAD_DATA", "0") not in ("", "0", "N", "n"),
         action="store_true",
         help="whether to preload data at startup",
@@ -176,6 +187,17 @@ def setup_argparse(parser):
         dest="conversion_disabled",
         action="store_true",
         help="Directory for visualization uploads, default is to create temporary directory",
+    )
+
+    parser.add_argument(
+        "--custom-home-md",
+        default=os.environ.get("SCELVIS_CUSTOM_HOME_MD", None),
+        help="Use custom markdown file for home screen",
+    )
+    parser.add_argument(
+        "--custom-static-folder",
+        default=os.environ.get("SCELVIS_CUSTOM_STATIC_FOLDER", None),
+        help="Use custom static folder for files included in home screen markdown file",
     )
 
     parser.add_argument(
