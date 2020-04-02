@@ -202,39 +202,39 @@ def setup_argparse(parser):
 
     parser.add_argument(
         "--irods-client-server-negotiation",
-        default=os.environ.get("IRODS_CLIENT_SERVER_NEGOTIATION", None),
+        default=os.environ.get("IRODS_CLIENT_SERVER_NEGOTIATION", "request_server_negotiation"),
         help="IRODS setting",
     )
     parser.add_argument(
         "--irods-client-server-policy",
-        default=os.environ.get("IRODS_CLIENT_SERVER_POLICY", None),
+        default=os.environ.get("IRODS_CLIENT_SERVER_POLICY", "CS_NEG_REQUIRE"),
         help="IRODS setting",
     )
     parser.add_argument(
         "--irods-ssl-verify-server",
-        default=os.environ.get("IRODS_SSL_VERIFY_SERVER", None),
+        default=os.environ.get("IRODS_SSL_VERIFY_SERVER", "none"),
         help="IRODS setting",
     )
     parser.add_argument(
         "--irods-encryption-algorithm",
-        default=os.environ.get("IRODS_ENCRYPTION_ALGORITHM", None),
+        default=os.environ.get("IRODS_ENCRYPTION_ALGORITHM", "AES-256-CBC"),
         help="IRODS setting",
     )
     parser.add_argument(
         "--irods-encryption-key-size",
-        default=os.environ.get("IRODS_ENCRYPTION_KEY_SIZE", None),
+        default=os.environ.get("IRODS_ENCRYPTION_KEY_SIZE", 32),
         type=int,
         help="IRODS setting",
     )
     parser.add_argument(
         "--irods-encryption-num-hash-rounds",
-        default=os.environ.get("IRODS_ENCRYPTION_NUM_HASH_ROUNDS", None),
+        default=os.environ.get("IRODS_ENCRYPTION_NUM_HASH_ROUNDS", 16),
         type=int,
         help="IRODS setting",
     )
     parser.add_argument(
         "--irods-encryption-salt-size",
-        default=os.environ.get("IRODS_ENCRYPTION_SALT_SIZE", None),
+        default=os.environ.get("IRODS_ENCRYPTION_SALT_SIZE", 8),
         type=int,
         help="IRODS setting",
     )

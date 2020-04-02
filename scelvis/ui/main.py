@@ -30,7 +30,7 @@ def render_home():
     with open(home_md_file) as inputf:
         home_md = inputf.read()
         if settings.PUBLIC_URL_PREFIX:
-            home_md = home_md.replace("](/static", "](%s/dash/static" % settings.PUBLIC_URL_PREFIX)
+            home_md = home_md.replace("](/static", "](%s/static" % settings.PUBLIC_URL_PREFIX)
     return dbc.Row(dbc.Col(html.Div(dcc.Markdown(home_md), className="home-text")))
 
 

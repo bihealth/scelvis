@@ -3,6 +3,13 @@ History
 =======
 
 ------
+v0.8.4
+------
+
+- fix bug in custom static folder route
+- fix iRODS authentication defaults
+
+------
 v0.8.3
 ------
 
