@@ -57,6 +57,7 @@ Alternatively, you can install it using ``pip`` ...
     tutorial_convert
     tutorial_input_formats
     tutorial_cli
+    tutorial_hosting
 
 .. toctree::
     :maxdepth: 1
