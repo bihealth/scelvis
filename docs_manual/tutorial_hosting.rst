@@ -129,8 +129,8 @@ We will see more of this below.
         --name traefik \
         --restart unless-stopped \
         --network web \
-        --publish 0.0.0.0:8080:80 \
-        --publish 0.0.0.0:8443:443 \
+        --publish 0.0.0.0:80:80 \
+        --publish 0.0.0.0:443:443 \
         --volume //var/run/docker.sock:/var/run/docker.sock:ro \
         --volume "$PWD/volumes/traefik/letsencrypt:/letsencrypt" \
         --label traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https \
@@ -142,7 +142,7 @@ We will see more of this below.
             --entrypoints.web.address=:80 \
             --entrypoints.websecure.address=:443 \
             --providers.docker \
-            --certificatesresolvers.le.acme.email=youremail@example.com \
+            --certificatesresolvers.le.acme.email=youremail@yourlab.org \
             --certificatesresolvers.le.acme.tlschallenge=true
         2473377fb83561b183660fadf3b04024bd4c4362aeb37c6307a98a7483b47ee6
 
@@ -216,7 +216,7 @@ We will create the data directory in your home directory, but any place will do.
     $ mkdir -p ~/scelvis-data/dataset-1/static
     $ wget -O ~/scelvis-data/dataset-1/hgmm_1k.h5ad \
         'https://github.com/bihealth/scelvis/blob/master/examples/hgmm_1k.h5ad?raw=true'
-    $ wget -O ~/scelvis-data/dataset-1/rna.png \
+    $ wget -O ~/scelvis-data/dataset-1/static/rna.png \
         'https://upload.wikimedia.org/wikipedia/commons/a/a4/Pre-mRNA-1ysv-tubes.png'
     $ cat >~/scelvis-data/dataset-1/home.md <<EOF
     ## Your first SCelVis Instance
@@ -251,16 +251,16 @@ Let us fire up a SCelVis Docker container now:
         --name scelvis-dataset-1 \
         --restart unless-stopped \
         --network web \
-        --volume /home-user/scelvis-data/dataset-1:/data:ro \
+        --volume $HOME/scelvis-data/dataset-1:/data:ro \
         --env SCELVIS_URL_PREFIX=/dataset-1 \
         --label traefik.enable=true \
         --label 'traefik.http.routers.scelvis-dataset-1.rule=Host(`scelvis.yourlab.org`) && PathPrefix(`/dataset-1`)' \
         --label traefik.http.middlewares.scelvis-dataset-1-stripprefix.stripprefix.prefixes=/dataset-1 \
         --label traefik.http.routers.scelvis-dataset-1.middlewares=scelvis-dataset-1-stripprefix,xforward \
-        --label traefik.http.routers.scelvis-1.entrypoints=websecure \
-        --label traefik.http.routers.scelvis-1.tls.certresolver=le \
+        --label traefik.http.routers.scelvis-dataset-1.entrypoints=websecure \
+        --label traefik.http.routers.scelvis-dataset-1.tls.certresolver=le \
         --label traefik.http.middlewares.xforward.headers.customrequestheaders.X-Forwarded-Proto=https \
-        --label traefik.http.services.scelvis-1.loadbalancer.server.port=8050 \
+        --label traefik.http.services.scelvis-dataset-1.loadbalancer.server.port=8050 \
         quay.io/biocontainers/scelvis:0.8.4--py_0 \
         scelvis run \
             --host 0.0.0.0 \
