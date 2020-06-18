@@ -27,6 +27,7 @@ from irods.session import iRODSSession
 from irods.ticket import Ticket
 from logzero import logger
 import numpy as np
+import scipy.sparse
 import pandas as pd
 import requests
 
@@ -283,6 +284,13 @@ def load_data(data_source, identifier):
         if len(coords) > 0:
             coords = pd.concat(coords.values(), axis=1)
             ad.obs = coords.join(ad.obs)
+        # check if ad contains raw
+        if ad.raw:
+            logger.info("found ad.raw in object, taking expression values from there")
+            ad.X = ad.raw.X
+            ad.var = ad.raw.var
+        if not scipy.sparse.issparse(ad.X):
+            logger.warn("expression matrix is not sparse! this could affect performance!")
         genes = ad.var_names
         cells = ad.obs_names
         markers = {}

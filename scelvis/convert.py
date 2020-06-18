@@ -11,6 +11,7 @@ import anndata
 import attr
 import scanpy as sc
 import scipy.sparse
+import scipy.io
 import pandas as pd
 from logzero import logger
 
@@ -290,16 +291,35 @@ class TextConverter:
             return pd.read_csv(marker_file, header=0, sep="\t")
 
     def _load_expression(self, coords, annotation, markers):
-        expression_file = os.path.join(self.args.indir, "expression.tsv.gz")
-        if not os.path.isfile(expression_file):
-            raise ScelVisException("cannot find expression file at %s" % expression_file)
-        logger.info("Reading gene expression from %s", expression_file)
-        DGE = pd.read_csv(expression_file, header=0, index_col=0, sep="\t")
+        expression_tsv = os.path.join(self.args.indir, "expression.tsv.gz")
+        expression_mtx = os.path.join(self.args.indir, "expression.mtx")
+        if os.path.isfile(expression_tsv):
+            logger.info("Reading gene expression from %s", expression_tsv)
+            DGE = pd.read_csv(expression_tsv, header=0, index_col=0, sep="\t")
+            X = scipy.sparse.csr_matrix(DGE.values.T)
+            cells = DGE.columns
+            genes = DGE.index
+        elif os.path.isfile(expression_mtx):
+            cells_tsv = os.path.join(self.args.indir, "barcodes.tsv")
+            genes_tsv = os.path.join(self.args.indir, "genes.tsv")
+            if not (os.path.isfile(cells_tsv) and os.path.isfile(genes_tsv)):
+                raise ScelVisException(
+                    "expression.mtx present at %s, but barcodes.tsv or genes.tsv is missing"
+                    % expression_tsv
+                )
+            logger.info("Reading gene expression from %s", expression_mtx)
+            X = scipy.io.mmread(expression_mtx).T.tocsr()
+            cells = pd.read_csv(cells_tsv, header=None).squeeze().values
+            genes = pd.read_csv(genes_tsv, header=None).squeeze().values
+        else:
+            raise ScelVisException(
+                "cannot find expression data at %s or %s" % (expression_tsv, expression_mtx)
+            )
         logger.info("Combining data")
         ad = sc.AnnData(
-            X=scipy.sparse.csr_matrix(DGE.values.T),
-            obs=pd.concat([coords.loc[DGE.columns], annotation.loc[DGE.columns]], axis=1),
-            var=pd.DataFrame([], index=DGE.index),
+            X=X,
+            obs=pd.concat([coords.loc[cells], annotation.loc[cells]], axis=1),
+            var=pd.DataFrame([], index=genes),
         )
         for col in markers.columns:
             ad.uns["marker_" + col] = markers[col].values

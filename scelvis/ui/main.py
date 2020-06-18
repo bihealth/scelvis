@@ -169,10 +169,18 @@ def render_footer():
                                     "SCelVis v%s by BIH CUBI" % __version__, className="text-muted"
                                 )
                             ],
-                            className="col-6",
+                            className="col-5",
                         ),
                         html.Div(
                             children=[
+                                html.A(
+                                    children=[
+                                        html.I(className="fas fa-book-open mr-1"),
+                                        "Publication",
+                                    ],
+                                    href="https://peerj.com/articles/8607/",
+                                    className="text-muted mr-3",
+                                ),
                                 html.A(
                                     children=[
                                         html.I(className="fas fa-book mr-1"),
@@ -198,7 +206,7 @@ def render_footer():
                                     className="text-muted",
                                 ),
                             ],
-                            className="col-6 text-right",
+                            className="col-7 text-right",
                         ),
                     ],
                     className="row",
