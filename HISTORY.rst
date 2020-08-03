@@ -3,6 +3,16 @@ History
 =======
 
 ------
+v0.8.5
+------
+
+- allow text import with mtx files
+- display only most frequent categories
+- use `ad.raw` if present
+- enable downsampling during conversion
+- link to publication
+
+------
 v0.8.4
 ------
 

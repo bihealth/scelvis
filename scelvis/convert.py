@@ -223,6 +223,9 @@ class CellRangerConverter:
         return ad
 
     def _write_output(self, ad):
+        if self.args.ncells:
+            logger.info("Sampling %s cells from anndata object", self.args.ncells)
+            sc.pp.subsample(ad, n_obs=self.args.ncells)
         logger.info("Saving anndata object to %s", self.args.out_file)
         ad.write(self.args.out_file)
 
@@ -327,6 +330,9 @@ class TextConverter:
         return ad
 
     def _write_output(self, ad):
+        if self.args.ncells:
+            logger.info("Sampling %s cells from anndata object", self.args.ncells)
+            sc.pp.subsample(ad, n_obs=self.args.ncells)
         logger.info("Saving anndata object to %s", self.args.out_file)
         ad.write(self.args.out_file)
 
@@ -393,6 +399,9 @@ class LoomConverter:
         return ad
 
     def _write_output(self, ad):
+        if self.args.ncells:
+            logger.info("Sampling %s cells from anndata object", self.args.ncells)
+            sc.pp.subsample(ad, n_obs=self.args.ncells)
         logger.info("Saving anndata object to %s", self.args.out_file)
         ad.write(self.args.out_file)
 
@@ -491,6 +500,9 @@ def setup_argparse(parser):
         default=10,
         type=int,
         help="Save top n markers per cluster [10]",
+    )
+    parser.add_argument(
+        "--ncells", dest="ncells", type=int, help="sample ncells cells from object [take all]"
     )
     parser.add_argument(
         "--verbose", default=False, action="store_true", help="Enable verbose output"

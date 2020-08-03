@@ -271,6 +271,15 @@ def load_data(data_source, identifier):
                 numerical_meta.append(col)
             else:
                 categorical_meta.append(col)
+                # use only the top 40 most frequent categories to avoid legend blow-up
+                if len(ad.obs[col].unique()) >= 40:
+                    logger.warn("keeping only the top 40 most frequent items in column %s", col)
+                    keep = ad.obs[col].value_counts().index[:39].astype(str)
+                    if "other" in keep:
+                        logger.warn("value 'other' already present in column %s", col)
+                    tmp = ad.obs[col].astype(str)
+                    tmp[~np.isin(tmp, keep)] = "other"
+                    ad.obs[col] = tmp.astype("category")
         # add coordinates to obs
         coords = {}
         for k in ad.obsm.keys():

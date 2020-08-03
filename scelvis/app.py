@@ -106,6 +106,7 @@ callbacks.register_run_differential_expression(app)
 # Callbacks for the file upload.
 callbacks.register_file_upload(app)
 
+
 # Add redirection for root.
 @app_flask.route("/")
 def redirect_root():
