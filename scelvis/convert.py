@@ -11,6 +11,7 @@ import anndata
 import attr
 import scanpy as sc
 import scipy.sparse
+import re
 import scipy.io
 import pandas as pd
 from logzero import logger
@@ -321,9 +322,13 @@ class TextConverter:
         logger.info("Combining data")
         ad = sc.AnnData(
             X=X,
-            obs=pd.concat([coords.loc[cells], annotation.loc[cells]], axis=1),
+            obs=annotation.loc[cells],
             var=pd.DataFrame([], index=genes),
         )
+        coords_types = set([re.sub('[-_][0-9]*$','',c).upper() for c in coords.columns])
+        for ct in coords_types:
+            ct_cols = [c for c in coords.columns if ct in c.upper()]
+            ad.obsm['X_'+ct] = coords.loc[cells, ct_cols].values
         for col in markers.columns:
             ad.uns["marker_" + col] = markers[col].values
 

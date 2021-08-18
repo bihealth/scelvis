@@ -661,8 +661,8 @@ def register_update_filter_cells_controls(app):
                     + hidden_rangeslider
                 )
             else:
-                range_min = values.min()
-                range_max = values.max()
+                range_min = values.dropna().min()
+                range_max = values.dropna().max()
                 if attribute in filters:
                     val_min = filters[attribute][0]
                     val_max = filters[attribute][1]
