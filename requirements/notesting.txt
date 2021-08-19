@@ -43,3 +43,4 @@ python-irodsclient
 # Documentation
 sphinx
 sphinx-rtd-theme
+aafigure ==0.6
