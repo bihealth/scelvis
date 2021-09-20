@@ -1,7 +1,7 @@
 # Base requirements
 
 # botocore and pyOpenSSL to avoid incompatibility errors
-botocore
+botocore==1.20.106
 pyOpenSSL
 
 # Dash and friends.
@@ -38,8 +38,9 @@ requests
 htmllistparse
 # TODO: we need an fs[._]irods
 # Access to files through iRODS.
-python-irodsclient
+python-irodsclient >= 1.0.0
 
 # Documentation
 sphinx
 sphinx-rtd-theme
+docutils < 0.17

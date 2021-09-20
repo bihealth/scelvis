@@ -3,6 +3,12 @@ History
 =======
 
 ------
+v0.8.6
+------
+
+- bug fixes for cell filtering
+
+------
 v0.8.5
 ------
 

@@ -320,15 +320,11 @@ class TextConverter:
                 "cannot find expression data at %s or %s" % (expression_tsv, expression_mtx)
             )
         logger.info("Combining data")
-        ad = sc.AnnData(
-            X=X,
-            obs=annotation.loc[cells],
-            var=pd.DataFrame([], index=genes),
-        )
-        coords_types = set([re.sub('[-_][0-9]*$','',c).upper() for c in coords.columns])
+        ad = sc.AnnData(X=X, obs=annotation.loc[cells], var=pd.DataFrame([], index=genes))
+        coords_types = set([re.sub("[-_][0-9]*$", "", c).upper() for c in coords.columns])
         for ct in coords_types:
             ct_cols = [c for c in coords.columns if ct in c.upper()]
-            ad.obsm['X_'+ct] = coords.loc[cells, ct_cols].values
+            ad.obsm["X_" + ct] = coords.loc[cells, ct_cols].values
         for col in markers.columns:
             ad.uns["marker_" + col] = markers[col].values
 

@@ -198,10 +198,13 @@ def auto_tick(data_range, max_tick=10, tf_inside=False):
             tick_size_nmlz = list_tick_size_nmlz[i - 1]
             break
     tick_size = tick_size_nmlz * scale  # tick sizse for the original data
-    ticks = (
-        np.unique(np.arange(data_range[0] / tick_size, data_range[1] / tick_size).round())
-        * tick_size
-    )  # list of ticks
+    if tick_size > 0:
+        ticks = (
+            np.unique(np.arange(data_range[0] / tick_size, data_range[1] / tick_size).round())
+            * tick_size
+        )  # list of ticks
+    else:
+        ticks = data_range[0].round()
 
     if tf_inside:  # if only allow ticks within the given range
         ticks = ticks[(ticks >= data_range[0]) * (ticks <= data_range[1])]

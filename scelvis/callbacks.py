@@ -13,6 +13,7 @@ import dash
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
 import pandas as pd
+import numpy as np
 from logzero import logger
 from werkzeug.utils import secure_filename
 
@@ -606,6 +607,7 @@ def register_update_filter_cells_controls(app):
                 + hidden_rangeslider
             )
 
+        attribute = None
         if ctx.triggered and "meta" in ctx.triggered[0]["prop_id"]:
             token = "meta"
             attribute = meta_attribute
@@ -661,8 +663,12 @@ def register_update_filter_cells_controls(app):
                     + hidden_rangeslider
                 )
             else:
-                range_min = values.dropna().min()
-                range_max = values.dropna().max()
+                if np.any(np.isnan(values)):
+                    range_min = values.dropna().min()
+                    range_max = values.dropna().max()
+                else:
+                    range_min = values.min()
+                    range_max = values.max()
                 if attribute in filters:
                     val_min = filters[attribute][0]
                     val_max = filters[attribute][1]
