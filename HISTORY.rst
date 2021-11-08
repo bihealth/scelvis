@@ -2,6 +2,12 @@
 History
 =======
 
+-----------------
+HEAD (unreleased)
+-----------------
+
+- fixing problem with ports in HTTP URLs
+
 ------
 v0.8.6
 ------
