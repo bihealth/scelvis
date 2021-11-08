@@ -2,9 +2,9 @@
 History
 =======
 
------------------
-HEAD (unreleased)
------------------
+------
+v0.8.7
+------
 
 - fixing problem with ports in HTTP URLs
 
