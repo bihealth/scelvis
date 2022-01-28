@@ -14,7 +14,7 @@ plotly
 
 # Numpy, Pandas and friends.
 h5py 
-numpy
+numpy <1.21
 pandas
 scanpy
 loompy
@@ -38,7 +38,10 @@ requests
 htmllistparse
 # TODO: we need an fs[._]irods
 # Access to files through iRODS.
-python-irodsclient >= 1.0.0
+python-irodsclient >= 1.1.0
+
+# other
+click <8.0
 
 # Documentation
 sphinx
