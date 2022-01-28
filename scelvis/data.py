@@ -50,6 +50,9 @@ def redacted_urlunparse(url, redact_with="***"):
         if netloc:
             netloc.append("@")
         netloc.append(url.hostname)
+    if url.port:
+        netloc.append(":")
+        netloc.append(str(url.port))
     url = url._replace(netloc="".join(netloc))
     return _urlunparse(url)
 
