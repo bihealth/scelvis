@@ -574,7 +574,7 @@ def render_plot_bars(data, group, split, options, filters_json):
             traces.append(tr)
 
     else:
-        splitvals = ad_here.obs[split].cat.categories
+        splitvals = ad_here.obs[split].unique()
         cm = colors.get_cm(splitvals)
 
         tally = ad_here.obs.groupby([group, split]).size()

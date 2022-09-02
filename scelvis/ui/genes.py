@@ -370,10 +370,10 @@ def render_plot_violin_box(data, pathname, plot_type, genelist, group, split, fi
 
     # select color palette
     if split is None:
-        groupvals = ad_here.obs[group].cat.categories
+        groupvals = ad_here.obs[group].unique()
         cm = colors.get_cm(groupvals)
     else:
-        splitvals = ad_here.obs[split].cat.categories
+        splitvals = ad_here.obs[split].unique()
         cm = colors.get_cm(splitvals)
 
     ngenes = len(gl)
@@ -482,7 +482,7 @@ def render_plot_dot(data, pathname, genelist, group, split, filters_json):
 
     ad_here = common.apply_filter_cells_filters(data, filters_json)
 
-    groupvals = ad_here.obs[group].cat.categories
+    groupvals = ad_here.obs[group].unique()
     ngroup = len(groupvals)
     ngenes = len(gl)
 
@@ -563,7 +563,7 @@ def render_plot_dot(data, pathname, genelist, group, split, filters_json):
         )
 
     else:
-        splitvals = ad_here.obs[split].cat.categories
+        splitvals = ad_here.obs[split].unique()
         nsplit = len(splitvals)
         traces = []
         # fix bug in pandas groupby when having more than one grouping variable
