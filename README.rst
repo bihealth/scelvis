@@ -53,15 +53,15 @@ You can install with Pip and Bioconda or run directly via Docker.
     # OR
     $ conda install scelvis
     # OR
-    $ docker run quay.io/biocontainers/scelvis:0.8.4--py_0 scelvis --help
+    $ docker run ghcr.io/bihealth/scelvis:0.8.8-0 scelvis --help
 
-Look up the latest version (instead of ``0.8.4`` to use at `here <https://quay.io/repository/biocontainers/scelvis?tab=tags>`_)
+Look up the latest version (instead of ``0.8.8-0`` to use at `here <ghcr.io/bihealth/scelvis>`_)
 
 ---------------------
 Building Docker Image
 ---------------------
 
 1. Push changes to Github (we need a [git tree-ish](https://stackoverflow.com/questions/4044368/what-does-tree-ish-mean-in-git), so a tag works as well as a feature branch).
-2. Call `GIT_TAG=tag-or-branch bash docker build/build-docker.sh`.
-3. Run with `docker run ghcr.io/bihealth/scelvis:[version]-0`.
-4. Push with `docker push ghcr.io/bihealth/scelvis:[version]-0`. 
+2. Call ``GIT_TAG=tag-or-branch bash docker/build-docker.sh``.
+3. Run with ``docker run ghcr.io/bihealth/scelvis:[version]-0``.
+4. Push with ``docker push ghcr.io/bihealth/scelvis:[version]-0``. 

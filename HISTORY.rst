@@ -3,6 +3,12 @@ History
 =======
 
 ------
+v0.8.8
+------
+
+- fixing problem with categorical data:wq
+
+------
 v0.8.7
 ------
 
