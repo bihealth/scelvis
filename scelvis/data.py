@@ -50,6 +50,9 @@ def redacted_urlunparse(url, redact_with="***"):
         if netloc:
             netloc.append("@")
         netloc.append(url.hostname)
+    if url.port:
+        netloc.append(":")
+        netloc.append(str(url.port))
     url = url._replace(netloc="".join(netloc))
     return _urlunparse(url)
 
@@ -251,7 +254,7 @@ def load_data(data_source, identifier):
     if identifier == FAKE_DATA_ID:
         return fake_data()
 
-    logger.info("Loading anndata for %s from %s", identifier, redacted_urlunparse(data_source))
+    logger.info("loading anndata for %s from %s", identifier, redacted_urlunparse(data_source))
     with download_file(data_source) as path_anndata:
         ad = anndata.read_h5ad(path_anndata)
         # Extract the meta data
@@ -280,6 +283,8 @@ def load_data(data_source, identifier):
                     tmp = ad.obs[col].astype(str)
                     tmp[~np.isin(tmp, keep)] = "other"
                     ad.obs[col] = tmp.astype("category")
+        logger.debug("numerical meta: " + ",".join(numerical_meta))
+        logger.debug("categorical meta: " + ",".join(categorical_meta))
         # add coordinates to obs
         coords = {}
         for k in ad.obsm.keys():
@@ -293,6 +298,7 @@ def load_data(data_source, identifier):
         if len(coords) > 0:
             coords = pd.concat(coords.values(), axis=1)
             ad.obs = coords.join(ad.obs)
+        logger.debug("coords: " + ",".join(list(coords.columns) if len(coords) > 0 else []))
         # check if ad contains raw
         if ad.raw:
             logger.info("found ad.raw in object, taking expression values from there")

@@ -3,8 +3,7 @@
 import os.path
 
 import dash_bootstrap_components as dbc
-import dash_core_components as dcc
-import dash_html_components as html
+from dash import dcc, html
 
 from .. import settings, store
 from ..__init__ import __version__
@@ -110,7 +109,10 @@ def render_children_goto():
     for meta in metas:
         result.append(
             dbc.DropdownMenuItem(
-                meta.short_title, id="menu-item-%s" % meta.name, href="/dash/viz/%s" % meta.name
+                meta,
+                id="menu-item-%s" % meta,
+                href="/dash/viz/%s" % meta
+                # meta.short_title, id="menu-item-%s" % meta.name, href="/dash/viz/%s" % meta.name
             )
         )
     if not metas:

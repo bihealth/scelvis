@@ -128,16 +128,18 @@ def load_all_metadata():
 
     for url in settings.DATA_SOURCES:
         if url.path.endswith(".h5ad"):
-            logger.info("Loading single dataset from data source %s", data.redacted_urlunparse(url))
+            logger.info("found single dataset at %s", data.redacted_urlunparse(url))
             identifier = fs.path.basename(url.path)[: -len(".h5ad")]
-            result.append(_load_data_cached(url, identifier).metadata)
+            # result.append(_load_data_cached(url, identifier).metadata)
+            result.append(identifier)
         else:
             lst = []
             for match in glob_data_sets(url):
                 identifier = fs.path.basename(match.path)[: -len(".h5ad")]
-                lst.append(_load_data_cached(match, identifier).metadata)
+                lst.append(identifier)
+                # lst.append(_load_data_cached(match, identifier).metadata)
             if lst:
-                logger.info("Loaded %d data sets from data directory.", len(lst))
+                logger.info("found %d data sets in data directory.", len(lst))
             else:
                 logger.warn(
                     "No data sets found in data directory %s", data.redacted_urlunparse(url)

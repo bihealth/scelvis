@@ -2,6 +2,14 @@
 History
 =======
 
+
+------
+v0.8.9
+------
+
+- avoid loading datasets just to get meta-data
+- update dash imports
+
 ------
 v0.8.8
 ------

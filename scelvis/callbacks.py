@@ -10,8 +10,9 @@ import uuid
 import json
 
 import dash
-import dash_html_components as html
+from dash import html
 from dash.dependencies import Input, Output, State
+from dash.exceptions import PreventUpdate
 import pandas as pd
 import numpy as np
 from logzero import logger
@@ -97,11 +98,7 @@ def register_page_brand(app):
         elif view == "convert":
             return [html.I(className="fas fa-redo mr-1"), "Convert Data"]
         elif view == "viz":
-            metadata = store.load_metadata(kwargs.get("dataset"))
-            if metadata:
-                return [html.I(className="fas fa-file-alt mr-1"), metadata.title]
-            else:
-                return [html.I(className="fas fa-file-alt mr-1"), "Unknown Dataset"]
+            return [html.I(className="fas fa-file-alt mr-1"), kwargs.get("dataset")]
         else:
             return [html.I(className="fas fa-file-alt mr-1"), "Not Found"]
 
@@ -150,6 +147,7 @@ def register_update_cell_scatter_plot_params(app):
             State("select_cells_selected", "children"),
             State("url", "pathname"),
         ],
+        prevent_initial_call=True,
     )
     def get_meta_plot_scatter(xc, yc, col, n_clicks, filters_json, select_json, pathname):
         _, kwargs = get_route(pathname)
@@ -162,6 +160,7 @@ def register_toggle_select_cells_controls(app):
         Output("select_cells_collapse", "is_open"),
         [Input("select_cells_button", "n_clicks")],
         [State("select_cells_collapse", "is_open")],
+        prevent_initial_call=True,
     )
     def toggle_select_cells_controls(n, is_open):
         if n:
@@ -179,6 +178,7 @@ def register_update_select_cells_selected(app):
             Input("select_cells_reset", "n_clicks"),
         ],
         [State("select_cells_selected", "children")],
+        prevent_initial_call=True,
     )
     def update_select_cells_selected(
         selectedData, n_clicks_A, n_clicks_B, n_clicks_reset, selected_json
@@ -208,6 +208,7 @@ def register_activate_select_cells_buttons(app):
             Output("select_cells_run", "disabled"),
         ],
         [Input("meta_scatter_plot", "selectedData"), Input("select_cells_selected", "children")],
+        prevent_initial_call=True,
     )
     def activate_select_cells_buttons(selectedData, selected_json):
         if selected_json is not None:
@@ -234,6 +235,7 @@ def register_run_differential_expression(app):
         ],
         [Input("select_cells_run", "n_clicks"), Input("select_cells_selected", "children")],
         [State("meta_scatter_select_color", "options"), State("url", "pathname")],
+        prevent_initial_call=True,
     )
     def run_differential_expression(n_clicks, select_json, options, pathname):
         ctx = dash.callback_context
@@ -285,6 +287,7 @@ def register_update_cell_violin_plot_params(app):
             Input("meta_filter_cells_update", "n_clicks"),
         ],
         [State("filter_cells_filters", "children"), State("url", "pathname")],
+        prevent_initial_call=True,
     )
     def get_meta_plot_violin(variables, group, split, n, filters_json, pathname):
         _, kwargs = get_route(pathname)
@@ -310,6 +313,7 @@ def register_update_cell_box_plot_params(app):
             Input("meta_filter_cells_update", "n_clicks"),
         ],
         [State("filter_cells_filters", "children"), State("url", "pathname")],
+        prevent_initial_call=True,
     )
     def get_meta_plot_box(variables, group, split, n, filters_json, pathname):
         _, kwargs = get_route(pathname)
@@ -320,7 +324,11 @@ def register_update_cell_box_plot_params(app):
 def register_update_cell_bar_chart_params(app):
     """Register handlers on bar chart and its controls."""
 
-    @app.callback(Output("meta_bar_options", "options"), [Input("meta_bar_select_split", "value")])
+    @app.callback(
+        Output("meta_bar_options", "options"),
+        [Input("meta_bar_select_split", "value")],
+        prevent_initial_call=True,
+    )
     def toggle_meta_bar_options(split):
         if split is None:
             return [{"label": "normalized", "value": "normalized"}]
@@ -381,6 +389,7 @@ def register_select_gene_list(app):
         Output("expression_marker_list", "children"),
         [Input("expression_toggle_gene_list", "value")],
         [State("url", "pathname")],
+        prevent_initial_call=True,
     )
     def toggle_marker_list(value, pathname):
         _, kwargs = get_route(pathname)
@@ -391,6 +400,7 @@ def register_select_gene_list(app):
         Output("expression_toggle_gene_list", "options"),
         [Input("select_cells_results", "children")],
         [State("expression_toggle_gene_list", "options")],
+        prevent_initial_call=True,
     )
     def activate_toggle_gene_list(diffexp_json, options):
         options[1]["disabled"] = diffexp_json is None or len(diffexp_json) == 0
@@ -415,6 +425,7 @@ def register_select_gene_list(app):
             State("select_cells_results", "children"),
             State("url", "pathname"),
         ],
+        prevent_initial_call=True,
     )
     def update_gene_selection(
         n_clicks_markers,
@@ -426,15 +437,18 @@ def register_select_gene_list(app):
         diffexp_json,
         pathname,
     ):
-        genelist = selected_genes
-        if "markers" in selected_tables:
-            _, kwargs = get_route(pathname)
-            data = store.load_data(kwargs.get("dataset"))
-            genelist += list(data.markers.iloc[rows_markers]["gene"])
-        if "diffexp" in selected_tables and diffexp_json is not None:
-            diffexp = pd.read_json(diffexp_json)
-            genelist += list(diffexp.iloc[rows_diffexp]["gene"])
-        return list(set(genelist))
+        if n_clicks_markers is None and n_clicks_diffexp is None:
+            raise PreventUpdate
+        else:
+            genelist = selected_genes
+            if "markers" in selected_tables:
+                _, kwargs = get_route(pathname)
+                data = store.load_data(kwargs.get("dataset"))
+                genelist += list(data.markers.iloc[rows_markers]["gene"])
+            if "diffexp" in selected_tables and diffexp_json is not None:
+                diffexp = pd.read_json(diffexp_json)
+                genelist += list(diffexp.iloc[rows_diffexp]["gene"])
+            return list(set(genelist))
 
 
 def register_select_gene_scatter_plot(app):
@@ -453,6 +467,7 @@ def register_select_gene_scatter_plot(app):
             Input("expression_filter_cells_update", "n_clicks"),
         ],
         [State("filter_cells_filters", "children"), State("url", "pathname")],
+        prevent_initial_call=True,
     )
     def get_expression_plot_scatter(xc, yc, genelist, n, filters_json, pathname):
         _, kwargs = get_route(pathname)
@@ -476,6 +491,7 @@ def register_select_gene_violin_plot(app):
             Input("expression_filter_cells_update", "n_clicks"),
         ],
         [State("filter_cells_filters", "children"), State("url", "pathname")],
+        prevent_initial_call=True,
     )
     def get_expression_plot_violin(genelist, group, split, n, filters_json, pathname):
         _, kwargs = get_route(pathname)
@@ -501,6 +517,7 @@ def register_select_gene_box_plot(app):
             Input("expression_filter_cells_update", "n_clicks"),
         ],
         [State("filter_cells_filters", "children"), State("url", "pathname")],
+        prevent_initial_call=True,
     )
     def get_expression_plot_box(genelist, group, split, n, filters_json, pathname):
         _, kwargs = get_route(pathname)
@@ -526,6 +543,7 @@ def register_select_gene_dot_plot(app):
             Input("expression_filter_cells_update", "n_clicks"),
         ],
         [State("filter_cells_filters", "children"), State("url", "pathname")],
+        prevent_initial_call=True,
     )
     def get_expression_plot_dot(genelist, group, split, n, filters_json, pathname):
         _, kwargs = get_route(pathname)
@@ -538,6 +556,7 @@ def register_toggle_filter_cells_controls(app, token):
         Output("%s_filter_cells_collapse" % token, "is_open"),
         [Input("%s_filter_cells_button" % token, "n_clicks")],
         [State("%s_filter_cells_collapse" % token, "is_open")],
+        prevent_initial_call=True,
     )
     def toggle_filter_cells_controls(n, is_open):
         if n:
@@ -586,15 +605,16 @@ def register_update_filter_cells_controls(app):
             Input("expression_filter_cells_reset", "n_clicks"),
         ],
         [State("filter_cells_filters", "children"), State("url", "pathname")],
+        prevent_initial_call=True,
     )
     def update_filter_cells_controls(
         meta_attribute, reset_meta, expression_attribute, reset_expression, filters_json, pathname
     ):
         _, kwargs = get_route(pathname)
         data = store.load_data(kwargs.get("dataset"))
-        hidden_slider = ({"display": "none"}, {}, None, None, None, None)
+        hidden_slider = ({"display": "none"}, {}, 0, 1, None, 0)
         hidden_checklist = ({"display": "none"}, [], None)
-        hidden_rangeslider = ({"display": "none"}, {}, None, None, None, None)
+        hidden_rangeslider = ({"display": "none"}, {}, 0, 1, None, 0)
         ctx = dash.callback_context
 
         if ctx.triggered and "reset" in ctx.triggered[0]["prop_id"]:
@@ -721,6 +741,7 @@ def register_update_filter_cells_filters(app):
             State("filter_cells_filters", "children"),
             State("url", "pathname"),
         ],
+        prevent_initial_call=True,
     )
     def update_filter_cells_filters(
         meta_ncells_value,
@@ -800,6 +821,7 @@ def register_activate_filter_cells_reset(app):
         ],
         [Input("filter_cells_filters", "children")],
         [State("url", "pathname")],
+        prevent_initial_call=True,
     )
     def activate_filter_cells_reset(filters_json, pathname):
         _, kwargs = get_route(pathname)
@@ -844,6 +866,7 @@ def register_file_upload(app):
         ],
         [Input("file-upload", "contents")],
         [State("file-upload", "filename")],
+        prevent_initial_call=True,
     )
     def file_uploaded(contents, filename):
         logger.info("Handling upload of %s", filename)
@@ -852,7 +875,6 @@ def register_file_upload(app):
         _content_type, content_string = contents.split(",")
         data_uuid = str(uuid.uuid4())
         logger.info("Data will have UUID %s", data_uuid)
-        # Decode base64 string and write out to final file.
         filepath = os.path.join(settings.UPLOAD_DIR, "%s.h5ad" % data_uuid)
         logger.info("Writing to %s", filepath)
         with open(filepath, "wb") as tmpf:
