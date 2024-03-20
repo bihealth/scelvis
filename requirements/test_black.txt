@@ -4,4 +4,4 @@
 -r test.txt
 
 # Black for formatting
-black ==18.9b0
+black ==24.3.0
